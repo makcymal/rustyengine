@@ -3,6 +3,7 @@ pub enum MatrixifiedError {
     NonSquareMatrix,
     NonThirdMatrix,
     NullDeterminant,
+    InappropriateSizes,
     InvalidIndex,
     RowBelowAcceptable,
     RowAboveAcceptable,

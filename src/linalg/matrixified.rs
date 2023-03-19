@@ -1,6 +1,7 @@
 use {
     std::{
         ops::{
+            Neg,
             Add, AddAssign,
             Sub, SubAssign,
             Mul, MulAssign,
@@ -8,12 +9,9 @@ use {
             BitXor, BitXorAssign,
         },
         iter::zip,
-        fmt::Debug,
+        fmt::{ Debug, Display },
     },
-    num_traits::{
-        Num,
-        cast::FromPrimitive,
-    },
+    num_traits::Num,
     super::enums::{
         MatrixifiedError::{self, *},
         MatrixLine::{self, *},
@@ -31,6 +29,12 @@ impl Size {
     pub fn transpose(&mut self) {
         (self.y, self.x) = (self.x, self.y);
     }
+
+    pub fn get_transposed(&self) -> Size {
+        let mut size = self.clone();
+        size.transpose();
+        size
+    }
 }
 
 impl From<(usize, usize)> for Size {
@@ -47,10 +51,13 @@ pub trait Matrixified<'iter, T, const R: usize, const C: usize>
     where T: Num + Copy + Debug
 {
     fn size(&self) -> Size;
-    fn get_row_iter(&'iter self, row: usize)
-                    -> Result<Box<dyn Iterator<Item=T> + 'iter>, MatrixifiedError>;
-    fn get_col_iter(&'iter self, col: usize)
-                    -> Result<Box<dyn Iterator<Item=T> + 'iter>, MatrixifiedError>;
+
+    fn transpose(&mut self);
+
+    fn row_iter(&'iter self, row: usize)
+                -> Result<Box<dyn Iterator<Item=T> + 'iter>, MatrixifiedError>;
+    fn col_iter(&'iter self, col: usize)
+                -> Result<Box<dyn Iterator<Item=T> + 'iter>, MatrixifiedError>;
 
     fn check_pos(&self, pos: &Pos) -> Result<(), MatrixifiedError> {
         match (pos.y < 0, self.size().y <= pos.y, pos.x < 0, self.size().x <= pos.x) {
@@ -66,7 +73,7 @@ pub trait Matrixified<'iter, T, const R: usize, const C: usize>
 
 #[derive(Debug, Clone)]
 pub struct Matrix<T, const R: usize, const C: usize>
-where T: Num + Copy + Debug
+    where T: Num + Copy + Debug
 {
     inner: [[T; C]; R],
     // default to false
@@ -78,7 +85,7 @@ where T: Num + Copy + Debug
 }
 
 impl<T, const R: usize, const C: usize> Matrix<T, R, C>
-where T: Num + Copy + Debug
+    where T: Num + Copy + Debug
 {
     pub fn zeros() -> Self {
         Matrix {
@@ -105,21 +112,22 @@ where T: Num + Copy + Debug
             })
         }
     }
-
-    pub fn transpose(&mut self) {
-        self.transposed = !self.transposed;
-        self.size.transpose();
-    }
 }
 
 impl<'iter, T, const R: usize, const C: usize> Matrixified<'iter, T, R, C> for Matrix<T, R, C>
-where T: Num + Copy + Debug
+    where T: Num + Copy + Debug
 {
     fn size(&self) -> Size {
         self.size
     }
-    fn get_row_iter(&'iter self, row: usize)
-                    -> Result<Box<dyn Iterator<Item=T> + 'iter>, MatrixifiedError>
+
+    fn transpose(&mut self) {
+        self.transposed = !self.transposed;
+        self.size.transpose();
+    }
+
+    fn row_iter(&'iter self, row: usize)
+                -> Result<Box<dyn Iterator<Item=T> + 'iter>, MatrixifiedError>
     {
         let (pos, dir, iterations) = match self.transposed {
             false => ((row, 0).into(), Row, self.size.x),
@@ -132,8 +140,8 @@ where T: Num + Copy + Debug
         }
     }
 
-    fn get_col_iter(&'iter self, col: usize)
-                    -> Result<Box<dyn Iterator<Item=T> + 'iter>, MatrixifiedError>
+    fn col_iter(&'iter self, col: usize)
+                -> Result<Box<dyn Iterator<Item=T> + 'iter>, MatrixifiedError>
     {
         let (pos, dir, iterations) = match self.transposed {
             false => ((0, col).into(), Col, self.size.y),
@@ -150,9 +158,9 @@ where T: Num + Copy + Debug
 
 #[derive(Debug)]
 // it's guaranteed that iterator is always created with valid pos
-// furthermore, next method calls can't invalidate pos
+// furthermore, next() calls can't invalidate pos
 pub struct MatrixIter<'iter, T, const R: usize, const C: usize>
-where T: Num + Copy + Debug
+    where T: Num + Copy + Debug
 {
     matrix: &'iter Matrix<T, R, C>,
     pos: Pos,
@@ -162,7 +170,7 @@ where T: Num + Copy + Debug
 }
 
 impl<'iter, T, const R: usize, const C: usize> MatrixIter<'iter, T, R, C>
-where T: Num + Copy + Debug
+    where T: Num + Copy + Debug
 {
     fn new(matrix: &'iter Matrix<T, R, C>, pos: Pos, dir: MatrixLine, iterations: usize) -> Self {
         Self { matrix, pos, dir, iterations }
@@ -170,7 +178,7 @@ where T: Num + Copy + Debug
 }
 
 impl<'iter, T, const R: usize, const C: usize> Iterator for MatrixIter<'iter, T, R, C>
-where T: Num + Copy + Debug
+    where T: Num + Copy + Debug
 {
     type Item = T;
 
@@ -193,9 +201,10 @@ where T: Num + Copy + Debug
 }
 
 
+
 #[derive(Debug, Clone)]
 pub struct Vector<T, const L: usize>
-where T: Num + Copy + Debug
+    where T: Num + Copy + Debug
 {
     inner: [T; L],
     // if false then it's row, else it's column
@@ -206,7 +215,7 @@ where T: Num + Copy + Debug
 }
 
 impl<T, const L: usize> Vector<T, L>
-where T: Num + Copy + Debug
+    where T: Num + Copy + Debug
 {
     pub fn zeros() -> Self {
         Vector {
@@ -215,21 +224,22 @@ where T: Num + Copy + Debug
             size: (1, L).into(),
         }
     }
-
-    pub fn transpose(&mut self) {
-        self.transposed = !self.transposed;
-        self.size.transpose();
-    }
 }
 
 impl<'iter, T, const L: usize> Matrixified<'iter, T, 1, L> for Vector<T, L>
-where T: Num + Copy + Debug
+    where T: Num + Copy + Debug
 {
     fn size(&self) -> Size {
         self.size
     }
-    fn get_row_iter(&'iter self, row: usize)
-                    -> Result<Box<dyn Iterator<Item=T> + 'iter>, MatrixifiedError>
+
+    fn transpose(&mut self) {
+        self.transposed = !self.transposed;
+        self.size.transpose();
+    }
+
+    fn row_iter(&'iter self, row: usize)
+                -> Result<Box<dyn Iterator<Item=T> + 'iter>, MatrixifiedError>
     {
         let (pos, dir, iterations) = match self.transposed {
             false => ((row, 0).into(), Row, self.size.x),
@@ -241,8 +251,9 @@ where T: Num + Copy + Debug
             Ok(Box::new(VectorIter::<'iter, T, L>::new(self, pos, dir, iterations)))
         }
     }
-    fn get_col_iter(&'iter self, col: usize)
-                    -> Result<Box<dyn Iterator<Item=T> + 'iter>, MatrixifiedError>
+
+    fn col_iter(&'iter self, col: usize)
+                -> Result<Box<dyn Iterator<Item=T> + 'iter>, MatrixifiedError>
     {
         let (pos, dir, iterations) = match self.transposed {
             false => ((0, col).into(), Col, self.size.y),   // here self.size.y = 1
@@ -260,7 +271,7 @@ where T: Num + Copy + Debug
 // it's guaranteed that iterator is always created with valid pos
 // furthermore, next() calls can't invalidate pos
 pub struct VectorIter<'iter, T, const L: usize>
-where T: Num + Copy + Debug
+    where T: Num + Copy + Debug
 {
     vector: &'iter Vector<T, L>,
     pos: Pos,
@@ -270,7 +281,7 @@ where T: Num + Copy + Debug
 }
 
 impl<'iter, T, const L: usize> VectorIter<'iter, T, L>
-where T: Num + Copy + Debug
+    where T: Num + Copy + Debug
 {
     fn new(vector: &'iter Vector<T, L>, pos: Pos, dir: MatrixLine, iterations: usize) -> Self {
         Self { vector, pos, dir, iterations }
@@ -278,7 +289,7 @@ where T: Num + Copy + Debug
 }
 
 impl<'iter, T, const L: usize> Iterator for VectorIter<'iter, T, L>
-where T: Num + Copy + Debug
+    where T: Num + Copy + Debug
 {
     type Item = T;
 
@@ -296,5 +307,41 @@ where T: Num + Copy + Debug
         // the only place where this counter changes
         self.iterations -= 1;
         Some(item)
+    }
+}
+
+
+#[inline(always)]
+// returns whether dyn Matrixified was transposed relying on const generics and size() impl
+fn is_transposed(original_size: Size, actual_size: Size) -> bool {
+    assert!(original_size == actual_size || original_size == actual_size.get_transposed());
+    if original_size == actual_size {
+        false
+    } else { true }
+}
+
+impl<'iter, T, const R: usize, const C: usize> Add for &'iter dyn Matrixified<'iter, T, R, C>
+    where T: Num + Copy + Debug + 'static
+{
+    type Output = Result<Matrix<T, R, C>, MatrixifiedError>;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        if self.size() != rhs.size() {
+            return Err(InappropriateSizes);
+        }
+
+        let mut sum = Matrix::<T, R, C>::zeros();
+        if is_transposed((R, C).into(), self.size()) {
+            sum.transpose();
+        }
+
+        for row in 0..sum.size().y {
+            let mut lhs_iter = self.row_iter(row).unwrap();
+            let mut rhs_iter = rhs.row_iter(row).unwrap();
+            for (col, item) in zip(lhs_iter, rhs_iter).map(|(a, b)| a + b).enumerate() {
+                sum.inner[row][col] = item;
+            }
+        }
+        Ok(sum)
     }
 }
