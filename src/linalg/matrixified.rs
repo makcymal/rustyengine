@@ -59,6 +59,9 @@ pub trait Matrixified<'iter, T, const R: usize, const C: usize>
     fn col_iter(&'iter self, col: usize)
                 -> Result<Box<dyn Iterator<Item=T> + 'iter>, MatrixifiedError>;
 
+    fn row_iter_mut(&'iter self, row: usize)
+                -> Result<Box<dyn Iterator<Item=&mut T> + 'iter>, MatrixifiedError>;
+
     fn check_pos(&self, pos: &Pos) -> Result<(), MatrixifiedError> {
         match (pos.y < 0, self.size().y <= pos.y, pos.x < 0, self.size().x <= pos.x) {
             (false, false, false, false) => Ok(()),
@@ -153,6 +156,10 @@ impl<'iter, T, const R: usize, const C: usize> Matrixified<'iter, T, R, C> for M
             Ok(Box::new(MatrixIter::<'iter, T, R, C>::new(self, pos, dir, iterations)))
         }
     }
+
+    fn row_iter_mut(&'iter self, row: usize) -> Result<Box<dyn Iterator<Item=&mut T> + 'iter>, MatrixifiedError> {
+        todo!()
+    }
 }
 
 
@@ -199,6 +206,49 @@ impl<'iter, T, const R: usize, const C: usize> Iterator for MatrixIter<'iter, T,
         Some(item)
     }
 }
+
+
+pub struct MatrixIterMut<'iter, T, const R: usize, const C: usize>
+    where T: Num + Copy + Debug
+{
+    matrix: &'iter mut Matrix<T, R, C>,
+    pos: Pos,
+    dir: MatrixLine,
+    // how many times next() can be called
+    iterations: usize,
+}
+
+impl<'iter, T, const R: usize, const C: usize> MatrixIterMut<'iter, T, R, C>
+    where T: Num + Copy + Debug
+{
+    fn new(matrix: &'iter mut Matrix<T, R, C>, pos: Pos, dir: MatrixLine, iterations: usize) -> Self {
+        Self { matrix, pos, dir, iterations }
+    }
+}
+
+impl<'iter, 'item, T, const R: usize, const C: usize> Iterator for MatrixIterMut<'iter, T, R, C>
+    where T: Num + Copy + Debug
+{
+    type Item = &'iter mut T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        // since matrix can't be borrowed mutably while iterator lives such a checks make sense
+        if self.iterations == 0 {
+            return None;
+        }
+
+        let item = self.matrix.inner[self.pos.y][self.pos.x].get_mut();
+        match self.dir {
+            Row => self.pos.x += 1,
+            Col => self.pos.y += 1,
+        };
+
+        // the only place where this counter changes
+        self.iterations -= 1;
+        Some(item)
+    }
+}
+
 
 
 
@@ -264,6 +314,10 @@ impl<'iter, T, const L: usize> Matrixified<'iter, T, 1, L> for Vector<T, L>
         } else {
             Ok(Box::new(VectorIter::<'iter, T, L>::new(self, pos, dir, iterations)))
         }
+    }
+
+    fn row_iter_mut(&'iter self, row: usize) -> Result<Box<dyn Iterator<Item=&mut T> + 'iter>, MatrixifiedError> {
+        todo!()
     }
 }
 
@@ -345,3 +399,15 @@ impl<'iter, T, const R: usize, const C: usize> Add for &'iter dyn Matrixified<'i
         Ok(sum)
     }
 }
+
+// impl<'iter, T, const R: usize, const C: usize> Neg for &mut dyn Matrixified<'iter, T, R, C>
+//     where T: Num + Copy + Debug + 'static
+// {
+//     type Output = Self;
+//
+//     fn neg(self) -> Self::Output {
+//         for row in 0..self.size().y {
+//             let mut row_iter = self.row_iter(row).unwrap();
+//         }
+//     }
+// }
