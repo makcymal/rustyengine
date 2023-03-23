@@ -1,8 +1,9 @@
 #[derive(Debug, PartialEq)]
-pub enum MatrixifiedError {
+pub enum MatrixError {
     NonSquareMatrix,
     NonThirdMatrix,
-    NullDeterminant,
+    ZeroDeterminant,
+    UnknownDeterminant,
     InappropriateSizes,
     InvalidIndex,
     RowBelowAcceptable,
@@ -16,3 +17,4 @@ pub enum MatrixLine {
     Row,
     Col,
 }
+
