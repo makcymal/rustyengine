@@ -2,12 +2,9 @@
 
 #[cfg(test)]
 mod tests;
-mod linalg;
+mod vecspace;
 mod globals;
 
-use linalg::matrix::Matrix;
+use vecspace::matrixified::*;
 
-fn main() {
-    let mut m = Matrix::<i8>::ones((3, 3).into()).unwrap();
-    dbg!(m.norm());
-}
+fn main() {}

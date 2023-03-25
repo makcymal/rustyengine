@@ -1,5 +1,5 @@
 #[derive(Debug, PartialEq)]
-pub enum MatrixError {
+pub enum MatrixifiedError {
     NonSquareMatrix,
     NonThirdMatrix,
     ZeroDeterminant,
@@ -16,5 +16,11 @@ pub enum MatrixError {
 pub enum MatrixLine {
     Row,
     Col,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum Sign {
+    Plus,
+    Minus,
 }
 
