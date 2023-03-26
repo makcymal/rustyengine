@@ -12,7 +12,6 @@ use {
             MatrixifiedError::{self, *},
             Sign,
             Ops,
-            MatrixifiedTypes,
         },
     },
 };
@@ -29,6 +28,7 @@ pub trait Matrixified {
     fn elem(&self, _: (usize, usize)) -> &Self::Elem;
     fn elem_mut(&mut self, _: (usize, usize)) -> &mut Self::Elem;
     fn norm(&self) -> f64;
+    fn as_vector(self) -> Result<Vector<Self::Elem>, MatrixifiedError>;
 
     fn allow_add(&self, rhs: &impl Matrixified) -> Result<(), MatrixifiedError> {
         match self.size() == rhs.size() {
@@ -38,37 +38,37 @@ pub trait Matrixified {
     }
 
     fn allow_mul(&self, rhs: &impl Matrixified) -> Result<(), MatrixifiedError> {
-        match self.size.x == rhs.size.y {
+        match self.size().x == rhs.size().y {
             true => Ok(()),
             false => Err(InappropriateSizes),
         }
     }
 
-    fn m_add_assign(&mut self, rhs: &impl Matrixified<Elem=Self::Elem>, rhs_sign: Sign)
-    where Self::Elem: Num
+    fn m_add(&self, rhs: &impl Matrixified<Elem=Self::Elem>, sign: Sign)
+             -> Result<Matrix<Self::Elem>, MatrixifiedError>
+        where Self::Elem: Num
     {
-        assert_eq!(self.size(), rhs.size());
+        self.allow_add(rhs)?;
 
+        let mut output = Matrix::zeros(self.size());
         for row in 0..self.size().y {
             for col in 0..self.size().x {
-                match rhs_sign {
-                    Sign::Plus => self.elem((row, col)) += *rhs.elem((row, col)),
-                    Sign::Minus => self.elem((row, col)) -= *rhs.elem((row, col)),
+                output[(row, col)] = match sign {
+                    Sign::Plus => *self.elem((row, col)) + *rhs.elem((row, col)),
+                    Sign::Minus => *self.elem((row, col)) - *rhs.elem((row, col)),
                 };
             }
         }
+        Ok(output)
     }
 
-    fn m_mul(&self, rhs: &impl Matrixified<Elem=Self::Elem>)
-             -> Result<Matrix<Self::Elem>, MatrixifiedError> where Self::Elem: Num
-    {
-        let output_size;
-        if self.size().x == rhs.size().y {
-            output_size = (self.size().y, rhs.size().x).into();
-        } else {
-            return Err(InappropriateSizes);
-        }
 
+    fn m_mul(&self, rhs: &impl Matrixified<Elem=Self::Elem>)
+             -> Result<Matrix<Self::Elem>, MatrixifiedError>
+        where Self::Elem: Num
+    {
+        self.allow_mul(rhs)?;
+        let output_size = (self.size().y, rhs.size().x).into();
         let mut output = Matrix::zeros(output_size);
 
         for row in 0..output_size.y {
@@ -79,17 +79,34 @@ pub trait Matrixified {
         Ok(output)
     }
 
-    fn m_assign_by_num(&mut self, num: Self::Elem, op: Ops)
-    where Self::Elem: Num
-    {
+    fn a(&mut self, num: Self::Elem) where Self::Elem: Num {
         for r in 0..self.size().y {
             for c in 0..self.size().x {
-                match op {
-                    Ops::Add => *self.elem_mut((r, c)) += num,
-                    Ops::Sub => *self.elem_mut((r, c)) -= num,
-                    Ops::Mul => *self.elem_mut((r, c)) *= num,
-                    Ops::Div => *self.elem_mut((r, c)) /= num,
-                }
+                *self.elem_mut((r, c)) += num;
+            }
+        }
+    }
+
+    fn s(&mut self, num: Self::Elem) where Self::Elem: Num {
+        for r in 0..self.size().y {
+            for c in 0..self.size().x {
+                *self.elem_mut((r, c)) -= num;
+            }
+        }
+    }
+
+    fn m(&mut self, num: Self::Elem) where Self::Elem: Num {
+        for r in 0..self.size().y {
+            for c in 0..self.size().x {
+                *self.elem_mut((r, c)) *= num;
+            }
+        }
+    }
+
+    fn d(&mut self, num: Self::Elem) where Self::Elem: Num {
+        for r in 0..self.size().y {
+            for c in 0..self.size().x {
+                *self.elem_mut((r, c)) /= num;
             }
         }
     }
@@ -214,7 +231,7 @@ impl<T: Num> Matrix<T> {
 
 impl<T: Num> Matrixified for Matrix<T> {
     type Elem = T;
-    
+
     fn zeros(initial_size: Pair) -> Self {
         Self {
             inner: vec![vec![T::zero(); initial_size.x]; initial_size.y],
@@ -273,6 +290,21 @@ impl<T: Num> Matrixified for Matrix<T> {
             .sum::<f64>()
             .sqrt()
     }
+
+    fn as_vector(mut self) -> Result<Vector<T>, MatrixifiedError> {
+        if self.actual_size.y != 1 && self.actual_size.x != 1 {
+            return Err(NotAVector);
+        }
+        if self.actual_size.is_vertical() {
+            self.transpose();
+        }
+
+        let mut output = Vector::zeros(self.actual_size);
+        for col in 0..self.actual_size.x {
+            output[(1, col)] = self[(1, col)];
+        }
+        Ok(output)
+    }
 }
 
 
@@ -295,7 +327,7 @@ impl<T: Num> Neg for Matrix<T> {
     type Output = Self;
 
     fn neg(mut self) -> Self::Output {
-        self.m_assign_by_num(-T::one(), Ops::Mul);
+        self.m(-T::one());
         self
     }
 }
@@ -303,39 +335,39 @@ impl<T: Num> Neg for Matrix<T> {
 
 // binary operators
 
-// Matrix + [Matrix | Vector | Number] = Matrix
-impl<T: Num, R: MatrixifiedRhs> Add<&R> for &Matrix<T> {
+// Matrix + [Matrix | Vector] = Matrix
+impl<T: Num, M: Matrixified<Elem=T>> Add<&M> for &Matrix<T> {
     type Output = Result<Matrix<T>, MatrixifiedError>;
 
-    fn add(self, rhs: &R) -> Self::Output {
-        rhs.add_matrix(self)
+    fn add(self, rhs: &M) -> Self::Output {
+        self.m_add(rhs, Sign::Plus)
     }
 }
 
-// Matrix - [Matrix | Vector | Number] = Matrix
-impl<T: Num, R: MatrixifiedRhs> Sub<&R> for &Matrix<T> {
+// Matrix - [Matrix | Vector] = Matrix
+impl<T: Num, M: Matrixified<Elem=T>> Sub<&M> for &Matrix<T> {
     type Output = Result<Matrix<T>, MatrixifiedError>;
 
-    fn sub(self, rhs: &R) -> Self::Output {
-        rhs.sub_matrix(self)
+    fn sub(self, rhs: &M) -> Self::Output {
+        self.m_add(rhs, Sign::Minus)
     }
 }
 
-// Matrix * [Matrix | Vector | Number] = Matrix
-impl<T: Num, R: MatrixifiedRhs> Mul<&R> for &Matrix<T> {
+// Matrix * [Matrix | Vector] = Matrix
+impl<T: Num, M: Matrixified<Elem=T>> Mul<&M> for &Matrix<T> {
     type Output = Result<Matrix<T>, MatrixifiedError>;
 
-    fn mul(self, rhs: &R) -> Self::Output {
-        rhs.mul_matrix(self)
+    fn mul(self, rhs: &M) -> Self::Output {
+        self.m_mul(rhs)
     }
 }
 
-// Matrix / [Matrix | Number] = Matrix
-impl<T: Num, R: MatrixifiedRhs> Div<&R> for &Matrix<T> {
+// Matrix / Matrix = Matrix
+impl<T: Num> Div for &Matrix<T> {
     type Output = Result<Matrix<T>, MatrixifiedError>;
 
-    fn div(self, rhs: &R) -> Self::Output {
-        rhs.div_matrix(self)
+    fn div(self, rhs: Self) -> Self::Output {
+        self.mul(&(rhs.inverse()?))
     }
 }
 
@@ -360,7 +392,7 @@ impl<T: Num> Vector<T> {
 
 impl<T: Num> Matrixified for Vector<T> {
     type Elem = T;
-    
+
     // size should looks like Pair { x: length, y: 1 }
     fn zeros(initial_size: Pair) -> Self {
         assert_eq!(initial_size.y, 1);
@@ -421,6 +453,10 @@ impl<T: Num> Matrixified for Vector<T> {
             .sum::<f64>()
             .sqrt()
     }
+
+    fn as_vector(self) -> Result<Vector<T>, MatrixifiedError> {
+        Ok(self)
+    }
 }
 
 
@@ -443,7 +479,7 @@ impl<T: Num> Neg for Vector<T> {
     type Output = Self;
 
     fn neg(mut self) -> Self::Output {
-        self.m_assign_by_num(-T::one(), Ops::Mul);
+        self.m(-T::one());
         self
     }
 }
@@ -451,182 +487,31 @@ impl<T: Num> Neg for Vector<T> {
 
 // binary operators
 
-// Vector + [Matrix | Vector | Number] = Vector
-impl<T: Num, R: MatrixifiedRhs> Add<&R> for &Vector<T> {
+// Vector + [Matrix | Vector] = Vector
+impl<T: Num, M: Matrixified<Elem=T>> Add<&M> for &Vector<T> {
     type Output = Result<Vector<T>, MatrixifiedError>;
 
-    fn add(self, rhs: &R) -> Self::Output {
-        rhs.add_vector(self)
+    fn add(self, rhs: &M) -> Self::Output {
+        self.m_add(rhs, Sign::Plus)?.as_vector()
     }
 }
 
-// Vector - [Matrix | Vector | Number] = Vector
-impl<T: Num, R: MatrixifiedRhs> Sub<&R> for &Vector<T> {
+// Vector - [Matrix | Vector] = Vector
+impl<T: Num, M: Matrixified<Elem=T>> Sub<&M> for &Vector<T> {
     type Output = Result<Vector<T>, MatrixifiedError>;
 
-    fn sub(self, rhs: &R) -> Self::Output {
-        rhs.sub_vector(self)
+    fn sub(self, rhs: &M) -> Self::Output {
+        self.m_add(rhs, Sign::Minus)?.as_vector()
     }
 }
 
-// Vector * [Matrix | Vector | Number] = Matrix
-impl<T: Num, R: MatrixifiedRhs> Mul<&R> for &Vector<T> {
-    type Output = Result<impl Matrixified<Elem=T>, MatrixifiedError>;
+// Vector * [Matrix | Vector] = Matrix
+impl<T: Num, M: Matrixified<Elem=T>> Mul<&M> for &Vector<T> {
+    type Output = Result<Matrix<T>, MatrixifiedError>;
 
-    fn mul(self, rhs: &R) -> Self::Output {
-        rhs.mul_vector(self)
-    }
-}
-
-// Vector / [Matrix | Number] = Matrix
-impl<T: Num, R: MatrixifiedRhs> Div<&R> for &Vector<T> {
-    type Output = Result<impl Matrixified<Elem=T>, MatrixifiedError>;
-
-    fn div(self, rhs: &R) -> Self::Output {
-        rhs.div_vector(self)
+    fn mul(self, rhs: &M) -> Self::Output {
+        self.m_mul(rhs)
     }
 }
 
 // Vector >>>
-
-
-// <<< MatrixifiedRhs
-
-// allow implementors by used on rhs of binary ops with Matrixified implementors
-pub trait MatrixifiedRhs {
-    type Elem;
-
-    // Matrix + [Matrix | Vector | Number] = Matrix
-    fn add_matrix(&self, lhs: &Matrix<T>) -> Result<Matrix<Self::Elem>, MatrixifiedError>;
-
-    // Matrix - [Matrix | Vector | Number] = Matrix
-    fn sub_matrix(&self, lhs: &Matrix<T>) -> Result<Matrix<Self::Elem>, MatrixifiedError>;
-
-    // Matrix * [Matrix | Vector | Number] = Matrix
-    fn mul_matrix(&self, lhs: &Matrix<T>) -> Result<Matrix<Self::Elem>, MatrixifiedError>;
-
-    // Matrix / [Matrix | Vector | Number] = [Matrix | Err | Matrix]
-    fn div_matrix(&self, lhs: &Matrix<T>) -> Result<Matrix<Self::Elem>, MatrixifiedError>;
-
-    // Vector + [Matrix | Vector | Number] = Vector
-    fn add_vector(&self, lhs: &Vector<T>) -> Result<Vector<Self::Elem>, MatrixifiedError>;
-
-    // Vector - [Matrix | Vector | Number] = Vector
-    fn sub_vector(&self, lhs: &Vector<T>) -> Result<Vector<Self::Elem>, MatrixifiedError>;
-
-    // Vector * [Matrix | Vector | Number] = Matrix
-    fn mul_vector(&self, lhs: &Vector<T>) -> Result<Matrix<Self::Elem>, MatrixifiedError>;
-
-    // Vector / [Matrix | Vector | Number] = [Err | Err | Vector]
-    fn div_vector(&self, lhs: &Vector<T>) -> Result<(), MatrixifiedError>;
-}
-
-impl<T: Num> MatrixifiedRhs for Matrix<T> {
-    type Elem = T;
-
-    fn add_matrix(&self, lhs: &Matrix<T>) -> Result<Matrix<Self::Elem>, MatrixifiedError> {
-        todo!()
-    }
-
-    fn sub_matrix(&self, lhs: &Matrix<T>) -> Result<Matrix<Self::Elem>, MatrixifiedError> {
-        todo!()
-    }
-
-    fn mul_matrix(&self, lhs: &Matrix<T>) -> Result<Matrix<Self::Elem>, MatrixifiedError> {
-        todo!()
-    }
-
-    fn div_matrix(&self, lhs: &Matrix<T>) -> Result<Matrix<Self::Elem>, MatrixifiedError> {
-        todo!()
-    }
-
-    fn add_vector(&self, lhs: &Vector<T>) -> Result<Vector<Self::Elem>, MatrixifiedError> {
-        todo!()
-    }
-
-    fn sub_vector(&self, lhs: &Vector<T>) -> Result<Vector<Self::Elem>, MatrixifiedError> {
-        todo!()
-    }
-
-    fn mul_vector(&self, lhs: &Vector<T>) -> Result<Matrix<Self::Elem>, MatrixifiedError> {
-        todo!()
-    }
-
-    fn div_vector(&self, lhs: &Vector<T>) -> Result<(), MatrixifiedError> {
-        todo!()
-    }
-}
-
-impl<T: Num> MatrixifiedRhs for Vector<T> {
-    type Elem = T;
-
-    fn add_matrix(&self, lhs: &Matrix<T>) -> Result<Matrix<Self::Elem>, MatrixifiedError> {
-        todo!()
-    }
-
-    fn sub_matrix(&self, lhs: &Matrix<T>) -> Result<Matrix<Self::Elem>, MatrixifiedError> {
-        todo!()
-    }
-
-    fn mul_matrix(&self, lhs: &Matrix<T>) -> Result<Matrix<Self::Elem>, MatrixifiedError> {
-        todo!()
-    }
-
-    fn div_matrix(&self, lhs: &Matrix<T>) -> Result<Matrix<Self::Elem>, MatrixifiedError> {
-        todo!()
-    }
-
-    fn add_vector(&self, lhs: &Vector<T>) -> Result<Vector<Self::Elem>, MatrixifiedError> {
-        todo!()
-    }
-
-    fn sub_vector(&self, lhs: &Vector<T>) -> Result<Vector<Self::Elem>, MatrixifiedError> {
-        todo!()
-    }
-
-    fn mul_vector(&self, lhs: &Vector<T>) -> Result<Matrix<Self::Elem>, MatrixifiedError> {
-        todo!()
-    }
-
-    fn div_vector(&self, lhs: &Vector<T>) -> Result<(), MatrixifiedError> {
-        todo!()
-    }
-}
-
-impl<T: Num> MatrixifiedRhs for T {
-    type Elem = T;
-
-    fn add_matrix(&self, lhs: &Matrix<T>) -> Result<Matrix<Self::Elem>, MatrixifiedError> {
-        todo!()
-    }
-
-    fn sub_matrix(&self, lhs: &Matrix<T>) -> Result<Matrix<Self::Elem>, MatrixifiedError> {
-        todo!()
-    }
-
-    fn mul_matrix(&self, lhs: &Matrix<T>) -> Result<Matrix<Self::Elem>, MatrixifiedError> {
-        todo!()
-    }
-
-    fn div_matrix(&self, lhs: &Matrix<T>) -> Result<Matrix<Self::Elem>, MatrixifiedError> {
-        todo!()
-    }
-
-    fn add_vector(&self, lhs: &Vector<T>) -> Result<Vector<Self::Elem>, MatrixifiedError> {
-        todo!()
-    }
-
-    fn sub_vector(&self, lhs: &Vector<T>) -> Result<Vector<Self::Elem>, MatrixifiedError> {
-        todo!()
-    }
-
-    fn mul_vector(&self, lhs: &Vector<T>) -> Result<Matrix<Self::Elem>, MatrixifiedError> {
-        todo!()
-    }
-
-    fn div_vector(&self, lhs: &Vector<T>) -> Result<(), MatrixifiedError> {
-        todo!()
-    }
-}
-
-// MatrixifiedRhs >>>

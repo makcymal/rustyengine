@@ -7,6 +7,8 @@ pub enum MatrixifiedError {
     InappropriateSizes,
     InvalidIndex,
     DivByVector,
+    NotAVector,
+    ZeroDivision,
 }
 
 #[derive(Debug, PartialEq)]

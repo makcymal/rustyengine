@@ -23,6 +23,10 @@ impl Pair {
     pub fn in_rect(&self, rtc: Self) -> bool {
         0 <= self.x && self.x < rtc.x && 0 <= self.y && self.y < rtc.y
     }
+
+    pub fn is_vertical(&self) -> bool {
+        self.y > self.x
+    }
 }
 
 impl From<(usize, usize)> for Pair {
