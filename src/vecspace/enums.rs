@@ -6,10 +6,7 @@ pub enum MatrixifiedError {
     UnknownDeterminant,
     InappropriateSizes,
     InvalidIndex,
-    RowBelowAcceptable,
-    RowAboveAcceptable,
-    ColBelowAcceptable,
-    ColAboveAcceptable,
+    DivByVector,
 }
 
 #[derive(Debug, PartialEq)]
@@ -22,5 +19,13 @@ pub enum MatrixLine {
 pub enum Sign {
     Plus,
     Minus,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum Ops {
+    Add,
+    Sub,
+    Mul,
+    Div,
 }
 
