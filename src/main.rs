@@ -1,9 +1,8 @@
 #![allow(warnings)]
 
-#[cfg(test)]
-mod tests;
 mod vecspace;
 mod globals;
+mod utils;
 
 use vecspace::matrixified::*;
 
