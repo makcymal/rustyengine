@@ -3,11 +3,31 @@ use {
         ops::Neg,
         iter::Sum,
     },
-    num_traits as nt,
+    num::{
+        Float as NotInt, Integer as Int, Zero,
+        traits as nt,
+    },
 };
 
-pub trait Num: nt::Num + nt::NumAssign + Into<f64> + Copy + Sum + Neg<Output=Self> {}
-impl<T: nt::Num + nt::NumAssign + Into<f64> + Copy + Sum + Neg<Output=Self>> Num for T {}
+pub trait Eps {
+    fn eps() -> Self;
+}
+
+impl Eps for f64 {
+    fn eps() -> Self {
+        f64::epsilon() * 10.0
+    }
+}
+
+impl Eps for i8 {
+    fn eps() -> Self {
+        0
+    }
+}
+
+
+pub trait Num: nt::Num + nt::NumAssign + Into<f64> + Copy + Sum + Neg<Output=Self> + PartialOrd + Eps {}
+impl<T: nt::Num + nt::NumAssign + Into<f64> + Copy + Sum + Neg<Output=Self> + PartialOrd + Eps> Num for T {}
 
 
 #[derive(Debug, Clone, Copy)]

@@ -1,14 +1,15 @@
 use {
     crate::{
+        globals::{CNT,},
+        utils::{
+            Eps, Num, Size, pow_minus,
+        },
         vecspace::{
             enums::{
                 MatrixifiedError::{self, *},
-                Ops,
                 Sign,
+                MatrixType,
             },
-        },
-        utils::{
-            Num, Size, pow_minus,
         },
     },
     std::{
@@ -39,7 +40,7 @@ pub trait Matrixified {
         }
         for row in 0..self.size().rows() {
             for col in 0..self.size().cols() {
-                if self.elem((row, col)) != other.elem((row, col)) {
+                if *self.elem((row, col)) - *other.elem((row, col)) > Self::Elem::eps() {
                     return false;
                 }
             }
@@ -157,6 +158,18 @@ impl<T: Num> Matrix<T> {
         }
     }
 
+    pub fn identity_third() -> Self {
+        Self {
+            inner: vec![vec![T::one(), T::zero(), T::zero()],
+                        vec![T::zero(), T::one(), T::zero()],
+                        vec![T::zero(), T::zero(), T::one()]],
+            transposed: false,
+            determinant: Some(T::one()),
+            initial_size: Size::Rect((3, 3)),
+            actual_size: Size::Rect((3, 3)),
+        }
+    }
+
     pub fn identity(initial_size: Size) -> Result<Self, MatrixifiedError> {
         if initial_size.rows() != initial_size.cols() {
             return Err(NonSquareMatrix);
@@ -245,12 +258,16 @@ impl<T: Num> Matrix<T> {
         }
 
         let mut minor = T::zero();
+        let mut j = 0;
         for col in 0..self.initial_size.cols() {
-            let mut j = 0;
             if cols[col] {
+                if -T::eps() <= self.inner[row][col] && self.inner[row][col] <= T::eps() {
+                    continue
+                }
                 cols[col] = false;
                 minor += pow_minus::<T>(j) * self.inner[row][col] * self.minor(rows, cols);
                 cols[col] = true;
+                j += 1;
             }
         }
         rows[row] = true;
@@ -604,3 +621,36 @@ impl<T: Num, M: Matrixified<Elem=T>> Mul<&M> for &Vector<T> {
 }
 
 // Vector >>>
+
+pub fn common_matrix(m_type: MatrixType) -> Matrix<CNT> {
+    let inner = match m_type {
+        MatrixType::Identity => vec![vec![1 as CNT, 0 as CNT, 0 as CNT],
+                                     vec![0 as CNT, 1 as CNT, 0 as CNT],
+                                     vec![0 as CNT, 0 as CNT, 1 as CNT]],
+        MatrixType::NegIdentity => vec![vec![-1 as CNT, 0 as CNT, 0 as CNT],
+                                        vec![0 as CNT, -1 as CNT, 0 as CNT],
+                                        vec![0 as CNT, 0 as CNT, -1 as CNT]],
+        MatrixType::RevIdentity => vec![vec![0 as CNT, 0 as CNT, 1 as CNT],
+                                        vec![0 as CNT, 1 as CNT, 0 as CNT],
+                                        vec![1 as CNT, 0 as CNT, 0 as CNT]],
+        MatrixType::NegRevIdentity => vec![vec![0 as CNT, 0 as CNT, -1 as CNT],
+                                           vec![0 as CNT, -1 as CNT, 0 as CNT],
+                                           vec![-1 as CNT, 0 as CNT, 0 as CNT]],
+        MatrixType::Cross => vec![vec![1 as CNT, 0 as CNT, 1 as CNT],
+                                  vec![0 as CNT, 1 as CNT, 0 as CNT],
+                                  vec![1 as CNT, 0 as CNT, 1 as CNT]],
+        MatrixType::NegCross => vec![vec![-1 as CNT, 0 as CNT, -1 as CNT],
+                                     vec![0 as CNT, -1 as CNT, 0 as CNT],
+                                     vec![-1 as CNT, 0 as CNT, -1 as CNT]],
+        MatrixType::Rhomb => vec![vec![0 as CNT, 1 as CNT, 0 as CNT],
+                                  vec![1 as CNT, 0 as CNT, 1 as CNT],
+                                  vec![0 as CNT, 1 as CNT, 0 as CNT]],
+        MatrixType::NegRhomb => vec![vec![0 as CNT, -1 as CNT, 0 as CNT],
+                                     vec![-1 as CNT, 0 as CNT, -1 as CNT],
+                                     vec![0 as CNT, -1 as CNT, 0 as CNT]],
+        MatrixType::Ones => vec![vec![1 as CNT, 1 as CNT, 1 as CNT],
+                                 vec![1 as CNT, 1 as CNT, 1 as CNT],
+                                 vec![1 as CNT, 1 as CNT, 1 as CNT]],
+    };
+    Matrix::from(inner)
+}

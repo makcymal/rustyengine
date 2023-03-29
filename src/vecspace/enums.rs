@@ -12,22 +12,20 @@ pub enum MatrixifiedError {
 }
 
 #[derive(Debug, PartialEq)]
-pub enum MatrixLine {
-    Row,
-    Col,
-}
-
-#[derive(Debug, PartialEq)]
 pub enum Sign {
     Plus,
     Minus,
 }
 
 #[derive(Debug, PartialEq)]
-pub enum Ops {
-    Add,
-    Sub,
-    Mul,
-    Div,
+pub enum MatrixType {
+    Identity,
+    NegIdentity,
+    RevIdentity,
+    NegRevIdentity,
+    Cross,
+    NegCross,
+    Rhomb,
+    NegRhomb,
+    Ones,
 }
-

@@ -1,5 +1,5 @@
 pub mod matrixified;
-pub mod bilinear_form;
+pub mod biform;
 pub mod enums;
 #[cfg(test)]
 mod tests;
