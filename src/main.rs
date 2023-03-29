@@ -1,18 +1,17 @@
 #![allow(warnings)]
 
-mod vecspace;
+mod linalg;
 mod globals;
 mod utils;
 
-use {
-    globals::BIFORM,
-    vecspace::{
-        matrixified::{Matrix, Vector},
-        biform,
-        enums::MatrixType,
-    },
+use globals::{
+    init_linalg,
+    GRAMM,
 };
 
 fn main() {
-    biform::set_common_biform(MatrixType::Identity);
+    init_linalg();
+    unsafe {
+        dbg!(&GRAMM);
+    }
 }

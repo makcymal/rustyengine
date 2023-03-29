@@ -1,12 +1,12 @@
 use {
     super::{
+        set_common_biform,
         matrixified::*,
-        biform::*,
         enums::MatrixType,
     },
     crate::{
         utils::Size,
-        globals::{EPSILON, Flt, BIFORM},
+        globals::{EPSILON, BIFORM, Flt},
     },
 };
 

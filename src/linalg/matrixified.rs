@@ -1,20 +1,22 @@
 use {
     crate::{
-        globals::{Flt, EPSILON},
-        utils::{
-            Size, pow_minus,
-        },
-        vecspace::{
+        globals::{Flt, EPSILON, DIM, BIFORM, GRAMM},
+        linalg::{
+            coord_sys::Vecspace,
             enums::{
                 MatrixifiedError::{self, *},
-                Sign,
                 MatrixType,
             },
         },
+        utils::{
+            Size, Sign, pow_minus,
+        },
     },
     std::{
-        ops::{Add, Div, Mul, Sub,
-              Index, IndexMut, Neg,
+        ops::{
+            Add, Div, Mul, Sub,
+            Index, IndexMut, Neg,
+            Rem, BitXor, BitOr,
         },
     },
 };
@@ -262,6 +264,16 @@ impl Matrix {
 
         minor
     }
+
+    pub fn gramm(basis: &[Vector; DIM]) -> Matrix {
+        let mut output = Matrix::zeros(Size::Rect((3, 3)));
+        for row in 0..DIM {
+            for col in 0..DIM {
+                output[(row, col)] = &basis[row] % &basis[col];
+            }
+        }
+        output
+    }
 }
 
 impl Matrixified for Matrix {
@@ -445,8 +457,21 @@ pub struct Vector {
 }
 
 impl Vector {
+    pub const fn empty() -> Self {
+        Self {
+            inner: vec![],
+            transposed: false,
+            length: 0,
+            actual_size: Size::Row(0),
+        }
+    }
+
     pub fn is_transposed(&self) -> bool {
         self.transposed
+    }
+
+    pub fn length(&self) -> Flt {
+        self ^ self
     }
 }
 
@@ -624,37 +649,72 @@ impl<M: Matrixified> Mul<&M> for &Vector {
     }
 }
 
-// Vector >>>
 
-pub fn common_matrix(m_type: MatrixType) -> Matrix {
-    let inner = match m_type {
-        MatrixType::Identity => vec![vec![1.0, 0.0, 0.0],
-                                     vec![0.0, 1.0, 0.0],
-                                     vec![0.0, 0.0, 1.0]],
-        MatrixType::NegIdentity => vec![vec![-1.0, 0.0, 0.0],
-                                        vec![0.0, -1.0, 0.0],
-                                        vec![0.0, 0.0, -1.0]],
-        MatrixType::RevIdentity => vec![vec![0.0, 0.0, 1.0],
-                                        vec![0.0, 1.0, 0.0],
-                                        vec![1.0, 0.0, 0.0]],
-        MatrixType::NegRevIdentity => vec![vec![0.0, 0.0, -1.0],
-                                           vec![0.0, -1.0, 0.0],
-                                           vec![-1.0, 0.0, 0.0]],
-        MatrixType::Cross => vec![vec![1.0, 0.0, 1.0],
-                                  vec![0.0, 1.0, 0.0],
-                                  vec![1.0, 0.0, 1.0]],
-        MatrixType::NegCross => vec![vec![-1.0, 0.0, -1.0],
-                                     vec![0.0, -1.0, 0.0],
-                                     vec![-1.0, 0.0, -1.0]],
-        MatrixType::Rhomb => vec![vec![0.0, 1.0, 0.0],
-                                  vec![1.0, 0.0, 1.0],
-                                  vec![0.0, 1.0, 0.0]],
-        MatrixType::NegRhomb => vec![vec![0.0, -1.0, 0.0],
-                                     vec![-1.0, 0.0, -1.0],
-                                     vec![0.0, -1.0, 0.0]],
-        MatrixType::Ones => vec![vec![1.0, 1.0, 1.0],
-                                 vec![1.0, 1.0, 1.0],
-                                 vec![1.0, 1.0, 1.0]],
-    };
-    Matrix::from(inner)
+fn scalar_prod(lhs: &Vector, matrix: &Matrix, rhs: &Vector) -> Flt {
+    let mut output;
+    if lhs.size().is_vertical() {
+        // if self is Col(n)
+        unsafe {
+            output = matrix * lhs;
+            // now output is Col(n)
+        }
+        output.transpose();
+        // now output is Row(n)
+    } else {
+        // if self is Row(n)
+        unsafe {
+            output = lhs * matrix;
+            // now output is Row(n)
+        }
+    }
+    if rhs.size().is_horizontal() {
+        // if rhs is Row(n)
+        output.transpose();
+        (rhs * &output)[(0, 0)]
+    } else {
+        // if rhs is Col(n)
+        (&output * rhs)[(0, 0)]
+    }
 }
+
+// scalar product without basis
+// &Vector % &Vector = Float
+impl Rem for &Vector {
+    type Output = Flt;
+
+    fn rem(self, rhs: Self) -> Self::Output {
+        unsafe {
+            scalar_prod(self, &BIFORM, rhs)
+        }
+    }
+}
+
+// scalar product in basis
+// &Vector ^ &Vector = Float
+impl BitXor for &Vector {
+    type Output = Flt;
+
+    fn bitxor(self, rhs: Self) -> Self::Output {
+        unsafe {
+            scalar_prod(self, &GRAMM, rhs)
+        }
+    }
+}
+
+// vector product in basis
+// &Vector | &Vector = Vector
+impl BitOr for &Vector {
+    type Output = Vector;
+
+    fn bitor(self, rhs: Self) -> Self::Output {
+        if DIM != 3 || self.length != 3 || rhs.length != 3 {
+            panic!("Trying to compute vector product in non 3D space");
+        }
+
+        Vector::from(vec![self[1] * rhs[2] - self[2] * rhs[1],
+                          self[2] * rhs[0] - self[0] * rhs[2],
+                          self[0] * rhs[1] - self[1] * rhs[0]])
+    }
+}
+
+// Vector >>>

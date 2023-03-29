@@ -12,12 +12,6 @@ pub enum MatrixifiedError {
 }
 
 #[derive(Debug, PartialEq)]
-pub enum Sign {
-    Plus,
-    Minus,
-}
-
-#[derive(Debug, PartialEq)]
 pub enum MatrixType {
     Identity,
     NegIdentity,

@@ -73,6 +73,13 @@ impl PartialEq for Size {
 }
 
 
+#[derive(Debug, PartialEq)]
+pub enum Sign {
+    Plus,
+    Minus,
+}
+
+
 #[inline]
 pub fn pow_minus(deg: usize) -> Flt {
     match deg % 2 == 0 {
