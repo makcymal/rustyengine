@@ -46,24 +46,26 @@ pub trait Matrixified {
         true
     }
 
-    fn allow_add(&self, rhs: &impl Matrixified) -> Result<(), MatrixifiedError> {
+    fn allow_add(&self, rhs: &impl Matrixified) -> Result<(), String> {
         match self.size() == rhs.size() {
             true => Ok(()),
-            false => Err(InappropriateSizes),
+            false => Err(format!("LHS size is: {:#?}, RHS size is: {:#?}",
+                                 self.size(), rhs.size())),
         }
     }
 
-    fn allow_mul(&self, rhs: &impl Matrixified) -> Result<(), MatrixifiedError> {
-        match self.size().rows() == rhs.size().cols() {
+    fn allow_mul(&self, rhs: &impl Matrixified) -> Result<(), String> {
+        match self.size().cols() == rhs.size().rows() {
             true => Ok(()),
-            false => Err(InappropriateSizes),
+            false => Err(format!("LHS size is: {:?}, RHS size is: {:?}",
+                                 self.size(), rhs.size())),
         }
     }
 
-    fn m_add(&self, rhs: &impl Matrixified, sign: Sign)
-             -> Result<Matrix, MatrixifiedError>
-    {
-        self.allow_add(rhs)?;
+    fn m_add(&self, rhs: &impl Matrixified, sign: Sign) -> Matrix {
+        if let Err(msg) = self.allow_add(rhs) {
+            panic!("{}", msg);
+        }
 
         let mut output = Matrix::zeros(self.size());
         for row in 0..self.size().rows() {
@@ -74,14 +76,14 @@ pub trait Matrixified {
                 };
             }
         }
-        Ok(output)
+        output
     }
 
+    fn m_mul(&self, rhs: &impl Matrixified) -> Matrix {
+        if let Err(msg) = self.allow_mul(rhs) {
+            panic!("{}", msg);
+        }
 
-    fn m_mul(&self, rhs: &impl Matrixified)
-             -> Result<Matrix, MatrixifiedError>
-    {
-        self.allow_mul(rhs)?;
         let output_size = Size::Rect((self.size().rows(), rhs.size().cols()));
         let mut output = Matrix::zeros(output_size);
 
@@ -93,7 +95,7 @@ pub trait Matrixified {
                         .sum();
             }
         }
-        Ok(output)
+        output
     }
 
     fn a(&mut self, num: Flt) {
@@ -144,6 +146,16 @@ pub struct Matrix {
 }
 
 impl Matrix {
+    pub const fn empty(initial_size: Size) -> Self {
+        Self {
+            inner: vec![],
+            transposed: false,
+            determinant: None,
+            initial_size,
+            actual_size: initial_size,
+        }
+    }
+
     pub fn identity(initial_size: Size) -> Result<Self, MatrixifiedError> {
         if initial_size.rows() != initial_size.cols() {
             return Err(NonSquareMatrix);
@@ -321,9 +333,9 @@ impl Matrixified for Matrix {
             self.transpose();
         }
 
-        let mut output = Vector::zeros(self.size());
+        let mut output = Vector::zeros(Size::Row(self.actual_size.cols()));
         for col in 0..self.size().cols() {
-            output[(0, col)] = self[(0, col)];
+            output[col] = self[(0, col)];
         }
 
         if is_vertical {
@@ -381,7 +393,7 @@ impl<M: Matrixified> PartialEq<M> for Matrix {
 
 // Matrix + [Matrix | Vector] = Matrix
 impl<M: Matrixified> Add<&M> for &Matrix {
-    type Output = Result<Matrix, MatrixifiedError>;
+    type Output = Matrix;
 
     fn add(self, rhs: &M) -> Self::Output {
         self.m_add(rhs, Sign::Plus)
@@ -390,7 +402,7 @@ impl<M: Matrixified> Add<&M> for &Matrix {
 
 // Matrix - [Matrix | Vector] = Matrix
 impl<M: Matrixified> Sub<&M> for &Matrix {
-    type Output = Result<Matrix, MatrixifiedError>;
+    type Output = Matrix;
 
     fn sub(self, rhs: &M) -> Self::Output {
         self.m_add(rhs, Sign::Minus)
@@ -399,7 +411,7 @@ impl<M: Matrixified> Sub<&M> for &Matrix {
 
 // Matrix * [Matrix | Vector] = Matrix
 impl<M: Matrixified> Mul<&M> for &Matrix {
-    type Output = Result<Matrix, MatrixifiedError>;
+    type Output = Matrix;
 
     fn mul(self, rhs: &M) -> Self::Output {
         self.m_mul(rhs)
@@ -408,10 +420,14 @@ impl<M: Matrixified> Mul<&M> for &Matrix {
 
 // Matrix / Matrix = Matrix
 impl Div for &Matrix {
-    type Output = Result<Matrix, MatrixifiedError>;
+    type Output = Matrix;
 
     fn div(self, rhs: Self) -> Self::Output {
-        self.m_mul(&(rhs.inverse()?))
+        if let Ok(rhs) = rhs.inverse() {
+            self.m_mul(&rhs)
+        } else {
+            panic!("Division with null determinant");
+        }
     }
 }
 
@@ -534,16 +550,22 @@ impl From<Vec<Flt>> for Vector {
 
 // unary operators
 
-impl Index<(usize, usize)> for Vector {
+impl Index<usize> for Vector {
     type Output = Flt;
-    fn index(&self, index: (usize, usize)) -> &Self::Output {
-        self.elem(index)
+    fn index(&self, index: usize) -> &Self::Output {
+        match self.actual_size.is_horizontal() {
+            true => self.elem((0, index)),
+            false => self.elem((index, 0)),
+        }
     }
 }
 
-impl IndexMut<(usize, usize)> for Vector {
-    fn index_mut(&mut self, index: (usize, usize)) -> &mut Flt {
-        self.elem_mut(index)
+impl IndexMut<usize> for Vector {
+    fn index_mut(&mut self, index: usize) -> &mut Flt {
+        match self.actual_size.is_horizontal() {
+            true => self.elem_mut((0, index)),
+            false => self.elem_mut((index, 0)),
+        }
     }
 }
 
@@ -567,25 +589,35 @@ impl<M: Matrixified> PartialEq<M> for Vector {
 
 // Vector + [Matrix | Vector] = Vector
 impl<M: Matrixified> Add<&M> for &Vector {
-    type Output = Result<Vector, MatrixifiedError>;
+    type Output = Vector;
 
     fn add(self, rhs: &M) -> Self::Output {
-        self.m_add(rhs, Sign::Plus)?.to_vector()
+        let output = self.m_add(rhs, Sign::Plus);
+        if let Ok(output) = output.to_vector() {
+            output
+        } else {
+            panic!("An error while converting 1-dim Matrix into Vector");
+        }
     }
 }
 
 // Vector - [Matrix | Vector] = Vector
 impl<M: Matrixified> Sub<&M> for &Vector {
-    type Output = Result<Vector, MatrixifiedError>;
+    type Output = Vector;
 
     fn sub(self, rhs: &M) -> Self::Output {
-        self.m_add(rhs, Sign::Minus)?.to_vector()
+        let output = self.m_add(rhs, Sign::Minus);
+        if let Ok(output) = output.to_vector() {
+            output
+        } else {
+            panic!("An error while converting 1-dim Matrix into Vector");
+        }
     }
 }
 
 // Vector * [Matrix | Vector] = Matrix
 impl<M: Matrixified> Mul<&M> for &Vector {
-    type Output = Result<Matrix, MatrixifiedError>;
+    type Output = Matrix;
 
     fn mul(self, rhs: &M) -> Self::Output {
         self.m_mul(rhs)
