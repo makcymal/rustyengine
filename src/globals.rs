@@ -1,7 +1,12 @@
-use crate::vecspace::{
-    matrixified::Matrix,
+use {
+    crate::vecspace::{
+        matrixified::Matrix,
+
+    },
 };
 
-pub type CNT = f64;
+pub type Flt = f64;
 
-pub static mut BIFORM: Option<Matrix<CNT>> = None;
+pub const EPSILON: Flt = Flt::EPSILON * 10.0;
+
+pub static mut BIFORM: Option<Matrix> = None;

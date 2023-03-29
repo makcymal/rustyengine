@@ -5,7 +5,7 @@ mod globals;
 mod utils;
 
 use {
-    globals::{CNT, BIFORM},
+    globals::BIFORM,
     vecspace::{
         matrixified::{Matrix, Vector},
         biform,

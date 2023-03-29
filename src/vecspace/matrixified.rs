@@ -1,8 +1,8 @@
 use {
     crate::{
-        globals::{CNT,},
+        globals::{Flt, EPSILON},
         utils::{
-            Eps, Num, Size, pow_minus,
+            Size, pow_minus,
         },
         vecspace::{
             enums::{
@@ -13,8 +13,8 @@ use {
         },
     },
     std::{
-        ops::{Add, Div,
-              Index, IndexMut, Mul, Neg, Sub,
+        ops::{Add, Div, Mul, Sub,
+              Index, IndexMut, Neg,
         },
     },
 };
@@ -23,24 +23,22 @@ use {
 // <<< Matrixified
 
 pub trait Matrixified {
-    type Elem;
-
     fn zeros(_: Size) -> Self;
-    fn fill_with(_: Size, _: Self::Elem) -> Self where Self::Elem: Num;
+    fn fill_with(_: Size, _: Flt) -> Self;
     fn size(&self) -> Size;
     fn transpose(&mut self);
-    fn elem(&self, _: (usize, usize)) -> &Self::Elem;
-    fn elem_mut(&mut self, _: (usize, usize)) -> &mut Self::Elem;
-    fn norm(&self) -> f64;
-    fn to_vector(self) -> Result<Vector<Self::Elem>, MatrixifiedError>;
+    fn elem(&self, _: (usize, usize)) -> &Flt;
+    fn elem_mut(&mut self, _: (usize, usize)) -> &mut Flt;
+    fn norm(&self) -> Flt;
+    fn to_vector(self) -> Result<Vector, MatrixifiedError>;
 
-    fn partial_eq(&self, other: &impl Matrixified<Elem=Self::Elem>) -> bool where Self::Elem: Num {
+    fn partial_eq(&self, other: &impl Matrixified) -> bool {
         if self.size() != other.size() {
             return false;
         }
         for row in 0..self.size().rows() {
             for col in 0..self.size().cols() {
-                if *self.elem((row, col)) - *other.elem((row, col)) > Self::Elem::eps() {
+                if *self.elem((row, col)) - *other.elem((row, col)) > EPSILON {
                     return false;
                 }
             }
@@ -62,9 +60,8 @@ pub trait Matrixified {
         }
     }
 
-    fn m_add(&self, rhs: &impl Matrixified<Elem=Self::Elem>, sign: Sign)
-             -> Result<Matrix<Self::Elem>, MatrixifiedError>
-        where Self::Elem: Num
+    fn m_add(&self, rhs: &impl Matrixified, sign: Sign)
+             -> Result<Matrix, MatrixifiedError>
     {
         self.allow_add(rhs)?;
 
@@ -81,9 +78,8 @@ pub trait Matrixified {
     }
 
 
-    fn m_mul(&self, rhs: &impl Matrixified<Elem=Self::Elem>)
-             -> Result<Matrix<Self::Elem>, MatrixifiedError>
-        where Self::Elem: Num
+    fn m_mul(&self, rhs: &impl Matrixified)
+             -> Result<Matrix, MatrixifiedError>
     {
         self.allow_mul(rhs)?;
         let output_size = Size::Rect((self.size().rows(), rhs.size().cols()));
@@ -100,7 +96,7 @@ pub trait Matrixified {
         Ok(output)
     }
 
-    fn a(&mut self, num: Self::Elem) where Self::Elem: Num {
+    fn a(&mut self, num: Flt) {
         for row in 0..self.size().rows() {
             for col in 0..self.size().cols() {
                 *self.elem_mut((row, col)) += num;
@@ -108,7 +104,7 @@ pub trait Matrixified {
         }
     }
 
-    fn s(&mut self, num: Self::Elem) where Self::Elem: Num {
+    fn s(&mut self, num: Flt) {
         for row in 0..self.size().rows() {
             for col in 0..self.size().cols() {
                 *self.elem_mut((row, col)) -= num;
@@ -116,7 +112,7 @@ pub trait Matrixified {
         }
     }
 
-    fn m(&mut self, num: Self::Elem) where Self::Elem: Num {
+    fn m(&mut self, num: Flt) {
         for row in 0..self.size().rows() {
             for col in 0..self.size().cols() {
                 *self.elem_mut((row, col)) *= num;
@@ -124,7 +120,7 @@ pub trait Matrixified {
         }
     }
 
-    fn d(&mut self, num: Self::Elem) where Self::Elem: Num {
+    fn d(&mut self, num: Flt) {
         for row in 0..self.size().rows() {
             for col in 0..self.size().cols() {
                 *self.elem_mut((row, col)) /= num;
@@ -139,49 +135,27 @@ pub trait Matrixified {
 // <<< Matrix
 
 #[derive(Debug, Clone)]
-pub struct Matrix<T> {
-    inner: Vec<Vec<T>>,
+pub struct Matrix {
+    inner: Vec<Vec<Flt>>,
     transposed: bool,
-    pub determinant: Option<T>,
+    pub determinant: Option<Flt>,
     initial_size: Size,
     pub actual_size: Size,
 }
 
-impl<T: Num> Matrix<T> {
-    pub const fn empty() -> Self {
-        Self {
-            inner: vec![],
-            transposed: false,
-            determinant: None,
-            initial_size: Size::Rect((0, 0)),
-            actual_size: Size::Rect((0, 0)),
-        }
-    }
-
-    pub fn identity_third() -> Self {
-        Self {
-            inner: vec![vec![T::one(), T::zero(), T::zero()],
-                        vec![T::zero(), T::one(), T::zero()],
-                        vec![T::zero(), T::zero(), T::one()]],
-            transposed: false,
-            determinant: Some(T::one()),
-            initial_size: Size::Rect((3, 3)),
-            actual_size: Size::Rect((3, 3)),
-        }
-    }
-
+impl Matrix {
     pub fn identity(initial_size: Size) -> Result<Self, MatrixifiedError> {
         if initial_size.rows() != initial_size.cols() {
             return Err(NonSquareMatrix);
         }
-        let mut inner = vec![vec![T::zero(); initial_size.cols()]; initial_size.rows()];
+        let mut inner = vec![vec![0.0; initial_size.cols()]; initial_size.rows()];
         for d in 0..initial_size.rows() {
-            inner[d][d] = T::one();
+            inner[d][d] = 1.0;
         }
         Ok(Self {
             inner,
             transposed: false,
-            determinant: Some(T::one()),
+            determinant: Some(1.0),
             initial_size,
             actual_size: initial_size,
         })
@@ -216,20 +190,20 @@ impl<T: Num> Matrix<T> {
         } else {
             return Err(UnknownDeterminant);
         }
-        if det == T::zero() {
+        if det == 0.0 {
             return Err(ZeroDeterminant);
         }
 
         let mut rows = vec![true; self.initial_size.rows()];
         let mut cols = vec![true; self.initial_size.cols()];
 
-        let mut inversed = Matrix::<T>::zeros(self.initial_size);
+        let mut inversed = Matrix::zeros(self.initial_size);
         for row in 0..self.initial_size.rows() {
             cols[row] = false;
             for col in 0..self.initial_size.cols() {
                 rows[col] = false;
                 inversed.inner[row][col] =
-                    pow_minus::<T>(row + col) * self.minor(&mut rows, &mut cols) / det;
+                    pow_minus(row + col) * self.minor(&mut rows, &mut cols) / det;
                 rows[col] = true;
             }
             cols[row] = true;
@@ -243,7 +217,7 @@ impl<T: Num> Matrix<T> {
     }
 
     // does not pay any attention on whether the matrix is transposed or not
-    fn minor(&self, rows: &mut Vec<bool>, cols: &mut Vec<bool>) -> T {
+    fn minor(&self, rows: &mut Vec<bool>, cols: &mut Vec<bool>) -> Flt {
         // just for ensurance
         assert_eq!(self.initial_size.rows(), self.initial_size.cols());
 
@@ -251,21 +225,23 @@ impl<T: Num> Matrix<T> {
         let mut row = 0;
         while row < self.initial_size.rows() && rows[row] == false { row += 1 }
 
+        // row == self.initial_size.rows() || rows[row] = true
+
         if row == self.initial_size.rows() {
-            return T::one();
+            return 1.0;
         } else {
             rows[row] = false;
         }
 
-        let mut minor = T::zero();
+        let mut minor = 0.0;
         let mut j = 0;
         for col in 0..self.initial_size.cols() {
             if cols[col] {
-                if -T::eps() <= self.inner[row][col] && self.inner[row][col] <= T::eps() {
-                    continue
+                if -EPSILON >= -self.inner[row][col] && self.inner[row][col] <= EPSILON {
+                    continue;
                 }
                 cols[col] = false;
-                minor += pow_minus::<T>(j) * self.inner[row][col] * self.minor(rows, cols);
+                minor += pow_minus(j) * self.inner[row][col] * self.minor(rows, cols);
                 cols[col] = true;
                 j += 1;
             }
@@ -276,12 +252,10 @@ impl<T: Num> Matrix<T> {
     }
 }
 
-impl<T: Num> Matrixified for Matrix<T> {
-    type Elem = T;
-
+impl Matrixified for Matrix {
     fn zeros(initial_size: Size) -> Self {
         Self {
-            inner: vec![vec![T::zero(); initial_size.cols()]; initial_size.rows()],
+            inner: vec![vec![0.0; initial_size.cols()]; initial_size.rows()],
             transposed: false,
             determinant: None,
             initial_size,
@@ -289,7 +263,7 @@ impl<T: Num> Matrixified for Matrix<T> {
         }
     }
 
-    fn fill_with(initial_size: Size, with: T) -> Self {
+    fn fill_with(initial_size: Size, with: Flt) -> Self {
         Self {
             inner: vec![vec![with; initial_size.cols()]; initial_size.rows()],
             transposed: false,
@@ -309,7 +283,7 @@ impl<T: Num> Matrixified for Matrix<T> {
     }
 
     // use only after checking whether (r, c) is valid
-    fn elem(&self, (row, col): (usize, usize)) -> &Self::Elem {
+    fn elem(&self, (row, col): (usize, usize)) -> &Flt {
         assert!(self.size().contains(row, col));
 
         match self.transposed {
@@ -319,7 +293,7 @@ impl<T: Num> Matrixified for Matrix<T> {
     }
 
     // use only after checking whether (r, c) is valid
-    fn elem_mut(&mut self, (row, col): (usize, usize)) -> &mut Self::Elem {
+    fn elem_mut(&mut self, (row, col): (usize, usize)) -> &mut Flt {
         assert!(self.size().contains(row, col));
 
         match self.transposed {
@@ -328,17 +302,17 @@ impl<T: Num> Matrixified for Matrix<T> {
         }
     }
 
-    fn norm(&self) -> f64 {
+    fn norm(&self) -> Flt {
         self.inner
             .iter()
             .map(|row| row.iter()
-                .map(|elem| (*elem * *elem).into())
-                .sum::<f64>())
-            .sum::<f64>()
+                .map(|elem| *elem * *elem)
+                .sum::<Flt>())
+            .sum::<Flt>()
             .sqrt()
     }
 
-    fn to_vector(mut self) -> Result<Vector<T>, MatrixifiedError> {
+    fn to_vector(mut self) -> Result<Vector, MatrixifiedError> {
         if self.size().rows() != 1 && self.size().cols() != 1 {
             return Err(NotAVector);
         }
@@ -359,8 +333,8 @@ impl<T: Num> Matrixified for Matrix<T> {
     }
 }
 
-impl<T: Num> From<Vec<Vec<T>>> for Matrix<T> {
-    fn from(inner: Vec<Vec<T>>) -> Self {
+impl From<Vec<Vec<Flt>>> for Matrix {
+    fn from(inner: Vec<Vec<Flt>>) -> Self {
         let size = Size::Rect((inner.len(), inner[0].len()));
         Self {
             inner,
@@ -374,24 +348,24 @@ impl<T: Num> From<Vec<Vec<T>>> for Matrix<T> {
 
 // unary operators
 
-impl<T: Num> Index<(usize, usize)> for Matrix<T> {
-    type Output = T;
+impl Index<(usize, usize)> for Matrix {
+    type Output = Flt;
     fn index(&self, index: (usize, usize)) -> &Self::Output {
         self.elem(index)
     }
 }
 
-impl<T: Num> IndexMut<(usize, usize)> for Matrix<T> {
-    fn index_mut(&mut self, index: (usize, usize)) -> &mut T {
+impl IndexMut<(usize, usize)> for Matrix {
+    fn index_mut(&mut self, index: (usize, usize)) -> &mut Flt {
         self.elem_mut(index)
     }
 }
 
-impl<T: Num> Neg for Matrix<T> {
+impl Neg for Matrix {
     type Output = Self;
 
     fn neg(mut self) -> Self::Output {
-        self.m(-T::one());
+        self.m(-1.0);
         self
     }
 }
@@ -399,15 +373,15 @@ impl<T: Num> Neg for Matrix<T> {
 
 // binary operators
 
-impl<T: Num, M: Matrixified<Elem=T>> PartialEq<M> for Matrix<T> {
+impl<M: Matrixified> PartialEq<M> for Matrix {
     fn eq(&self, other: &M) -> bool {
         self.partial_eq(other)
     }
 }
 
 // Matrix + [Matrix | Vector] = Matrix
-impl<T: Num, M: Matrixified<Elem=T>> Add<&M> for &Matrix<T> {
-    type Output = Result<Matrix<T>, MatrixifiedError>;
+impl<M: Matrixified> Add<&M> for &Matrix {
+    type Output = Result<Matrix, MatrixifiedError>;
 
     fn add(self, rhs: &M) -> Self::Output {
         self.m_add(rhs, Sign::Plus)
@@ -415,8 +389,8 @@ impl<T: Num, M: Matrixified<Elem=T>> Add<&M> for &Matrix<T> {
 }
 
 // Matrix - [Matrix | Vector] = Matrix
-impl<T: Num, M: Matrixified<Elem=T>> Sub<&M> for &Matrix<T> {
-    type Output = Result<Matrix<T>, MatrixifiedError>;
+impl<M: Matrixified> Sub<&M> for &Matrix {
+    type Output = Result<Matrix, MatrixifiedError>;
 
     fn sub(self, rhs: &M) -> Self::Output {
         self.m_add(rhs, Sign::Minus)
@@ -424,8 +398,8 @@ impl<T: Num, M: Matrixified<Elem=T>> Sub<&M> for &Matrix<T> {
 }
 
 // Matrix * [Matrix | Vector] = Matrix
-impl<T: Num, M: Matrixified<Elem=T>> Mul<&M> for &Matrix<T> {
-    type Output = Result<Matrix<T>, MatrixifiedError>;
+impl<M: Matrixified> Mul<&M> for &Matrix {
+    type Output = Result<Matrix, MatrixifiedError>;
 
     fn mul(self, rhs: &M) -> Self::Output {
         self.m_mul(rhs)
@@ -433,8 +407,8 @@ impl<T: Num, M: Matrixified<Elem=T>> Mul<&M> for &Matrix<T> {
 }
 
 // Matrix / Matrix = Matrix
-impl<T: Num> Div for &Matrix<T> {
-    type Output = Result<Matrix<T>, MatrixifiedError>;
+impl Div for &Matrix {
+    type Output = Result<Matrix, MatrixifiedError>;
 
     fn div(self, rhs: Self) -> Self::Output {
         self.m_mul(&(rhs.inverse()?))
@@ -447,27 +421,25 @@ impl<T: Num> Div for &Matrix<T> {
 // <<< Vector
 
 #[derive(Debug, Clone)]
-pub struct Vector<T> {
-    inner: Vec<T>,
+pub struct Vector {
+    inner: Vec<Flt>,
     transposed: bool,
     length: usize,
     actual_size: Size,
 }
 
-impl<T: Num> Vector<T> {
+impl Vector {
     pub fn is_transposed(&self) -> bool {
         self.transposed
     }
 }
 
-impl<T: Num> Matrixified for Vector<T> {
-    type Elem = T;
-
+impl Matrixified for Vector {
     // size should looks like Pair { x: length, y: 1 }
     fn zeros(initial_size: Size) -> Self {
         if let Size::Col(rows) = initial_size {
             return Self {
-                inner: vec![T::zero(); rows],
+                inner: vec![0.0; rows],
                 transposed: true,
                 length: rows,
                 actual_size: initial_size,
@@ -477,7 +449,7 @@ impl<T: Num> Matrixified for Vector<T> {
         assert_eq!(initial_size.rows(), 1);
 
         Self {
-            inner: vec![T::zero(); initial_size.cols()],
+            inner: vec![0.0; initial_size.cols()],
             transposed: false,
             length: initial_size.cols(),
             actual_size: initial_size,
@@ -485,7 +457,7 @@ impl<T: Num> Matrixified for Vector<T> {
     }
 
     // size should looks like Pair { x: length, y: 1 }
-    fn fill_with(initial_size: Size, with: T) -> Self {
+    fn fill_with(initial_size: Size, with: Flt) -> Self {
         if let Size::Col(rows) = initial_size {
             return Self {
                 inner: vec![with; rows],
@@ -515,7 +487,7 @@ impl<T: Num> Matrixified for Vector<T> {
     }
 
     // use only after checking whether (row, col) is valid
-    fn elem(&self, (row, col): (usize, usize)) -> &Self::Elem {
+    fn elem(&self, (row, col): (usize, usize)) -> &Flt {
         assert!(self.size().contains(row, col));
 
         match self.transposed {
@@ -525,7 +497,7 @@ impl<T: Num> Matrixified for Vector<T> {
     }
 
     // use only after checking whether (row, col) is valid
-    fn elem_mut(&mut self, (row, col): (usize, usize)) -> &mut Self::Elem {
+    fn elem_mut(&mut self, (row, col): (usize, usize)) -> &mut Flt {
         assert!(self.size().contains(row, col));
 
         match self.transposed {
@@ -534,21 +506,21 @@ impl<T: Num> Matrixified for Vector<T> {
         }
     }
 
-    fn norm(&self) -> f64 {
+    fn norm(&self) -> Flt {
         self.inner
             .iter()
-            .map(|elem| (*elem * *elem).into())
-            .sum::<f64>()
+            .map(|elem| *elem * *elem)
+            .sum::<Flt>()
             .sqrt()
     }
 
-    fn to_vector(self) -> Result<Vector<T>, MatrixifiedError> {
+    fn to_vector(self) -> Result<Vector, MatrixifiedError> {
         Ok(self)
     }
 }
 
-impl<T: Num> From<Vec<T>> for Vector<T> {
-    fn from(inner: Vec<T>) -> Self {
+impl From<Vec<Flt>> for Vector {
+    fn from(inner: Vec<Flt>) -> Self {
         let size = Size::Row(inner.len());
         Self {
             inner,
@@ -562,24 +534,24 @@ impl<T: Num> From<Vec<T>> for Vector<T> {
 
 // unary operators
 
-impl<T: Num> Index<(usize, usize)> for Vector<T> {
-    type Output = T;
+impl Index<(usize, usize)> for Vector {
+    type Output = Flt;
     fn index(&self, index: (usize, usize)) -> &Self::Output {
         self.elem(index)
     }
 }
 
-impl<T: Num> IndexMut<(usize, usize)> for Vector<T> {
-    fn index_mut(&mut self, index: (usize, usize)) -> &mut T {
+impl IndexMut<(usize, usize)> for Vector {
+    fn index_mut(&mut self, index: (usize, usize)) -> &mut Flt {
         self.elem_mut(index)
     }
 }
 
-impl<T: Num> Neg for Vector<T> {
+impl Neg for Vector {
     type Output = Self;
 
     fn neg(mut self) -> Self::Output {
-        self.m(-T::one());
+        self.m(-1.0);
         self
     }
 }
@@ -587,15 +559,15 @@ impl<T: Num> Neg for Vector<T> {
 
 // binary operators
 
-impl<T: Num, M: Matrixified<Elem=T>> PartialEq<M> for Vector<T> {
+impl<M: Matrixified> PartialEq<M> for Vector {
     fn eq(&self, other: &M) -> bool {
         self.partial_eq(other)
     }
 }
 
 // Vector + [Matrix | Vector] = Vector
-impl<T: Num, M: Matrixified<Elem=T>> Add<&M> for &Vector<T> {
-    type Output = Result<Vector<T>, MatrixifiedError>;
+impl<M: Matrixified> Add<&M> for &Vector {
+    type Output = Result<Vector, MatrixifiedError>;
 
     fn add(self, rhs: &M) -> Self::Output {
         self.m_add(rhs, Sign::Plus)?.to_vector()
@@ -603,8 +575,8 @@ impl<T: Num, M: Matrixified<Elem=T>> Add<&M> for &Vector<T> {
 }
 
 // Vector - [Matrix | Vector] = Vector
-impl<T: Num, M: Matrixified<Elem=T>> Sub<&M> for &Vector<T> {
-    type Output = Result<Vector<T>, MatrixifiedError>;
+impl<M: Matrixified> Sub<&M> for &Vector {
+    type Output = Result<Vector, MatrixifiedError>;
 
     fn sub(self, rhs: &M) -> Self::Output {
         self.m_add(rhs, Sign::Minus)?.to_vector()
@@ -612,8 +584,8 @@ impl<T: Num, M: Matrixified<Elem=T>> Sub<&M> for &Vector<T> {
 }
 
 // Vector * [Matrix | Vector] = Matrix
-impl<T: Num, M: Matrixified<Elem=T>> Mul<&M> for &Vector<T> {
-    type Output = Result<Matrix<T>, MatrixifiedError>;
+impl<M: Matrixified> Mul<&M> for &Vector {
+    type Output = Result<Matrix, MatrixifiedError>;
 
     fn mul(self, rhs: &M) -> Self::Output {
         self.m_mul(rhs)
@@ -622,35 +594,35 @@ impl<T: Num, M: Matrixified<Elem=T>> Mul<&M> for &Vector<T> {
 
 // Vector >>>
 
-pub fn common_matrix(m_type: MatrixType) -> Matrix<CNT> {
+pub fn common_matrix(m_type: MatrixType) -> Matrix {
     let inner = match m_type {
-        MatrixType::Identity => vec![vec![1 as CNT, 0 as CNT, 0 as CNT],
-                                     vec![0 as CNT, 1 as CNT, 0 as CNT],
-                                     vec![0 as CNT, 0 as CNT, 1 as CNT]],
-        MatrixType::NegIdentity => vec![vec![-1 as CNT, 0 as CNT, 0 as CNT],
-                                        vec![0 as CNT, -1 as CNT, 0 as CNT],
-                                        vec![0 as CNT, 0 as CNT, -1 as CNT]],
-        MatrixType::RevIdentity => vec![vec![0 as CNT, 0 as CNT, 1 as CNT],
-                                        vec![0 as CNT, 1 as CNT, 0 as CNT],
-                                        vec![1 as CNT, 0 as CNT, 0 as CNT]],
-        MatrixType::NegRevIdentity => vec![vec![0 as CNT, 0 as CNT, -1 as CNT],
-                                           vec![0 as CNT, -1 as CNT, 0 as CNT],
-                                           vec![-1 as CNT, 0 as CNT, 0 as CNT]],
-        MatrixType::Cross => vec![vec![1 as CNT, 0 as CNT, 1 as CNT],
-                                  vec![0 as CNT, 1 as CNT, 0 as CNT],
-                                  vec![1 as CNT, 0 as CNT, 1 as CNT]],
-        MatrixType::NegCross => vec![vec![-1 as CNT, 0 as CNT, -1 as CNT],
-                                     vec![0 as CNT, -1 as CNT, 0 as CNT],
-                                     vec![-1 as CNT, 0 as CNT, -1 as CNT]],
-        MatrixType::Rhomb => vec![vec![0 as CNT, 1 as CNT, 0 as CNT],
-                                  vec![1 as CNT, 0 as CNT, 1 as CNT],
-                                  vec![0 as CNT, 1 as CNT, 0 as CNT]],
-        MatrixType::NegRhomb => vec![vec![0 as CNT, -1 as CNT, 0 as CNT],
-                                     vec![-1 as CNT, 0 as CNT, -1 as CNT],
-                                     vec![0 as CNT, -1 as CNT, 0 as CNT]],
-        MatrixType::Ones => vec![vec![1 as CNT, 1 as CNT, 1 as CNT],
-                                 vec![1 as CNT, 1 as CNT, 1 as CNT],
-                                 vec![1 as CNT, 1 as CNT, 1 as CNT]],
+        MatrixType::Identity => vec![vec![1.0, 0.0, 0.0],
+                                     vec![0.0, 1.0, 0.0],
+                                     vec![0.0, 0.0, 1.0]],
+        MatrixType::NegIdentity => vec![vec![-1.0, 0.0, 0.0],
+                                        vec![0.0, -1.0, 0.0],
+                                        vec![0.0, 0.0, -1.0]],
+        MatrixType::RevIdentity => vec![vec![0.0, 0.0, 1.0],
+                                        vec![0.0, 1.0, 0.0],
+                                        vec![1.0, 0.0, 0.0]],
+        MatrixType::NegRevIdentity => vec![vec![0.0, 0.0, -1.0],
+                                           vec![0.0, -1.0, 0.0],
+                                           vec![-1.0, 0.0, 0.0]],
+        MatrixType::Cross => vec![vec![1.0, 0.0, 1.0],
+                                  vec![0.0, 1.0, 0.0],
+                                  vec![1.0, 0.0, 1.0]],
+        MatrixType::NegCross => vec![vec![-1.0, 0.0, -1.0],
+                                     vec![0.0, -1.0, 0.0],
+                                     vec![-1.0, 0.0, -1.0]],
+        MatrixType::Rhomb => vec![vec![0.0, 1.0, 0.0],
+                                  vec![1.0, 0.0, 1.0],
+                                  vec![0.0, 1.0, 0.0]],
+        MatrixType::NegRhomb => vec![vec![0.0, -1.0, 0.0],
+                                     vec![-1.0, 0.0, -1.0],
+                                     vec![0.0, -1.0, 0.0]],
+        MatrixType::Ones => vec![vec![1.0, 1.0, 1.0],
+                                 vec![1.0, 1.0, 1.0],
+                                 vec![1.0, 1.0, 1.0]],
     };
     Matrix::from(inner)
 }

@@ -2,7 +2,6 @@ use {
     crate::{
         globals::{
             BIFORM,
-            CNT,
         },
         vecspace::{
             matrixified::{
