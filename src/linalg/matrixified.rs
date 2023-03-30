@@ -1,24 +1,25 @@
+// Matrix and Vector structs of arbitrary size.
+// Depends only on global BIFORM matrix used in definition of scalar product without basis.
+// Does not depends on global VECSPACE, GRAMM matrix or COORDSYS
+// so related vector, scalar product defined in coord_sys module.
+
 use {
     crate::{
-        globals::{Flt, EPSILON, DIM, BIFORM, GRAMM},
-        linalg::{
-            coord_sys::Vecspace,
-            enums::{
-                MatrixifiedError::{self, *},
-                MatrixType,
-            },
-        },
+        globals::{EPSILON, BIFORM},
+        linalg::coord_sys::Vecspace,
         utils::{
-            Size, Sign, pow_minus,
+            pow_minus, Sign, Size,
         },
     },
     std::{
         ops::{
-            Add, Div, Mul, Sub,
-            Index, IndexMut, Neg,
-            Rem, BitXor, BitOr,
+            Add, Div, Index, IndexMut, Mul, Neg, Sub,
         },
     },
+};
+use crate::enums::{
+    MatrixifiedError::{self, *},
+    MatrixType,
 };
 
 
@@ -26,12 +27,12 @@ use {
 
 pub trait Matrixified {
     fn zeros(_: Size) -> Self;
-    fn fill_with(_: Size, _: Flt) -> Self;
+    fn fill_with(_: Size, _: f64) -> Self;
     fn size(&self) -> Size;
     fn transpose(&mut self);
-    fn elem(&self, _: (usize, usize)) -> &Flt;
-    fn elem_mut(&mut self, _: (usize, usize)) -> &mut Flt;
-    fn norm(&self) -> Flt;
+    fn elem(&self, _: (usize, usize)) -> &f64;
+    fn elem_mut(&mut self, _: (usize, usize)) -> &mut f64;
+    fn norm(&self) -> f64;
     fn to_vector(self) -> Result<Vector, MatrixifiedError>;
 
     fn partial_eq(&self, other: &impl Matrixified) -> bool {
@@ -100,7 +101,7 @@ pub trait Matrixified {
         output
     }
 
-    fn a(&mut self, num: Flt) {
+    fn a(&mut self, num: f64) {
         for row in 0..self.size().rows() {
             for col in 0..self.size().cols() {
                 *self.elem_mut((row, col)) += num;
@@ -108,7 +109,7 @@ pub trait Matrixified {
         }
     }
 
-    fn s(&mut self, num: Flt) {
+    fn s(&mut self, num: f64) {
         for row in 0..self.size().rows() {
             for col in 0..self.size().cols() {
                 *self.elem_mut((row, col)) -= num;
@@ -116,7 +117,7 @@ pub trait Matrixified {
         }
     }
 
-    fn m(&mut self, num: Flt) {
+    fn m(&mut self, num: f64) {
         for row in 0..self.size().rows() {
             for col in 0..self.size().cols() {
                 *self.elem_mut((row, col)) *= num;
@@ -124,7 +125,7 @@ pub trait Matrixified {
         }
     }
 
-    fn d(&mut self, num: Flt) {
+    fn d(&mut self, num: f64) {
         for row in 0..self.size().rows() {
             for col in 0..self.size().cols() {
                 *self.elem_mut((row, col)) /= num;
@@ -140,9 +141,9 @@ pub trait Matrixified {
 
 #[derive(Debug, Clone)]
 pub struct Matrix {
-    inner: Vec<Vec<Flt>>,
+    inner: Vec<Vec<f64>>,
     transposed: bool,
-    pub determinant: Option<Flt>,
+    pub determinant: Option<f64>,
     initial_size: Size,
     pub actual_size: Size,
 }
@@ -231,7 +232,7 @@ impl Matrix {
     }
 
     // does not pay any attention on whether the matrix is transposed or not
-    fn minor(&self, rows: &mut Vec<bool>, cols: &mut Vec<bool>) -> Flt {
+    fn minor(&self, rows: &mut Vec<bool>, cols: &mut Vec<bool>) -> f64 {
         // just for ensurance
         assert_eq!(self.initial_size.rows(), self.initial_size.cols());
 
@@ -264,16 +265,6 @@ impl Matrix {
 
         minor
     }
-
-    pub fn gramm(basis: &[Vector; DIM]) -> Matrix {
-        let mut output = Matrix::zeros(Size::Rect((3, 3)));
-        for row in 0..DIM {
-            for col in 0..DIM {
-                output[(row, col)] = &basis[row] % &basis[col];
-            }
-        }
-        output
-    }
 }
 
 impl Matrixified for Matrix {
@@ -287,7 +278,7 @@ impl Matrixified for Matrix {
         }
     }
 
-    fn fill_with(initial_size: Size, with: Flt) -> Self {
+    fn fill_with(initial_size: Size, with: f64) -> Self {
         Self {
             inner: vec![vec![with; initial_size.cols()]; initial_size.rows()],
             transposed: false,
@@ -307,7 +298,7 @@ impl Matrixified for Matrix {
     }
 
     // use only after checking whether (r, c) is valid
-    fn elem(&self, (row, col): (usize, usize)) -> &Flt {
+    fn elem(&self, (row, col): (usize, usize)) -> &f64 {
         assert!(self.size().contains(row, col));
 
         match self.transposed {
@@ -317,7 +308,7 @@ impl Matrixified for Matrix {
     }
 
     // use only after checking whether (r, c) is valid
-    fn elem_mut(&mut self, (row, col): (usize, usize)) -> &mut Flt {
+    fn elem_mut(&mut self, (row, col): (usize, usize)) -> &mut f64 {
         assert!(self.size().contains(row, col));
 
         match self.transposed {
@@ -326,13 +317,13 @@ impl Matrixified for Matrix {
         }
     }
 
-    fn norm(&self) -> Flt {
+    fn norm(&self) -> f64 {
         self.inner
             .iter()
             .map(|row| row.iter()
                 .map(|elem| *elem * *elem)
-                .sum::<Flt>())
-            .sum::<Flt>()
+                .sum::<f64>())
+            .sum::<f64>()
             .sqrt()
     }
 
@@ -357,8 +348,8 @@ impl Matrixified for Matrix {
     }
 }
 
-impl From<Vec<Vec<Flt>>> for Matrix {
-    fn from(inner: Vec<Vec<Flt>>) -> Self {
+impl From<Vec<Vec<f64>>> for Matrix {
+    fn from(inner: Vec<Vec<f64>>) -> Self {
         let size = Size::Rect((inner.len(), inner[0].len()));
         Self {
             inner,
@@ -373,14 +364,14 @@ impl From<Vec<Vec<Flt>>> for Matrix {
 // unary operators
 
 impl Index<(usize, usize)> for Matrix {
-    type Output = Flt;
+    type Output = f64;
     fn index(&self, index: (usize, usize)) -> &Self::Output {
         self.elem(index)
     }
 }
 
 impl IndexMut<(usize, usize)> for Matrix {
-    fn index_mut(&mut self, index: (usize, usize)) -> &mut Flt {
+    fn index_mut(&mut self, index: (usize, usize)) -> &mut f64 {
         self.elem_mut(index)
     }
 }
@@ -448,11 +439,11 @@ impl Div for &Matrix {
 
 // <<< Vector
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct Vector {
-    inner: Vec<Flt>,
+    inner: Vec<f64>,
     transposed: bool,
-    length: usize,
+    pub length: usize,
     actual_size: Size,
 }
 
@@ -470,7 +461,7 @@ impl Vector {
         self.transposed
     }
 
-    pub fn length(&self) -> Flt {
+    pub fn length(&self) -> f64 {
         self ^ self
     }
 }
@@ -498,7 +489,7 @@ impl Matrixified for Vector {
     }
 
     // size should looks like Pair { x: length, y: 1 }
-    fn fill_with(initial_size: Size, with: Flt) -> Self {
+    fn fill_with(initial_size: Size, with: f64) -> Self {
         if let Size::Col(rows) = initial_size {
             return Self {
                 inner: vec![with; rows],
@@ -528,7 +519,7 @@ impl Matrixified for Vector {
     }
 
     // use only after checking whether (row, col) is valid
-    fn elem(&self, (row, col): (usize, usize)) -> &Flt {
+    fn elem(&self, (row, col): (usize, usize)) -> &f64 {
         assert!(self.size().contains(row, col));
 
         match self.transposed {
@@ -538,7 +529,7 @@ impl Matrixified for Vector {
     }
 
     // use only after checking whether (row, col) is valid
-    fn elem_mut(&mut self, (row, col): (usize, usize)) -> &mut Flt {
+    fn elem_mut(&mut self, (row, col): (usize, usize)) -> &mut f64 {
         assert!(self.size().contains(row, col));
 
         match self.transposed {
@@ -547,11 +538,11 @@ impl Matrixified for Vector {
         }
     }
 
-    fn norm(&self) -> Flt {
+    fn norm(&self) -> f64 {
         self.inner
             .iter()
             .map(|elem| *elem * *elem)
-            .sum::<Flt>()
+            .sum::<f64>()
             .sqrt()
     }
 
@@ -560,8 +551,8 @@ impl Matrixified for Vector {
     }
 }
 
-impl From<Vec<Flt>> for Vector {
-    fn from(inner: Vec<Flt>) -> Self {
+impl From<Vec<f64>> for Vector {
+    fn from(inner: Vec<f64>) -> Self {
         let size = Size::Row(inner.len());
         Self {
             inner,
@@ -576,7 +567,7 @@ impl From<Vec<Flt>> for Vector {
 // unary operators
 
 impl Index<usize> for Vector {
-    type Output = Flt;
+    type Output = f64;
     fn index(&self, index: usize) -> &Self::Output {
         match self.actual_size.is_horizontal() {
             true => self.elem((0, index)),
@@ -586,7 +577,7 @@ impl Index<usize> for Vector {
 }
 
 impl IndexMut<usize> for Vector {
-    fn index_mut(&mut self, index: usize) -> &mut Flt {
+    fn index_mut(&mut self, index: usize) -> &mut f64 {
         match self.actual_size.is_horizontal() {
             true => self.elem_mut((0, index)),
             false => self.elem_mut((index, 0)),
@@ -650,7 +641,7 @@ impl<M: Matrixified> Mul<&M> for &Vector {
 }
 
 
-fn scalar_prod(lhs: &Vector, matrix: &Matrix, rhs: &Vector) -> Flt {
+pub fn scalar_prod(lhs: &Vector, matrix: &Matrix, rhs: &Vector) -> f64 {
     let mut output;
     if lhs.size().is_vertical() {
         // if self is Col(n)
@@ -674,46 +665,6 @@ fn scalar_prod(lhs: &Vector, matrix: &Matrix, rhs: &Vector) -> Flt {
     } else {
         // if rhs is Col(n)
         (&output * rhs)[(0, 0)]
-    }
-}
-
-// scalar product without basis
-// &Vector % &Vector = Float
-impl Rem for &Vector {
-    type Output = Flt;
-
-    fn rem(self, rhs: Self) -> Self::Output {
-        unsafe {
-            scalar_prod(self, &BIFORM, rhs)
-        }
-    }
-}
-
-// scalar product in basis
-// &Vector ^ &Vector = Float
-impl BitXor for &Vector {
-    type Output = Flt;
-
-    fn bitxor(self, rhs: Self) -> Self::Output {
-        unsafe {
-            scalar_prod(self, &GRAMM, rhs)
-        }
-    }
-}
-
-// vector product in basis
-// &Vector | &Vector = Vector
-impl BitOr for &Vector {
-    type Output = Vector;
-
-    fn bitor(self, rhs: Self) -> Self::Output {
-        if DIM != 3 || self.length != 3 || rhs.length != 3 {
-            panic!("Trying to compute vector product in non 3D space");
-        }
-
-        Vector::from(vec![self[1] * rhs[2] - self[2] * rhs[1],
-                          self[2] * rhs[0] - self[0] * rhs[2],
-                          self[0] * rhs[1] - self[1] * rhs[0]])
     }
 }
 

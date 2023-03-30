@@ -1,34 +1,25 @@
 use {
-    crate::{
-        linalg::{
-            common_matrix,
-            matrixified::{Matrix, Vector},
-            coord_sys::Vecspace,
-            enums::MatrixType,
-        },
-        utils::{
-            Size,
-        },
-    },
+    once_cell::sync::OnceCell,
 };
 
-pub type Flt = f64;
+pub const EPSILON: f64 = f64::EPSILON * 10.0;
 
-pub const EPSILON: Flt = Flt::EPSILON * 10.0;
+// <<< linalg
+
+use crate::linalg::{
+    coord_sys::{Vecspace, CoordSys},
+    matrixified::{Matrix, Vector},
+    init_biform, init_coordsys,
+    common_matrix,
+};
 
 pub const DIM: usize = 3;
-
-pub static mut BIFORM: Matrix = Matrix::empty(Size::Rect((DIM, DIM)));
-
-pub static mut VECSPACE: Vecspace = Vecspace::empty();
-
-pub static mut GRAMM: Matrix = Matrix::empty(Size::Rect((DIM, DIM)));
-
+pub static BIFORM: OnceCell<Matrix> = OnceCell::new();
+pub static COORDSYS: OnceCell<CoordSys> = OnceCell::new();
 
 pub fn init_linalg() {
-    unsafe {
-        BIFORM = common_matrix(MatrixType::Identity);
-        VECSPACE = Vecspace::identity();
-        GRAMM = Matrix::gramm(&(VECSPACE.basis));
-    }
+    init_biform();
+    init_coordsys();
 }
+
+// linalg >>>

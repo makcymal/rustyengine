@@ -1,12 +1,12 @@
 use {
-    super::{
-        set_common_biform,
-        matrixified::*,
+    crate::{
+        globals::EPSILON,
+        utils::Size,
         enums::MatrixType,
     },
-    crate::{
-        utils::Size,
-        globals::{EPSILON, BIFORM, Flt},
+    super::{
+        matrixified::*,
+        init_biform,
     },
 };
 
@@ -209,8 +209,8 @@ fn test_norm() {
     let m = sq_matrices();
     let v = vectors();
 
-    assert_eq!(m[9].norm(), (285.0 as Flt).sqrt());
-    assert_eq!(v[2].norm(), (59.0 as Flt).sqrt());
+    assert_eq!(m[9].norm(), (285.0 as f64).sqrt());
+    assert_eq!(v[2].norm(), (59.0 as f64).sqrt());
 }
 
 #[test]
@@ -246,15 +246,10 @@ fn test_to_vector() {
 
 #[test]
 fn test_scalar_prod() {
-    set_common_biform(MatrixType::Identity);
+    init_biform();
+
     let v = vectors();
     assert_eq!(&v[0] % &v[1], -12.0);
     assert_eq!(&v[4] % &v[5], -4.0);
     assert_eq!(&v[2] % &v[3], 60.0);
-
-    set_common_biform(MatrixType::NegCross);
-    let v = vectors();
-    assert_eq!(&v[0] % &v[1], 20.0);
-    assert_eq!(&v[4] % &v[5], -8.0);
-    assert_eq!(&v[2] % &v[3], -114.0);
 }

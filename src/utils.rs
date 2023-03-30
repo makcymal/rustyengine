@@ -1,5 +1,3 @@
-use crate::globals::Flt;
-
 #[derive(Debug, Clone, Copy)]
 pub enum Size {
     // (y, x) = (rows, cols) = (height, width)
@@ -54,6 +52,12 @@ impl Size {
     }
 }
 
+impl Default for Size {
+    fn default() -> Self {
+        Self::Rect((0, 0))
+    }
+}
+
 impl From<&Size> for (usize, usize) {
     fn from(size: &Size) -> Self {
         match size {
@@ -81,7 +85,7 @@ pub enum Sign {
 
 
 #[inline]
-pub fn pow_minus(deg: usize) -> Flt {
+pub fn pow_minus(deg: usize) -> f64 {
     match deg % 2 == 0 {
         true => 1.0,
         false => -1.0,
