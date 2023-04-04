@@ -1,5 +1,5 @@
 #[derive(Debug, PartialEq)]
-pub enum MatrixifiedError {
+pub enum MatrixifyErr {
     NonSquareMatrix,
     NonThirdMatrix,
     ZeroDeterminant,

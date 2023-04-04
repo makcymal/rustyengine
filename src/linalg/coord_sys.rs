@@ -4,8 +4,8 @@ use {
             DIM, BIFORM, COORDSYS,
         },
         utils::Size,
-        linalg::matrixified::{
-            Matrixified, Matrix, Vector,
+        linalg::matrixify::{
+            Matrixify, Matrix, Vector,
         },
     },
     std::ops::{

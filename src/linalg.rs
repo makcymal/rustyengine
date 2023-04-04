@@ -2,7 +2,7 @@
 // Depends only on global BIFORM matrix used in definition of scalar product without basis.
 // Does not depends on global VECSPACE, GRAMM matrix or COORDSYS
 // so related vector, scalar product defined in coord_sys module.
-pub mod matrixified;
+pub mod matrixify;
 // Vecspace, Point and CoordSys structs.
 // Depends on global DIM.
 pub mod coord_sys;
@@ -17,8 +17,8 @@ use {
         enums::MatrixType,
         utils::Size,
     },
-    matrixified::{
-        Matrixified, Matrix, Vector, scalar_prod,
+    matrixify::{
+        Matrixify, Matrix, Vector, scalar_prod,
     },
     coord_sys::{
         Vecspace, Point, CoordSys,

@@ -5,7 +5,7 @@ use {
         enums::MatrixType,
     },
     super::{
-        matrixified::*,
+        matrixify::*,
         init_biform,
     },
 };

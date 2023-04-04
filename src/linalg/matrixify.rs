@@ -1,7 +1,7 @@
 // Matrix and Vector structs of arbitrary size.
 // Depends only on global BIFORM matrix used in definition of scalar product without basis.
 // Does not depends on global VECSPACE, GRAMM matrix or COORDSYS
-// so related vector, scalar product defined in coord_sys module.
+// so related vector, scalar product defined in linalg module.
 
 use {
     crate::{
@@ -10,22 +10,17 @@ use {
         utils::{
             pow_minus, Sign, Size,
         },
+        enums::MatrixifyErr::{self, *},
     },
     std::{
-        ops::{
-            Add, Div, Index, IndexMut, Mul, Neg, Sub,
-        },
+        ops::{Add, Div, Index, IndexMut, Mul, Neg, Sub},
     },
 };
-use crate::enums::{
-    MatrixifiedError::{self, *},
-    MatrixType,
-};
 
 
-// <<< Matrixified
+// <<< Matrixify
 
-pub trait Matrixified {
+pub trait Matrixify {
     fn zeros(_: Size) -> Self;
     fn fill_with(_: Size, _: f64) -> Self;
     fn size(&self) -> Size;
@@ -33,9 +28,9 @@ pub trait Matrixified {
     fn elem(&self, _: (usize, usize)) -> &f64;
     fn elem_mut(&mut self, _: (usize, usize)) -> &mut f64;
     fn norm(&self) -> f64;
-    fn to_vector(self) -> Result<Vector, MatrixifiedError>;
+    fn to_vector(self) -> Result<Vector, MatrixifyErr>;
 
-    fn partial_eq(&self, other: &impl Matrixified) -> bool {
+    fn partial_eq(&self, other: &impl Matrixify) -> bool {
         if self.size() != other.size() {
             return false;
         }
@@ -49,7 +44,7 @@ pub trait Matrixified {
         true
     }
 
-    fn allow_add(&self, rhs: &impl Matrixified) -> Result<(), String> {
+    fn allow_add(&self, rhs: &impl Matrixify) -> Result<(), String> {
         match self.size() == rhs.size() {
             true => Ok(()),
             false => Err(format!("LHS size is: {:#?}, RHS size is: {:#?}",
@@ -57,7 +52,7 @@ pub trait Matrixified {
         }
     }
 
-    fn allow_mul(&self, rhs: &impl Matrixified) -> Result<(), String> {
+    fn allow_mul(&self, rhs: &impl Matrixify) -> Result<(), String> {
         match self.size().cols() == rhs.size().rows() {
             true => Ok(()),
             false => Err(format!("LHS size is: {:?}, RHS size is: {:?}",
@@ -65,7 +60,7 @@ pub trait Matrixified {
         }
     }
 
-    fn m_add(&self, rhs: &impl Matrixified, sign: Sign) -> Matrix {
+    fn m_add(&self, rhs: &impl Matrixify, sign: Sign) -> Matrix {
         if let Err(msg) = self.allow_add(rhs) {
             panic!("{}", msg);
         }
@@ -82,7 +77,7 @@ pub trait Matrixified {
         output
     }
 
-    fn m_mul(&self, rhs: &impl Matrixified) -> Matrix {
+    fn m_mul(&self, rhs: &impl Matrixify) -> Matrix {
         if let Err(msg) = self.allow_mul(rhs) {
             panic!("{}", msg);
         }
@@ -134,7 +129,7 @@ pub trait Matrixified {
     }
 }
 
-// Matrixified >>>
+// Matrixify >>>
 
 
 // <<< Matrix
@@ -159,7 +154,7 @@ impl Matrix {
         }
     }
 
-    pub fn identity(initial_size: Size) -> Result<Self, MatrixifiedError> {
+    pub fn identity(initial_size: Size) -> Result<Self, MatrixifyErr> {
         if initial_size.rows() != initial_size.cols() {
             return Err(NonSquareMatrix);
         }
@@ -180,7 +175,7 @@ impl Matrix {
         self.transposed
     }
 
-    pub fn determine(&mut self) -> Result<(), MatrixifiedError> {
+    pub fn determine(&mut self) -> Result<(), MatrixifyErr> {
         if self.initial_size.rows() != self.initial_size.cols() {
             return Err(NonSquareMatrix);
         }
@@ -195,7 +190,7 @@ impl Matrix {
     }
 
     // computes inversed matrix for not-transposed matrix and then transposes it
-    pub fn inverse(&self) -> Result<Self, MatrixifiedError> {
+    pub fn inverse(&self) -> Result<Self, MatrixifyErr> {
         if self.initial_size.rows() != self.initial_size.cols() {
             return Err(NonSquareMatrix);
         }
@@ -267,7 +262,7 @@ impl Matrix {
     }
 }
 
-impl Matrixified for Matrix {
+impl Matrixify for Matrix {
     fn zeros(initial_size: Size) -> Self {
         Self {
             inner: vec![vec![0.0; initial_size.cols()]; initial_size.rows()],
@@ -327,7 +322,7 @@ impl Matrixified for Matrix {
             .sqrt()
     }
 
-    fn to_vector(mut self) -> Result<Vector, MatrixifiedError> {
+    fn to_vector(mut self) -> Result<Vector, MatrixifyErr> {
         if self.size().rows() != 1 && self.size().cols() != 1 {
             return Err(NotAVector);
         }
@@ -388,14 +383,14 @@ impl Neg for Matrix {
 
 // binary operators
 
-impl<M: Matrixified> PartialEq<M> for Matrix {
+impl<M: Matrixify> PartialEq<M> for Matrix {
     fn eq(&self, other: &M) -> bool {
         self.partial_eq(other)
     }
 }
 
 // Matrix + [Matrix | Vector] = Matrix
-impl<M: Matrixified> Add<&M> for &Matrix {
+impl<M: Matrixify> Add<&M> for &Matrix {
     type Output = Matrix;
 
     fn add(self, rhs: &M) -> Self::Output {
@@ -404,7 +399,7 @@ impl<M: Matrixified> Add<&M> for &Matrix {
 }
 
 // Matrix - [Matrix | Vector] = Matrix
-impl<M: Matrixified> Sub<&M> for &Matrix {
+impl<M: Matrixify> Sub<&M> for &Matrix {
     type Output = Matrix;
 
     fn sub(self, rhs: &M) -> Self::Output {
@@ -413,7 +408,7 @@ impl<M: Matrixified> Sub<&M> for &Matrix {
 }
 
 // Matrix * [Matrix | Vector] = Matrix
-impl<M: Matrixified> Mul<&M> for &Matrix {
+impl<M: Matrixify> Mul<&M> for &Matrix {
     type Output = Matrix;
 
     fn mul(self, rhs: &M) -> Self::Output {
@@ -466,7 +461,7 @@ impl Vector {
     }
 }
 
-impl Matrixified for Vector {
+impl Matrixify for Vector {
     // size should looks like Pair { x: length, y: 1 }
     fn zeros(initial_size: Size) -> Self {
         if let Size::Col(rows) = initial_size {
@@ -546,7 +541,7 @@ impl Matrixified for Vector {
             .sqrt()
     }
 
-    fn to_vector(self) -> Result<Vector, MatrixifiedError> {
+    fn to_vector(self) -> Result<Vector, MatrixifyErr> {
         Ok(self)
     }
 }
@@ -597,14 +592,14 @@ impl Neg for Vector {
 
 // binary operators
 
-impl<M: Matrixified> PartialEq<M> for Vector {
+impl<M: Matrixify> PartialEq<M> for Vector {
     fn eq(&self, other: &M) -> bool {
         self.partial_eq(other)
     }
 }
 
 // Vector + [Matrix | Vector] = Vector
-impl<M: Matrixified> Add<&M> for &Vector {
+impl<M: Matrixify> Add<&M> for &Vector {
     type Output = Vector;
 
     fn add(self, rhs: &M) -> Self::Output {
@@ -618,21 +613,16 @@ impl<M: Matrixified> Add<&M> for &Vector {
 }
 
 // Vector - [Matrix | Vector] = Vector
-impl<M: Matrixified> Sub<&M> for &Vector {
+impl<M: Matrixify> Sub<&M> for &Vector {
     type Output = Vector;
 
     fn sub(self, rhs: &M) -> Self::Output {
-        let output = self.m_add(rhs, Sign::Minus);
-        if let Ok(output) = output.to_vector() {
-            output
-        } else {
-            panic!("An error while converting 1-dim Matrix into Vector");
-        }
+        self.m_add(rhs, Sign::Minus).to_vector().unwrap()
     }
 }
 
 // Vector * [Matrix | Vector] = Matrix
-impl<M: Matrixified> Mul<&M> for &Vector {
+impl<M: Matrixify> Mul<&M> for &Vector {
     type Output = Matrix;
 
     fn mul(self, rhs: &M) -> Self::Output {
@@ -645,18 +635,14 @@ pub fn scalar_prod(lhs: &Vector, matrix: &Matrix, rhs: &Vector) -> f64 {
     let mut output;
     if lhs.size().is_vertical() {
         // if self is Col(n)
-        unsafe {
-            output = matrix * lhs;
-            // now output is Col(n)
-        }
+        output = matrix * lhs;
+        // now output is Col(n)
         output.transpose();
         // now output is Row(n)
     } else {
         // if self is Row(n)
-        unsafe {
-            output = lhs * matrix;
-            // now output is Row(n)
-        }
+        output = lhs * matrix;
+        // now output is Row(n)
     }
     if rhs.size().is_horizontal() {
         // if rhs is Row(n)

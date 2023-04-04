@@ -8,7 +8,7 @@ pub const EPSILON: f64 = f64::EPSILON * 10.0;
 
 use crate::linalg::{
     coord_sys::{Vecspace, CoordSys},
-    matrixified::{Matrix, Vector},
+    matrixify::{Matrix, Vector},
     init_biform, init_coordsys,
     common_matrix,
 };
