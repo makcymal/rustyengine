@@ -58,7 +58,7 @@ impl Size {
 
     /// Checks whether the given point contains in rectangle, which left bottom angle placed in the origin.
     pub fn contains(&self, row: usize, col: usize) -> bool {
-        0 <= row && row < self.rows() && 0 <= col && col < self.cols()
+        row < self.rows() && col < self.cols()
     }
 }
 

@@ -16,10 +16,10 @@ use {
         utils::Size,
     },
     matrixify::{
-        Matrixify, Matrix, Vector, scalar_prod,
+        Matrix, Vector, scalar_prod,
     },
     coord_sys::{
-        Vecspace, Point, CoordSys,
+        VecSpace, Point, CoordSys,
     },
     std::ops::{
         BitOr, BitXor, Rem,
@@ -59,7 +59,7 @@ impl BitXor for &Vector {
     type Output = f64;
 
     fn bitxor(self, rhs: Self) -> Self::Output {
-        scalar_prod(self, CoordSys::gramm(), rhs)
+        scalar_prod(self, CoordSys::gram(), rhs)
     }
 }
 
@@ -90,7 +90,7 @@ pub fn init_biform() {
 /// Initializes global singleton COORDSYS with zero point and identity vecspace.
 pub fn init_coordsys() {
     let init_pt = Point::zeros();
-    let vecspace = Vecspace::identity();
+    let vecspace = VecSpace::identity();
     COORDSYS.set(CoordSys::from(init_pt, vecspace))
         .expect("COORDSYS initialization failed");
 }

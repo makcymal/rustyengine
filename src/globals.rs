@@ -2,8 +2,8 @@ use {
     once_cell::sync::OnceCell,
     crate::{
         linalg::{
-            coord_sys::{Vecspace, CoordSys},
-            matrixify::{Matrix, Vector},
+            coord_sys::CoordSys,
+            matrixify::Matrix,
             init_biform, init_coordsys,
         },
     }

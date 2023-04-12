@@ -2,7 +2,7 @@
 #[allow(non_snake_case)]
 use {
     crate::{
-        linalg::matrixify::{Matrix, Matrixify},
+        linalg::matrixify::Matrix,
     }
 };
 
