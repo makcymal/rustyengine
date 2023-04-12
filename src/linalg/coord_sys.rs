@@ -1,3 +1,7 @@
+/// Vecspace, Point and CoordSys structs.
+/// Depends on global DIM, BIFORM, COORDSYS and Matrix, Vector from matrixify module.
+/// Provides singleton with GRAMM matrix in current basis defined in COORDSYS.
+
 use {
     crate::{
         globals::{
@@ -15,19 +19,23 @@ use {
 };
 
 
+/// Signleton with GRAMM matrix in current basis defined in COORDSYS. Accessible via COORDSYS::gramm().
 static GRAMM: OnceCell<Matrix> = OnceCell::new();
 
 
 // <<< Vecspace
 
+/// Vector space defined by static array of basis vectors of DIM length.
 #[derive(Debug)]
 pub struct Vecspace {
+    /// Basis vectors themselves. Must not be linear-dependent.
     pub basis: [Vector; DIM],
-    // false if it's unknown that basis vectors are orthogonal pairwise
+    /// False if it's unknown that basis vectors are orthogonal pairwise.
     surely_is_ortho: bool,
 }
 
 impl Vecspace {
+    /// The most common orthonormal basis.
     pub fn identity() -> Self {
         let mut basis: [Vector; DIM] = Default::default();
         for i in 0..DIM {
@@ -37,6 +45,8 @@ impl Vecspace {
         Self { basis, surely_is_ortho: true }
     }
 
+    /// As long as GRAMM depends on basis it's defined here.
+    /// But this method is private. See CoordSys impl for public method.
     fn gramm(&self) -> &'static Matrix {
         if GRAMM.get().is_none() {
             let mut gramm = Matrix::zeros(Size::Rect((DIM, DIM)));
@@ -52,12 +62,14 @@ impl Vecspace {
     }
 }
 
+/// Creates basis with the given vectors without any checks for linear-independency or orthonormality.
 impl From<[Vector; DIM]> for Vecspace {
     fn from(basis: [Vector; DIM]) -> Self {
         Self { basis, surely_is_ortho: false }
     }
 }
 
+/// Returns immutable reference to indexed basis vector. Panics if index is out of bounds.
 impl Index<usize> for Vecspace {
     type Output = Vector;
 
@@ -66,6 +78,7 @@ impl Index<usize> for Vecspace {
     }
 }
 
+/// Returns mutable reference to indexed basis vector. Panics if index is out of bounds.
 impl PartialEq for Vecspace {
     fn eq(&self, other: &Self) -> bool {
         self.basis == other.basis
@@ -77,17 +90,20 @@ impl PartialEq for Vecspace {
 
 // <<< Point
 
+/// The end of the radius vector, pinned to origin of coordinates.
 #[derive(Debug, PartialEq)]
 pub struct Point {
+    /// Radius vector itself.
     radvec: Vector,
 }
 
 impl Point {
+    /// Returns Point in origin of coordinates.
     pub fn zeros() -> Self {
         Self::from(Vector::zeros(Size::Row(DIM)))
     }
 
-    // only in orthogonal basis
+    // Takes point and returns it's radius vector in actual basis. Works only in orthogonal basis, else panics.
     pub fn as_vector(&self) -> Vector {
         if !CoordSys::global().surely_is_ortho() {
             panic!("Basis may be not orthogonal");
@@ -102,12 +118,14 @@ impl Point {
     }
 }
 
+/// Creates Point from the Vector under assumption it's pinned in the origin of the coordinates.
 impl From<Vector> for Point {
     fn from(radvec: Vector) -> Self {
         Self { radvec }
     }
 }
 
+/// Provides shifting for Point in direction and length of Vector;
 impl Add<&Vector> for &Point {
     type Output = Point;
 
@@ -116,6 +134,7 @@ impl Add<&Vector> for &Point {
     }
 }
 
+/// Provides shifting for Point in counter direction and length of Vector;
 impl Sub<&Vector> for &Point {
     type Output = Point;
 
@@ -129,6 +148,7 @@ impl Sub<&Vector> for &Point {
 
 // <<< CoordSys
 
+/// Vector space + initial point.
 #[derive(Debug, PartialEq)]
 pub struct CoordSys {
     init_pt: Point,
@@ -136,22 +156,27 @@ pub struct CoordSys {
 }
 
 impl CoordSys {
+    /// Basic constructor.
     pub fn from(init_pt: Point, vecspace: Vecspace) -> Self {
         Self { init_pt, vecspace }
     }
 
+    /// Provides access to the private field property - vecspace.surely_is_ortho
     pub fn surely_is_ortho(&self) -> bool {
         self.vecspace.surely_is_ortho
     }
 
+    /// Returns global COORDSYS from singleton. Panics if it's not initialized yet.
     pub fn global() -> &'static CoordSys {
         COORDSYS.get().expect("COORDSYS is not initialized")
     }
 
+    /// Returns actual vector space of global COORDSYS. Panics if it's not initialized yet.
     pub fn vecspace() -> &'static Vecspace {
         &CoordSys::global().vecspace
     }
 
+    /// Returns actual GRAMM matrix in actual basis. Panics if it's not initialized yet.
     pub fn gramm() -> &'static Matrix {
         CoordSys::global().vecspace.gramm()
     }

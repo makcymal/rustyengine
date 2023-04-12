@@ -1,20 +1,18 @@
-// Matrix and Vector structs of arbitrary size.
-// Depends only on global BIFORM matrix used in definition of scalar product without basis.
-// Does not depends on global VECSPACE, GRAMM matrix or COORDSYS
-// so related vector, scalar product defined in coord_sys module.
+/// Matrix and Vector structs of arbitrary size.
+/// Doesn't depend on any global state variable related to linear algebra.
 pub mod matrixify;
-// Vecspace, Point and CoordSys structs.
-// Depends on global DIM.
+/// Vecspace, Point and CoordSys structs. Depends on global DIM.
 pub mod coord_sys;
+/// Rotation matrices constructors. Depends on global DIM.
+pub mod rotations;
 #[cfg(test)]
 mod tests;
 
 use {
     crate::{
         globals::{
-            DIM, BIFORM
+            DIM, BIFORM, COORDSYS,
         },
-        enums::MatrixType,
         utils::Size,
     },
     matrixify::{
@@ -27,18 +25,26 @@ use {
         BitOr, BitXor, Rem,
     },
 };
-use crate::globals::COORDSYS;
 
 
 impl Matrix {
+    /// Returns global BIFORM matrix from singleton.
+    /// Panics if it's not initialized yet.
     pub fn biform() -> &'static Matrix {
         BIFORM.get().expect("BIFORM does not initialized")
     }
 }
 
+impl Vector {
+    /// Computes length on the basis as the sqrt of scalar self squared.
+    pub fn length(&self) -> f64 {
+        (self ^ self).sqrt()
+    }
+}
 
-// scalar product without basis
-// &Vector % &Vector = Float
+
+/// Provides scalar product without basis: Vector % Vector = f64
+/// Panics if LHS isn't a Row or RHS isn't a Col or sizes don't match.
 impl Rem for &Vector {
     type Output = f64;
 
@@ -47,8 +53,8 @@ impl Rem for &Vector {
     }
 }
 
-// scalar product in basis
-// &Vector ^ &Vector = Float
+/// Provides scalar product in basis: Vector % Vector = f64
+/// Panics if LHS isn't a Row or RHS isn't a Col or sizes don't match.
 impl BitXor for &Vector {
     type Output = f64;
 
@@ -57,13 +63,13 @@ impl BitXor for &Vector {
     }
 }
 
-// vector product in basis
-// &Vector | &Vector = Vector
+/// Provides vector product in basis: Vector | Vector = Vector
+/// Panics if actual DIM isn't equal 3.
 impl BitOr for &Vector {
     type Output = Vector;
 
     fn bitor(self, rhs: Self) -> Self::Output {
-        if DIM != 3 || self.length != 3 || rhs.length != 3 {
+        if DIM != 3 || self.inner_len() != 3 || rhs.inner_len() != 3 {
             panic!("Trying to compute vector product in non 3D space");
         }
 
@@ -74,51 +80,17 @@ impl BitOr for &Vector {
 }
 
 
-pub fn common_matrix(m_type: MatrixType) -> Matrix {
-    if DIM != 3 {
-        panic!("Call for common 3D Matrix in non-3D space");
-    }
-
-    let inner = match m_type {
-        MatrixType::Identity => vec![vec![1.0, 0.0, 0.0],
-                                     vec![0.0, 1.0, 0.0],
-                                     vec![0.0, 0.0, 1.0]],
-        MatrixType::NegIdentity => vec![vec![-1.0, 0.0, 0.0],
-                                        vec![0.0, -1.0, 0.0],
-                                        vec![0.0, 0.0, -1.0]],
-        MatrixType::RevIdentity => vec![vec![0.0, 0.0, 1.0],
-                                        vec![0.0, 1.0, 0.0],
-                                        vec![1.0, 0.0, 0.0]],
-        MatrixType::NegRevIdentity => vec![vec![0.0, 0.0, -1.0],
-                                           vec![0.0, -1.0, 0.0],
-                                           vec![-1.0, 0.0, 0.0]],
-        MatrixType::Cross => vec![vec![1.0, 0.0, 1.0],
-                                  vec![0.0, 1.0, 0.0],
-                                  vec![1.0, 0.0, 1.0]],
-        MatrixType::NegCross => vec![vec![-1.0, 0.0, -1.0],
-                                     vec![0.0, -1.0, 0.0],
-                                     vec![-1.0, 0.0, -1.0]],
-        MatrixType::Rhomb => vec![vec![0.0, 1.0, 0.0],
-                                  vec![1.0, 0.0, 1.0],
-                                  vec![0.0, 1.0, 0.0]],
-        MatrixType::NegRhomb => vec![vec![0.0, -1.0, 0.0],
-                                     vec![-1.0, 0.0, -1.0],
-                                     vec![0.0, -1.0, 0.0]],
-        MatrixType::Ones => vec![vec![1.0, 1.0, 1.0],
-                                 vec![1.0, 1.0, 1.0],
-                                 vec![1.0, 1.0, 1.0]],
-    };
-    Matrix::from(inner)
-}
-
-
+/// Initializes global singleton BIFORM with identity matrix.
 pub fn init_biform() {
-    BIFORM.set(common_matrix(MatrixType::Identity)).expect("BIFORM initialization failed");
+    BIFORM.set(Matrix::identity(Size::Rect((3, 3))).unwrap())
+        .expect("BIFORM initialization failed");
 }
 
 
+/// Initializes global singleton COORDSYS with zero point and identity vecspace.
 pub fn init_coordsys() {
     let init_pt = Point::zeros();
     let vecspace = Vecspace::identity();
-    COORDSYS.set(CoordSys::from(init_pt, vecspace)).expect("COORDSYS initialization failed");
+    COORDSYS.set(CoordSys::from(init_pt, vecspace))
+        .expect("COORDSYS initialization failed");
 }

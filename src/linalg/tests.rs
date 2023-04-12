@@ -2,19 +2,106 @@ use {
     crate::{
         globals::EPSILON,
         utils::Size,
-        enums::MatrixType,
     },
-    super::{
-        matrixify::*,
-        init_biform,
-    },
+    super::matrixify::*,
 };
+
+#[test]
+fn test_add() {
+    let mut lhs = Matrix::from(vec![
+        vec![2.0, 0.0],
+        vec![0.0, 2.0],
+        vec![7.0, 0.0]
+    ]);
+    let mut rhs = Matrix::from(vec![
+        vec![4.0, 1.0],
+        vec![3.0, -6.0],
+        vec![11.0, 3.0]
+    ]);
+    let mut out = Matrix::from(vec![
+        vec![6.0, 1.0],
+        vec![3.0, -4.0],
+        vec![18.0, 3.0]
+    ]);
+    assert_eq!(&lhs + &rhs, out);
+
+    lhs.transpose();
+    rhs.transpose();
+    out.transpose();
+    assert_eq!(&lhs + &rhs, out);
+
+    rhs = &rhs + &lhs;
+    out = &out + &lhs;
+    assert_eq!(&lhs + &rhs, out);
+
+    assert_eq!(&out - &lhs, rhs);
+
+    let mut lhs = Matrix::from(vec![
+        vec![2.0],
+        vec![0.0],
+        vec![7.0]
+    ]);
+    let mut rhs = Vector::from(vec![-4.0, -5.0, 6.0]);
+    let m_out = Matrix::from(vec![
+        vec![-2.0],
+        vec![-5.0],
+        vec![13.0]
+    ]);
+    let v_out = Vector::from(vec![-2.0, -5.0, 13.0]);
+
+    rhs.transpose();
+    assert_eq!(&lhs + &rhs, m_out);
+
+    lhs.transpose();
+    rhs.transpose();
+    assert_eq!(&rhs + &lhs, v_out);
+}
+
+#[test]
+fn test_mul() {
+    let lhs = Matrix::from(vec![
+        vec![4.0, 1.0, 0.0],
+        vec![-1.0, 0.0, 1.0],
+        vec![-2.0, 3.0, 7.0]
+    ]);
+    let rhs = Matrix::from(vec![
+        vec![1.0, 1.0, 0.0],
+        vec![-2.0, 4.0, 0.0],
+        vec![0.0, 3.0, 5.0]
+    ]);
+    let out = Matrix::from(vec![
+        vec![2.0, 8.0, 0.0],
+        vec![-1.0, 2.0, 5.0],
+        vec![-8.0, 31.0, 35.0]
+    ]);
+    assert_eq!(&lhs * &rhs, out);
+
+    let lhs = Vector::from(vec![3.0, 5.0, 6.0]);
+    let out = Matrix::from(vec![
+        vec![-7.0, 41.0, 30.0]
+    ]);
+    assert_eq!(&lhs * &rhs, out);
+
+    let lhs = Matrix::from(vec![
+        vec![4.0, 1.0, 0.0],
+        vec![-1.0, 0.0, 1.0],
+        vec![-2.0, 3.0, 7.0]
+    ]);
+    let mut rhs = Vector::from(vec![3.0, 5.0, 6.0]);
+    rhs.transpose();
+    let out = Matrix::from(vec![
+        vec![17.0],
+        vec![3.0],
+        vec![51.0]
+    ]);
+    assert_eq!(&lhs * &rhs, out);
+}
+
 
 fn sq_matrices() -> [Matrix; 10] {
     [
         // det = 1
         Matrix::identity(Size::Rect((3, 3))).unwrap(),
-
         // det = 8
         Matrix::from(vec![
             vec![2.0, 0.0, 0.0],
@@ -65,69 +152,6 @@ fn sq_matrices() -> [Matrix; 10] {
             vec![4.0, 5.0, 6.0],
             vec![7.0, 8.0, 9.0]]),
     ]
-}
-
-fn vt_matrices() -> [Matrix; 3] {
-    [
-        Matrix::from(vec![
-            vec![2.0, 0.0],
-            vec![0.0, 2.0],
-            vec![7.0, 0.0]]),
-        Matrix::from(vec![
-            vec![4.0, 1.0],
-            vec![3.0, -6.0],
-            vec![11.0, 3.0]]),
-        Matrix::from(vec![
-            vec![3.0],
-            vec![0.0],
-            vec![-5.0]]),
-    ]
-}
-
-fn hr_matrices() -> [Matrix; 3] {
-    [
-        Matrix::from(vec![
-            vec![2.0, 3.0, 4.0],
-            vec![1.0, -8.0, 3.0]]),
-        Matrix::from(vec![
-            vec![-3.0, -2.0, -1.0]]),
-        Matrix::from(vec![
-            vec![0.0, -2.0, -6.0]]),
-    ]
-}
-
-fn vectors() -> [Vector; 6] {
-    [
-        Vector::fill_with(Size::Row(3), 4.0),
-        Vector::fill_with(Size::Col(3), -1.0),
-        Vector::from(vec![-1.0, -3.0, -7.0]),
-        Vector::from(vec![-7.0, -6.0, -5.0]),
-        Vector::from(vec![3.0, 0.0, -5.0]),
-        Vector::from(vec![-3.0, -2.0, -1.0]),
-    ]
-}
-
-#[test]
-fn test_add() {
-    let mut sqm = sq_matrices();
-    assert_eq!(&sqm[0] + &sqm[0], sqm[1]);
-    assert_eq!(&sqm[1] + &sqm[3], sqm[5]);
-    assert_eq!(&sqm[5] - &sqm[3], sqm[1]);
-
-    let mut vtm = vt_matrices();
-    let mut hrm = hr_matrices();
-
-    hrm[0].transpose();
-    assert_eq!(&vtm[0] + &hrm[0], vtm[1]);
-    vtm[2].transpose();
-    assert_eq!(&vtm[2] + &hrm[1], hrm[2]);
-
-    let mut v = vectors();
-
-    hrm[2].transpose();
-    v[2].transpose();
-    assert_eq!(&v[1] + &hrm[2], v[2]);
-    assert_eq!(&hrm[1] - &v[0], v[3]);
 }
 
 #[test]
@@ -186,6 +210,7 @@ fn test_inverse() {
         m.determine().unwrap();
     }
     assert_eq!(sqm[1].inverse().unwrap(), sqm[2]);
+    assert_eq!(sqm[2].inverse().unwrap(), sqm[1]);
     assert_eq!(sqm[3].inverse().unwrap(), sqm[4]);
     assert_eq!(sqm[5].inverse().unwrap(), sqm[6]);
     assert_eq!(sqm[7].inverse().unwrap(), sqm[8]);
@@ -199,6 +224,7 @@ fn test_inverse_of_transposed() {
         m.determine().unwrap();
     }
     assert_eq!(sqm[1].inverse().unwrap(), sqm[2]);
+    assert_eq!(sqm[2].inverse().unwrap(), sqm[1]);
     assert_eq!(sqm[3].inverse().unwrap(), sqm[4]);
     assert_eq!(sqm[5].inverse().unwrap(), sqm[6]);
     assert_eq!(sqm[7].inverse().unwrap(), sqm[8]);
@@ -206,50 +232,63 @@ fn test_inverse_of_transposed() {
 
 #[test]
 fn test_norm() {
-    let m = sq_matrices();
-    let v = vectors();
+    let m = Matrix::from(vec![
+        vec![1.0, 2.0, 3.0],
+        vec![4.0, 5.0, 6.0],
+        vec![7.0, 8.0, 9.0]]);
+    assert_eq!(m.norm(), (285.0 as f64).sqrt());
 
-    assert_eq!(m[9].norm(), (285.0 as f64).sqrt());
-    assert_eq!(v[2].norm(), (59.0 as f64).sqrt());
+    let v = Vector::from(vec![-1.0, -3.0, -7.0]);
+    assert_eq!(v.norm(), (59.0 as f64).sqrt());
 }
 
 #[test]
 fn test_transpose() {
-    let mut vm = vt_matrices();
-    let mut v = vectors();
+    let mut m = Matrix::from(vec![
+        vec![4.0, 1.0],
+        vec![3.0, -6.0],
+        vec![11.0, 3.0]]);
 
-    let elem = vm[1][(2, 0)];
-    vm[1].transpose();
-    assert_eq!(elem, vm[1][(0, 2)]);
+    let elem = m[(2, 0)];
+    m.transpose();
+    assert_eq!(elem, m[(0, 2)]);
 
-    let elem = v[1][2];
-    v[1].transpose();
-    assert_eq!(elem, v[1][2]);
+    let mut v = Vector::from(vec![-1.0, -3.0, -7.0]);
+
+    let elem = v[2];
+    v.transpose();
+    assert_eq!(elem, v[2]);
 }
 
 #[test]
 fn test_to_vector() {
-    let mut vm = Matrix::from(vec![
+    let mut m = Matrix::from(vec![
         vec![3.0],
         vec![0.0],
         vec![-5.0]]);
-    vm.transpose();
+    let v = Vector::from(vec![3.0, 0.0, -5.0]);
+    m.transpose();
 
-    let hm = Matrix::from(vec![
-        vec![-3.0, -2.0, -1.0]]);
+    assert_eq!(m.to_vector().unwrap(), v);
 
-    let uv = vectors();
+    let m = Matrix::from(vec![
+        vec![3.0],
+        vec![0.0],
+        vec![-5.0]]);
+    let mut v = Vector::from(vec![3.0, 0.0, -5.0]);
+    v.transpose();
 
-    assert_eq!(vm.to_vector().unwrap(), uv[4]);
-    assert_eq!(hm.to_vector().unwrap(), uv[5]);
+    assert_eq!(m.to_vector().unwrap(), v);
 }
 
 #[test]
 fn test_scalar_prod() {
-    init_biform();
+    let lhs = Vector::from(vec![1.0, 3.0, 4.0]);
+    let rhs = Vector::from(vec![5.0, -4.0, -7.0]);
+    let matrix = Matrix::from(vec![
+        vec![-3.0, -13.0, -7.0],
+        vec![0.0, -11.0, 0.0],
+        vec![-7.0, -5.0, -2.0]]);
 
-    let v = vectors();
-    assert_eq!(&v[0] % &v[1], -12.0);
-    assert_eq!(&v[4] % &v[5], -4.0);
-    assert_eq!(&v[2] % &v[3], 60.0);
+    assert_eq!(scalar_prod(&lhs, &matrix, &rhs), 214.0);
 }

@@ -1,12 +1,17 @@
+/// Enum describes shape of Matrixify implementors.
+/// Matrix is intended to have size of Rect and Vector of Row or Col.
 #[derive(Debug, Clone, Copy)]
 pub enum Size {
-    // (y, x) = (rows, cols) = (height, width)
+    /// (y, x) = (rows, cols) = (height, width)
     Rect((usize, usize)),
+    /// y = rows = height = 1
     Row(usize),
+    /// x = cols = width = 1
     Col(usize),
 }
 
 impl Size {
+    /// Returns first tuple value if self is Rect, else 1 or length if it's Row or Col respectively.
     pub fn rows(&self) -> usize {
         match self {
             Size::Rect((y, _)) => *y,
@@ -15,6 +20,7 @@ impl Size {
         }
     }
 
+    /// Returns second tuple value if self is Rect, else length or 1 if it's Row or Col respectively.
     pub fn cols(&self) -> usize {
         match self {
             Size::Rect((_, x)) => *x,
@@ -23,6 +29,7 @@ impl Size {
         }
     }
 
+    /// Transposes Size.
     pub fn transpose(&mut self) {
         *self = match self {
             Size::Rect((y, x)) => Size::Rect((*x, *y)),
@@ -31,6 +38,7 @@ impl Size {
         };
     }
 
+    /// Whether size have more rows than columns.
     pub fn is_vertical(&self) -> bool {
         match self {
             Size::Row(_) => false,
@@ -39,6 +47,7 @@ impl Size {
         }
     }
 
+    /// Whether size have more columns that rows.
     pub fn is_horizontal(&self) -> bool {
         match self {
             Size::Row(_) => true,
@@ -47,6 +56,7 @@ impl Size {
         }
     }
 
+    /// Checks whether the given point contains in rectangle, which left bottom angle placed in the origin.
     pub fn contains(&self, row: usize, col: usize) -> bool {
         0 <= row && row < self.rows() && 0 <= col && col < self.cols()
     }
@@ -77,6 +87,7 @@ impl PartialEq for Size {
 }
 
 
+/// Describes two possibilties of Add operation.
 #[derive(Debug, PartialEq)]
 pub enum Sign {
     Plus,
