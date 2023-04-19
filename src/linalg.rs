@@ -3,8 +3,6 @@
 pub mod matrixify;
 /// Vecspace, Point and CoordSys structs. Depends on global DIM.
 pub mod coord_sys;
-/// Rotation matrices constructors. Depends on global DIM.
-pub mod rotations;
 #[cfg(test)]
 mod tests;
 
@@ -13,7 +11,10 @@ use {
         globals::{
             DIM, BIFORM, COORDSYS,
         },
-        utils::Size,
+        enums::RotationErr::{self, *},
+        utils::{
+            Size, pow_minus
+        },
     },
     matrixify::{
         Matrix, Vector, scalar_prod,
@@ -32,6 +33,30 @@ impl Matrix {
     /// Panics if it's not initialized yet.
     pub fn biform() -> &'static Matrix {
         BIFORM.get().expect("BIFORM does not initialized")
+    }
+
+
+    /// Returns rotational matrix on plane from one axis to another by given angle.
+    pub fn rot(mut from_axis: usize, mut to_axis: usize, mut angle: f64) -> Result<Self, RotationErr> {
+        if DIM <= from_axis || DIM <= to_axis {
+            return Err(NonExistentAxis);
+        } else if from_axis == to_axis {
+            return Err(RepeatedAxis);
+        }
+
+        if from_axis > to_axis {
+            (from_axis, to_axis) = (to_axis, from_axis);
+            angle = -angle;
+        }
+        let (cos, sin) = (angle.cos(), angle.sin());
+
+        let mut output = Matrix::identity(Size::Rect((DIM, DIM))).unwrap();
+        output[(from_axis, from_axis)] = cos;
+        output[(to_axis, to_axis)] = cos;
+        output[(from_axis, to_axis)] = pow_minus(from_axis + to_axis) * sin;
+        output[(to_axis, from_axis)] = pow_minus(from_axis + to_axis + 1) * sin;
+
+        Ok(output)
     }
 }
 

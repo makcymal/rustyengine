@@ -4,6 +4,7 @@ use {
         utils::Size,
     },
     super::matrixify::*,
+    std::f64::consts::PI,
 };
 
 #[test]
@@ -291,4 +292,22 @@ fn test_scalar_prod() {
         vec![-7.0, -5.0, -2.0]]);
 
     assert_eq!(scalar_prod(&lhs, &matrix, &rhs), 214.0);
+}
+
+#[test]
+fn test_vector_prod() {
+    let lhs = Vector::from(vec![1.0, 3.0, 4.0]);
+    let rhs = Vector::from(vec![5.0, -4.0, -7.0]);
+    let out = Vector::from(vec![-5.0, 27.0, -19.0]);
+    assert_eq!(&lhs | &rhs, out);
+}
+
+#[test]
+fn test_rotational_matrix() {
+    let m = Matrix::from(vec![
+        vec![1.0, 0.0, 0.0],
+        vec![0.0, 0.0, 1.0],
+        vec![0.0, -1.0, 0.0],
+    ]);
+    assert_eq!(Matrix::rot(1, 2, 1.5 * PI).unwrap(), m);
 }
