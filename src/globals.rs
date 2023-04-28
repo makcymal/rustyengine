@@ -1,7 +1,7 @@
 use {
     once_cell::sync::OnceCell,
     crate::{
-        linalg::{
+        linal::{
             coord_sys::CoordSys,
             matrixify::Matrix,
             init_biform, init_coordsys,
@@ -12,7 +12,7 @@ use {
 /// Used in equality comparasions with f64;
 pub const EPSILON: f64 = f64::EPSILON * 10.0;
 
-// <<< linalg
+// <<< linal
 
 /// Actual dimension of vector space.
 pub const DIM: usize = 3;
@@ -22,9 +22,9 @@ pub static BIFORM: OnceCell<Matrix> = OnceCell::new();
 pub static COORDSYS: OnceCell<CoordSys> = OnceCell::new();
 
 /// Easy way to initialize global bilinear form and coordinate system with default values.
-pub fn init_linalg() {
+pub fn init_linal() {
     init_biform();
     init_coordsys();
 }
 
-// linalg >>>
+// linal >>>

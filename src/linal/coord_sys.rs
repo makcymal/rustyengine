@@ -8,7 +8,7 @@ use {
             DIM, COORDSYS,
         },
         utils::Size,
-        linalg::matrixify::{
+        linal::matrixify::{
             Matrixify, Matrix, Vector,
         },
     },
@@ -55,10 +55,12 @@ impl VecSpace {
                     gram[(row, col)] = &self.basis[row] % &self.basis[col];
                 }
             }
-            GRAM.set(gram).expect("GRAMM initialization failed");
+            GRAM.set(gram)
+                .expect("GRAMM initialization failed");
         }
 
-        GRAM.get().expect("GRAMM is not initialized")
+        GRAM.get()
+            .expect("GRAMM is not initialized")
     }
 }
 

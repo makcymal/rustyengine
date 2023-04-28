@@ -1,7 +1,9 @@
 #![allow(warnings)]
 
 /// Types related to linear algebra, such as Matrix, Vector, Point, VectorSpace, CoordinateSystem.
-mod linalg;
+mod linal;
+/// Engine essentials, eg Ray, Identifier, Entity, EntitiesList, Game.
+mod engine;
 /// Global configuration parameters and state variables.
 mod globals;
 /// Types that may be useful in any module.
@@ -10,9 +12,9 @@ mod utils;
 mod enums;
 
 use globals::{
-    init_linalg,
+    init_linal,
 };
 
 fn main() {
-    init_linalg();
+    init_linal();
 }
