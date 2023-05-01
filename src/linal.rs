@@ -9,11 +9,11 @@ mod tests;
 use {
     crate::{
         globals::{
-            DIM, BIFORM, COORDSYS,
+            DIM, COORDSYS,
         },
         enums::RotationErr::{self, *},
         utils::{
-            Size, pow_minus
+            Size, pow_minus,
         },
     },
     matrixify::{
@@ -25,7 +25,12 @@ use {
     std::ops::{
         BitOr, BitXor, Rem,
     },
+    once_cell::sync::OnceCell,
 };
+
+
+/// Actual bilinear form. Must be iniitialized in main() function.
+static BIFORM: OnceCell<Matrix> = OnceCell::new();
 
 
 impl Matrix {
@@ -61,6 +66,11 @@ impl Matrix {
 }
 
 impl Vector {
+    /// Decomposition of the given vector by basis
+    pub fn by_basis(&mut self) {
+
+    }
+
     /// Computes length on the basis as the sqrt of scalar self squared.
     pub fn length(&self) -> f64 {
         (self ^ self).sqrt()
@@ -78,7 +88,7 @@ impl Rem for &Vector {
     }
 }
 
-/// Provides scalar product in basis: Vector % Vector = f64
+/// Provides scalar product in basis: Vector ^ Vector = f64
 /// Panics if LHS isn't a Row or RHS isn't a Col or sizes don't match.
 impl BitXor for &Vector {
     type Output = f64;
@@ -89,7 +99,7 @@ impl BitXor for &Vector {
 }
 
 /// Provides vector product in basis: Vector | Vector = Vector
-/// Panics if actual DIM isn't equal 3.
+/// Panics if actual DIM doesn't equal to 3.
 impl BitOr for &Vector {
     type Output = Vector;
 
@@ -97,10 +107,10 @@ impl BitOr for &Vector {
         if DIM != 3 || self.inner_len() != 3 || rhs.inner_len() != 3 {
             panic!("Trying to compute vector product in non 3D space");
         }
-
-        Vector::from(vec![self[1] * rhs[2] - self[2] * rhs[1],
-                          self[2] * rhs[0] - self[0] * rhs[2],
-                          self[0] * rhs[1] - self[1] * rhs[0]])
+        Vector::from(vec![
+            self[1] * rhs[2] - self[2] * rhs[1],
+            self[2] * rhs[0] - self[0] * rhs[2],
+            self[0] * rhs[1] - self[1] * rhs[0]])
     }
 }
 
