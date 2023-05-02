@@ -1,696 +1,400 @@
-/// Matrix and Vector structs of arbitrary size.
-/// Doesn't depend on any global state variable related to linear algebra.
-
 use {
     crate::{
-        globals::EPSILON,
-        utils::{
-            pow_minus, Sign, Size,
+        enums::{
+            MatrErr::{self, *},
+            MatrRes::{self, *},
         },
-        enums::MatrixifyErr::{self, *},
-    },
-    std::{
-        ops::{Add, Div, Index, IndexMut, Mul, Neg, Sub},
     },
 };
 
 
-// <<< Matrixify
-
-/// Trait defining behaviour of struct that may be represented as Matrix.
-/// All elements are supposed to be f64.
-pub trait Matrixify {
-    /// Returns object of any implementor, filled with zeros.
-    /// Size intended to be Rect for Matrix and Row or Col for Vector.
-    fn zeros(_: Size) -> Self;
-
-    /// Returns object of any implementor, filled with arbitrary value.
-    /// Size intended to be Rect for Matrix and Row or Col for Vector.
-    fn fill_with(_: Size, _: f64) -> Self;
-
-    /// Returns Size object related to the given implementor.
-    fn size(&self) -> Size;
-
-    /// Transposes implementor.
-    fn transpose(&mut self);
-
-    /// Return immutable reference to element placed on given index that is (row_index, col_index).
-    /// Note that after transposing element on (row, col) can be obtained on (col, row).
-    /// Panics if the index is out of bounds.
-    fn elem(&self, _: (usize, usize)) -> &f64;
-
-    /// Return mutable reference to element placed on given index that is (row_index, col_index).
-    /// Panics if the index is out of bounds.
-    fn elem_mut(&mut self, _: (usize, usize)) -> &mut f64;
-
-    /// Computes norm of matrix as the sqrt of sum over all squared elements.
-    fn norm(&self) -> f64;
-
-    /// Takes implementor to ownership and tries to convert it into Vector.
-    /// If successful, returns Vector, else MatrixifyErr::NotAVector.
-    fn to_vector(self) -> Result<Vector, MatrixifyErr>;
-
-    /// Checks whether LHS is equal to RHS.
-    /// Note that equal implementors shouldn't be both transposed or not, even they shouldn't be of one type.
-    /// Default implementation is provided.
-    fn partial_eq(&self, other: &impl Matrixify) -> bool {
-        if self.size() != other.size() {
-            return false;
-        }
-        for row in 0..self.size().rows() {
-            for col in 0..self.size().cols() {
-                if (*self.elem((row, col)) - *other.elem((row, col))).abs() > EPSILON {
-                    return false;
-                }
-            }
-        }
-        true
-    }
-
-    /// Checks whether can be applied + or - operation on LHS and RHS
-    /// If not, meaningful message is returned, else unit.
-    /// Default implementation is provided.
-    fn allow_add(&self, rhs: &impl Matrixify) -> Result<(), String> {
-        match self.size() == rhs.size() {
-            true => Ok(()),
-            false => Err(format!("LHS size is: {:#?}, RHS size is: {:#?}",
-                                 self.size(), rhs.size())),
-        }
-    }
-
-    /// Checks whether can be applied * operation on LHS and RHS
-    /// If not, meaningful message is returned, else unit.
-    /// Default implementation is provided.
-    fn allow_mul(&self, rhs: &impl Matrixify) -> Result<(), String> {
-        match self.size().cols() == rhs.size().rows() {
-            true => Ok(()),
-            false => Err(format!("LHS size is: {:?}, RHS size is: {:?}",
-                                 self.size(), rhs.size())),
-        }
-    }
-
-    /// Takes immutable references to operands that are both Matrixify implementors
-    /// and sign defines whether + or - to apply.
-    /// Returns new Matrix, panics if operands have inappropriate sizes.
-    /// Default implementation is provided.
-    fn mat_add(&self, rhs: &impl Matrixify, sign: Sign) -> Matrix {
-        if let Err(msg) = self.allow_add(rhs) {
-            panic!("{}", msg);
-        }
-
-        let mut output = Matrix::zeros(self.size());
-        for row in 0..self.size().rows() {
-            for col in 0..self.size().cols() {
-                output[(row, col)] = match sign {
-                    Sign::Plus => *self.elem((row, col)) + *rhs.elem((row, col)),
-                    Sign::Minus => *self.elem((row, col)) - *rhs.elem((row, col)),
-                };
-            }
-        }
-        output
-    }
-
-    /// Takes immutable references to operands that are both Matrixify implementors and multiplies them.
-    /// Returns new Matrix, panics if operands have inappropriate sizes.
-    /// Default implementation is provided.
-    fn mat_mul(&self, rhs: &impl Matrixify) -> Matrix {
-        if let Err(msg) = self.allow_mul(rhs) {
-            panic!("{}", msg);
-        }
-
-        let output_size = Size::Rect((self.size().rows(), rhs.size().cols()));
-        let mut output = Matrix::zeros(output_size);
-
-        for row in 0..output_size.rows() {
-            for col in 0..output_size.cols() {
-                output[(row, col)] =
-                    (0..self.size().cols())
-                        .map(|i| *self.elem((row, i)) * *rhs.elem((i, col)))
-                        .sum();
-            }
-        }
-        output
-    }
-
-    /// Applies assign mul operations with f64 as RHS.
-    /// Default implementation is provided.
-    fn num_mul(&mut self, num: f64) {
-        for row in 0..self.size().rows() {
-            for col in 0..self.size().cols() {
-                *self.elem_mut((row, col)) *= num;
-            }
-        }
-    }
-
-    /// Applies assign div operations with f64 as RHS. Panics if RHS = 0.
-    /// Default implementation is provided.
-    fn num_div(&mut self, num: f64) {
-        if num.abs() < EPSILON {
-            panic!("Zero division");
-        }
-        for row in 0..self.size().rows() {
-            for col in 0..self.size().cols() {
-                *self.elem_mut((row, col)) /= num;
-            }
-        }
-    }
-}
-
-// Matrixify >>>
-
-
-// <<< Matrix
-
-/// Matrix of arbitrary size.
+/// Provides possibity of picking a suitable storage of elements;
 #[derive(Debug, Clone)]
-pub struct Matrix {
-    /// Values themselves.
-    inner: Vec<Vec<f64>>,
-    /// Whether matrix should be represented as transposed or not.
-    transposed: bool,
-    /// Determinant is computed lazy, on demand only and then stored.
-    pub determinant: Option<f64>,
-    /// As long as size can be computed from inner and transposed, it's redundant field, but it's used too often.
-    /// Size may be of any variant (Rect, Row, Col), but it's intended to be a Rect.
-    size: Size,
+pub enum Inner {
+    /// One-dimension vector;
+    Solo(Vec<f64>),
+    /// Two-dimension matrix;
+    Duet(Vec<Vec<f64>>),
 }
 
-impl Matrix {
-    /// Returns diag(1,..,1) if size is square. If not, MatrixifyErr::NonSquareMatrix is returned.
-    pub fn identity(size: Size) -> Result<Self, MatrixifyErr> {
-        if size.rows() != size.cols() {
-            return Err(NonSquareMatrix);
-        }
-        let mut inner = vec![vec![0.0; size.cols()]; size.rows()];
-        for d in 0..size.rows() {
-            inner[d][d] = 1.0;
-        }
-        Ok(Self {
-            inner,
-            transposed: false,
-            determinant: Some(1.0),
-            size,
-        })
-    }
-
-    /// Provides access to the private field - transposed.
-    pub fn is_transposed(&self) -> bool {
-        self.transposed
-    }
-
-    /// Computes determinant if it's possible. If not, MatrixifyErr::NonSquareMatrix is returned.
-    /// Main reason why it doesn't return det value is that it's used in Div operation, while Matrix
-    /// should be borrowed mutably, that is undesirable for RHS on Div operation.
-    /// It doesn't matter whether Matrix is transposed or not.
-    pub fn determine(&mut self) -> Result<(), MatrixifyErr> {
-        if self.size.rows() != self.size.cols() {
-            return Err(NonSquareMatrix);
-        }
-
-        if self.determinant.is_none() {
-            let mut rows = vec![true; self.size.rows()];
-            let mut cols = vec![true; self.size.cols()];
-            self.determinant = Some(self.minor(&mut rows, &mut cols));
-        }
-
-        Ok(())
-    }
-
-    /// Computes inversed matrix for not-transposed matrix and then transposes it and then returns it.
-    /// Unless it's possible MatrixifyErr::NonSquareMatrix or MatrixifyErr::ZeroDeterminant is returned.
-    pub fn inverse(&self) -> Result<Self, MatrixifyErr> {
-        if self.size.rows() != self.size.cols() {
-            return Err(NonSquareMatrix);
-        }
-        let det;
-        if let Some(d) = self.determinant {
-            det = d;
+impl Inner {
+    /// Whether it's one-dimension vector;
+    fn is_solo(&self) -> bool {
+        if let Inner::Solo(_) = self {
+            true
         } else {
-            return Err(UnknownDeterminant);
+            false
         }
-        if det == 0.0 {
-            return Err(ZeroDeterminant);
-        }
-
-        let mut rows = vec![true; self.size.rows()];
-        let mut cols = vec![true; self.size.cols()];
-
-        let mut inversed = Matrix::zeros(self.size);
-        for row in 0..self.size.rows() {
-            cols[row] = false;
-            for col in 0..self.size.cols() {
-                rows[col] = false;
-                inversed.inner[row][col] =
-                    pow_minus(row + col) * self.minor(&mut rows, &mut cols) / det;
-                rows[col] = true;
-            }
-            cols[row] = true;
-        }
-
-        if self.transposed {
-            inversed.transpose();
-        }
-        Ok(inversed)
     }
 
-    /// Checks for whether Matrix can be used as RHS in Div operation.
-    /// If not then MatrixifyErr::NonSquareMatrix or MatrixifyErr::ZeroDeterminant is returned.
-    pub fn as_divider(&mut self) -> Result<(), MatrixifyErr> {
-        if self.determinant.is_none() {
-            self.determine()?;
-        }
-        let det = self.determinant.unwrap();
-        if det == 0.0 {
-            return Err(ZeroDeterminant);
-        }
-        Ok(())
-    }
-
-    /// The only private method, computes recursively minor based on ignored rows and columns.
-    /// Does not pay any attention on whether the matrix is transposed or not.
-    /// Panics if checks for square Matrix have been somehow ignored.
-    fn minor(&self, rows: &mut Vec<bool>, cols: &mut Vec<bool>) -> f64 {
-        // just for ensurance
-        assert_eq!(self.size.rows(), self.size.cols());
-
-        // when this code is reached, matrix surely is square
-        let mut row = 0;
-        while row < self.size.rows() && rows[row] == false { row += 1 }
-
-        // row == self.size.rows() or rows[row] = true
-
-        if row == self.size.rows() {
-            return 1.0;
+    /// Whether it's two-dimension matrix;
+    fn is_duet(&self) -> bool {
+        if let Inner::Duet(_) = self {
+            true
         } else {
-            rows[row] = false;
+            false
         }
+    }
 
-        let mut minor = 0.0;
-        let mut j = 0;
-        for col in 0..self.size.cols() {
-            if cols[col] {
-                if self.inner[row][col].abs() >= EPSILON {
-                    cols[col] = false;
-                    minor += pow_minus(j) * self.inner[row][col] * self.minor(rows, cols);
-                    cols[col] = true;
+    /// Whether it's empty at all;
+    fn is_empty(&self) -> bool {
+        match self {
+            Inner::Solo(inner) => inner.len() != 0,
+            Inner::Duet(inner) => inner.len() != 0 && inner[0].len() != 0,
+        }
+    }
+
+    /// Whether it has shape of right rectangle;
+    /// Suppose it's not empty at all
+    fn is_rect(&self) -> bool {
+        match self {
+            Inner::Duet(inner) => {
+                let mut cols = None;
+                for r in 0..inner.len() {
+                    if cols.is_none() {
+                        cols = Some(inner[r].len());
+                    } else if inner[r].len() != cols.unwrap() {
+                        return false;
+                    }
                 }
-                j += 1;
+                true
+            }
+            _ => true,
+        }
+    }
+
+    /// Number of rows;
+    fn rows(&self) -> usize {
+        match self {
+            Self::Solo(_) => 1,
+            Self::Duet(inner) => inner.len(),
+        }
+    }
+
+    /// Number of cols;
+    /// Suppose self as Duet isn't emtpy;
+    fn cols(&self) -> usize {
+        match self {
+            Self::Solo(inner) => inner.len(),
+            Self::Duet(inner) => inner[0].len(),
+        }
+    }
+}
+
+
+/// Describes how to treat the inner;
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Repr {
+    /// Treats an instance as arbitrary non-empty matrix with shape of rectangle;
+    Matrix,
+    /// Treats an instance as non-empty square matrix;
+    /// Skips checking whether it's square:
+    Square,
+    /// Treats an instance as non-empty row;
+    /// May have inner of Solo or Duet, but row is the single Vec<f64>;
+    /// Therefore, trans field is always false and calling transpose is prohibited;
+    /// To transpose switch it to Col;
+    Row,
+    /// Treats an instance as non-empty row;
+    /// May have inner of Solo or Duet, but row is the single Vec<f64>;
+    /// Therefore, trans field is always false and calling transpose is prohibited;
+    /// To transpose switch it to Col;
+    Col,
+    /// Treats an instance as non-empty list of rows;
+    /// Row is an elem of top-level Vec, so it's Vec too;
+    /// Therefore trans field is always false;
+    /// Prohibits calling transpose() and col_iter() on it;
+    RowList,
+    /// Treats an instance as non-empty list of cols;
+    /// Col is an elem of top-level Vec, so it's Vec too;
+    /// Therefore trans field is always true;
+    /// Prohibits calling transpose() and row_iter() on it;
+    ColList,
+    /// When inabortable errors occuries, it's filled with related error;
+    /// Always check whether such an option is picked;
+    Err(MatrErr),
+}
+
+
+/// Single struct provides polymorphism of Matrix / Vector / VectorList;
+/// Prohibited to be empty;
+#[derive(Debug, Clone)]
+pub struct Matrixify {
+    /// Size of inner cannot be changed, only via recreating it;
+    inner: Inner,
+    /// Whether to get inner[i][j] as inner[i][j] or inner[j][i];
+    trans: bool,
+    /// Repr is watching at inner through the trans field;
+    /// Although repr depends on trans, it can block transpose() calls;
+    repr: Repr,
+}
+
+impl Matrixify {
+    /// Returns matrixify of the given size filled with zeros;
+    pub fn zero(size: (usize, usize), repr: Repr) -> Self {
+        Self::fill_with(size, repr, 0.0)
+    }
+
+    /// Returns matrixify of the given size filled with the given f64;
+    pub fn fill_with((r, c): (usize, usize), repr: Repr, with: f64) -> Self {
+        // for row (Inner::Solo)
+        if let Repr::Row = repr {
+            if r == 1 {
+                let inner = vec![with; c];
+                Self {
+                    inner: Inner::Solo(inner),
+                    trans: false,
+                    repr: Repr::Row,
+                }
+            } else {
+                let inner = vec![];
+                Self {
+                    inner: Inner::Solo(inner),
+                    trans: false,
+                    repr: Repr::Err(MultidimRow),
+                }
             }
         }
-        rows[row] = true;
-
-        minor
+        // for col (Inner::Solo)
+        else if let Repr::Col = repr {
+            if c == 1 {
+                let inner = vec![with; r];
+                Self {
+                    inner: Inner::Solo(inner),
+                    trans: true,
+                    repr: Repr::Col,
+                }
+            } else {
+                let inner = vec![];
+                Self {
+                    inner: Inner::Solo(inner),
+                    trans: true,
+                    repr: Repr::Err(MultidimCol),
+                }
+            }
+        }
+        // for two-dim (Inner::Duet)
+        else {
+            let inner = vec![vec![with; c]; r];
+            Self {
+                inner: Inner::Duet(inner),
+                trans: false,
+                repr,
+            }
+        }
+            .against_empty_atall()
+            .against_crooked_square()
     }
-}
 
-impl Matrixify for Matrix {
-    fn zeros(size: Size) -> Self {
-        Self {
-            inner: vec![vec![0.0; size.cols()]; size.rows()],
-            transposed: false,
-            determinant: None,
-            size,
+    /// Returns diag(1..1);
+    pub fn identity(side: usize) -> Self {
+        let mut id = Self::zero((side, side), Repr::Square);
+        // id now is surely non-empty and square
+        for d in 0..side {
+            *id.att_mut((d, d)).unwrap() = 1.0;
+        }
+        id
+    }
+
+    /// Transposes Matrix / Square
+    pub fn transpose(&mut self) -> MatrRes<()> {
+        match self.repr {
+            Repr::Matrix | Repr::Square => {
+                self.trans = !self.trans;
+                Go(())
+            },
+            Repr::Err(_) => UnhandledMatrErr,
+            _ => Untransposable,
         }
     }
 
-    fn fill_with(size: Size, with: f64) -> Self {
-        Self {
-            inner: vec![vec![with; size.cols()]; size.rows()],
-            transposed: false,
-            determinant: None,
-            size,
-        }
-    }
-
-    fn size(&self) -> Size {
-        self.size
-    }
-
-    fn transpose(&mut self) {
-        self.transposed = !self.transposed;
-        self.size.transpose();
-    }
-
-    fn elem(&self, (row, col): (usize, usize)) -> &f64 {
-        assert!(self.size().contains(row, col));
-
-        match self.transposed {
-            false => &self.inner[row][col],
-            true => &self.inner[col][row],
-        }
-    }
-
-    fn elem_mut(&mut self, (row, col): (usize, usize)) -> &mut f64 {
-        assert!(self.size().contains(row, col));
-
-        match self.transposed {
-            false => &mut self.inner[row][col],
-            true => &mut self.inner[col][row],
-        }
-    }
-
-    fn norm(&self) -> f64 {
-        self.inner
-            .iter()
-            .map(|row| row.iter()
-                .map(|elem| *elem * *elem)
-                .sum::<f64>())
-            .sum::<f64>()
-            .sqrt()
-    }
-
-    fn to_vector(mut self) -> Result<Vector, MatrixifyErr> {
-        if self.size().rows() != 1 && self.size().cols() != 1 {
-            return Err(NotAVector);
-        }
-        let is_vertical = self.size().is_vertical();
-        if is_vertical {
-            self.transpose();
-        }
-
-        let mut output = Vector::zeros(Size::Row(self.size.cols()));
-        for col in 0..self.size().cols() {
-            output[col] = self[(0, col)];
-        }
-
-        if is_vertical {
-            output.transpose();
-        }
-        Ok(output)
-    }
-}
-
-/// Computes actual size based on the given Vec, sets transposed to false, determinant to None.
-impl From<Vec<Vec<f64>>> for Matrix {
-    fn from(inner: Vec<Vec<f64>>) -> Self {
-        let size = Size::Rect((inner.len(), inner[0].len()));
-        Self {
-            inner,
-            transposed: false,
-            determinant: None,
-            size,
-        }
-    }
-}
-
-
-// unary operators
-
-/// Works exactly the same as elem() method on Matrixify trait.
-/// This two implementations exists simultaneously because of different implementations for Vector.
-impl Index<(usize, usize)> for Matrix {
-    type Output = f64;
-    fn index(&self, index: (usize, usize)) -> &Self::Output {
-        self.elem(index)
-    }
-}
-
-/// Works exactly the same as elem_mut() method on Matrixify trait.
-/// This two implementations exists simultaneously because of different implementations for Vector.
-impl IndexMut<(usize, usize)> for Matrix {
-    fn index_mut(&mut self, index: (usize, usize)) -> &mut f64 {
-        self.elem_mut(index)
-    }
-}
-
-/// Applies MulAssign with -1 for each element.
-impl Neg for Matrix {
-    type Output = Self;
-
-    fn neg(mut self) -> Self::Output {
-        self.num_mul(-1.0);
-        self
-    }
-}
-
-
-// binary operators
-
-/// Provides equality comparation for Matrix and arbitrary Matrixify implementor.
-impl<M: Matrixify> PartialEq<M> for Matrix {
-    fn eq(&self, other: &M) -> bool {
-        self.partial_eq(other)
-    }
-}
-
-/// Provides Add for Matrix and arbitrary Matrixify implementor. Matrix + impl Matrixify = Matrix.
-/// Operation panics if operands have inappropriate sizes.
-impl<M: Matrixify> Add<&M> for &Matrix {
-    type Output = Matrix;
-
-    fn add(self, rhs: &M) -> Self::Output {
-        self.mat_add(rhs, Sign::Plus)
-    }
-}
-
-/// Provides Sub for Matrix and arbitrary Matrixify implementor. Matrix - impl Matrixify = Matrix.
-/// Operation panics if operands have inappropriate sizes.
-impl<M: Matrixify> Sub<&M> for &Matrix {
-    type Output = Matrix;
-
-    fn sub(self, rhs: &M) -> Self::Output {
-        self.mat_add(rhs, Sign::Minus)
-    }
-}
-
-/// Provides Mul for Matrix and arbitrary Matrixify implementor. Matrix * impl Matrixify = Matrix.
-/// Operation panics if operands have inappropriate sizes.
-impl<M: Matrixify> Mul<&M> for &Matrix {
-    type Output = Matrix;
-
-    fn mul(self, rhs: &M) -> Self::Output {
-        self.mat_mul(rhs)
-    }
-}
-
-/// Provides Div for two Matrices. Matrix / Matrix = Matrix.
-/// Operation panics if operands have inappropriate sizes or RHS has no inversed.
-impl Div for &Matrix {
-    type Output = Matrix;
-
-    fn div(self, rhs: Self) -> Self::Output {
-        self.mat_mul(&(rhs.inverse().unwrap()))
-    }
-}
-
-// Matrix >>>
-
-
-// <<< Vector
-
-/// Vector of arbitrary size.
-#[derive(Debug, Default, Clone)]
-pub struct Vector {
-    /// Values themselves.
-    inner: Vec<f64>,
-    /// Whether Vector should be represented as transposed or not.
-    transposed: bool,
-    /// As long as size can be computed from inner and transposed, it's redundant field, but it's used too often.
-    /// Size may be of any variant (Rect, Row, Col), but it's intended to be a Row or Col.
-    size: Size,
-}
-
-impl Vector {
-    /// Provides access to the private field - transposed.
+    /// Access to trans field;
     pub fn is_transposed(&self) -> bool {
-        self.transposed
+        self.trans
     }
 
-    /// Provides access to the private field property - inner::<Vec>.len()
-    pub fn inner_len(&self) -> usize {
-        self.inner.len()
+    /// Access to repr field;
+    pub fn repr(&self) -> Repr {
+        self.repr
     }
-}
 
-impl Matrixify for Vector {
-    fn zeros(size: Size) -> Self {
-        if let Size::Col(rows) = size {
-            return Self {
-                inner: vec![0.0; rows],
-                transposed: true,
-                size,
-            };
-        }
-
-        assert_eq!(size.rows(), 1);
-
-        Self {
-            inner: vec![0.0; size.cols()],
-            transposed: false,
-            size,
+    /// Size of Matrix / Square / RowList / ColList inner (or error);
+    pub fn inner_size(&self) -> MatrRes<(usize, usize)> {
+        match self.repr {
+            Repr::Matrix | Repr::Square | Repr::RowList | Repr::ColList => {
+                match self.trans {
+                    false => Go((self.inner.rows(), self.inner.cols())),
+                    true => Go((self.inner.cols(), self.inner.rows())),
+                }
+            }
+            Repr::Err(_) => UnhandledMatrErr,
+            _ => TreatSoloAsDuet,
         }
     }
 
-    // size should looks like Pair { x: length, y: 1 }
-    fn fill_with(size: Size, with: f64) -> Self {
-        if let Size::Col(rows) = size {
-            return Self {
-                inner: vec![with; rows],
-                transposed: true,
-                size,
-            };
-        }
-
-        assert_eq!(size.rows(), 1);
-
-        Self {
-            inner: vec![with; size.cols()],
-            transposed: false,
-            size,
+    /// Length of Row / Col inner (or error);
+    pub fn inner_len(&self) -> MatrRes<usize> {
+        match self.repr {
+            Repr::Row | Repr::Col => Go(self.inner.cols()),
+            Repr::Err(_) => UnhandledMatrErr,
+            _ => TreatDuetAsSolo,
         }
     }
 
-    fn size(&self) -> Size {
-        self.size
-    }
-
-    fn transpose(&mut self) {
-        self.transposed = !self.transposed;
-        self.size.transpose();
-    }
-
-    // use only after checking whether (row, col) is valid
-    fn elem(&self, (row, col): (usize, usize)) -> &f64 {
-        assert!(self.size().contains(row, col));
-
-        match self.transposed {
-            false => &self.inner[col],
-            true => &self.inner[row],
+    /// Ref to element on position i in Row / Col (or error);
+    pub fn at(&self, i: usize) -> MatrRes<&f64> {
+        match &self.inner {
+            Inner::Solo(inner) => {
+                if 0 <= i && i < inner.len() {
+                    Go(&inner[i])
+                } else {
+                    SoloOutOfBounds
+                }
+            }
+            _ => TreatDuetAsSolo,
         }
     }
 
-    // use only after checking whether (row, col) is valid
-    fn elem_mut(&mut self, (row, col): (usize, usize)) -> &mut f64 {
-        assert!(self.size().contains(row, col));
-
-        match self.transposed {
-            false => &mut self.inner[col],
-            true => &mut self.inner[row],
+    /// Mut ref to element on position i in Row / Col (or error);
+    pub fn at_mut(&mut self, i: usize) -> MatrRes<&mut f64> {
+        match &mut self.inner {
+            Inner::Solo(inner) => {
+                if 0 <= i && i < inner.len() {
+                    Go(&mut inner[i])
+                } else {
+                    SoloOutOfBounds
+                }
+            }
+            _ => TreatDuetAsSolo,
         }
     }
 
-    fn norm(&self) -> f64 {
-        self.inner
-            .iter()
-            .map(|elem| *elem * *elem)
-            .sum::<f64>()
-            .sqrt()
-    }
-
-    fn to_vector(self) -> Result<Vector, MatrixifyErr> {
-        Ok(self)
-    }
-}
-
-/// Computes actual size based on the given Vec, by default it's Row, transposed is false.
-impl From<Vec<f64>> for Vector {
-    fn from(inner: Vec<f64>) -> Self {
-        let size = Size::Row(inner.len());
-        Self {
-            inner,
-            transposed: false,
-            size,
+    /// Ref to element on position (r, c) in Matrix / Square / RowList / ColList (or error);
+    pub fn att(&self, (mut r, mut c): (usize, usize)) -> MatrRes<&f64> {
+        if self.trans {
+            (r, c) = (c, r);
+        }
+        match &self.inner {
+            Inner::Duet(inner) => {
+                if 0 <= r && r < inner.len() && 0 <= c && c < inner[0].len() {
+                    Go(&inner[r][c])
+                } else {
+                    DuetOutOfBounds
+                }
+            }
+            _ => TreatSoloAsDuet,
         }
     }
-}
 
-
-// unary operators
-
-/// Differs from elem() method from Matrixify trait in taking only one index.
-impl Index<usize> for Vector {
-    type Output = f64;
-    fn index(&self, index: usize) -> &Self::Output {
-        match self.size.is_horizontal() {
-            true => self.elem((0, index)),
-            false => self.elem((index, 0)),
+    /// Mut ref to element on position (r, c) in Matrix / Square / RowList / ColList (or error);
+    pub fn att_mut(&mut self, (mut r, mut c): (usize, usize)) -> MatrRes<&mut f64> {
+        if self.trans {
+            (r, c) = (c, r);
+        }
+        match &mut self.inner {
+            Inner::Duet(inner) => {
+                if 0 <= r && r < inner.len() && 0 <= c && c < inner[0].len() {
+                    Go(&mut inner[r][c])
+                } else {
+                    DuetOutOfBounds
+                }
+            }
+            _ => TreatSoloAsDuet,
         }
     }
-}
 
-/// Differs from elem_mut() method from Matrixify trait in taking only one index.
-impl IndexMut<usize> for Vector {
-    fn index_mut(&mut self, index: usize) -> &mut f64 {
-        match self.size.is_horizontal() {
-            true => self.elem_mut((0, index)),
-            false => self.elem_mut((index, 0)),
+    /// Checks whether inner at least one element;
+    pub fn against_empty_atall(mut self) -> Self {
+        if self.inner.is_empty() {
+            self.repr = Repr::Err(EmptyAtAll);
         }
+        self
     }
-}
 
-/// Applies MulAssign with -1 for each element.
-impl Neg for Vector {
-    type Output = Self;
+    /// Checks whether inner is a rectangle;
+    /// Suppose inner isn't empty at all;
+    pub fn against_curve_sides(mut self) -> Self {
+        if !self.inner.is_rect() {
+            self.repr = Repr::Err(CurveSides);
+        }
+        self
+    }
 
-    fn neg(mut self) -> Self::Output {
-        self.num_mul(-1.0);
+    /// Checks whether inner is square;
+    /// Suppose inner isn't empty at all and has straight sides;
+    pub fn against_crooked_square(mut self) -> Self {
+        if let Repr::Square = self.repr {
+            match &self.inner {
+                Inner::Solo(inner) => {
+                    if inner.len() != 1 {
+                        self.repr = Repr::Err(CrookedSquare);
+                    }
+                }
+                Inner::Duet(inner) => {
+                    if inner.len() != inner[0].len() {
+                        self.repr = Repr::Err(CrookedSquare);
+                    }
+                }
+            }
+        }
         self
     }
 }
 
-
-// binary operators
-
-/// Provides equality comparation for Matrix and arbitrary Matrixify implementor.
-impl<M: Matrixify> PartialEq<M> for Vector {
-    fn eq(&self, other: &M) -> bool {
-        self.partial_eq(other)
+impl From<(Vec<f64>, Repr)> for Matrixify {
+    fn from((inner, mut repr): (Vec<f64>, Repr)) -> Self {
+        if let Repr::Err(_) = repr {
+            repr = Repr::Err(ErrByDesign);
+        }
+        Self {
+            inner: Inner::Solo(inner),
+            trans: false,
+            repr,
+        }
+            .against_curve_sides()
+            .against_empty_atall()
+            .against_crooked_square()
     }
 }
 
-/// Provides Add for Matrix and arbitrary Matrixify implementor. Vector + impl Matrixify = Vector.
-/// Operation panics if operands have inappropriate sizes.
-impl<M: Matrixify> Add<&M> for &Vector {
-    type Output = Vector;
-
-    fn add(self, rhs: &M) -> Self::Output {
-        self.mat_add(rhs, Sign::Plus).to_vector().unwrap()
-    }
-}
-
-/// Provides Sub for Matrix and arbitrary Matrixify implementor. Vector - impl Matrixify = Vector.
-/// Operation panics if operands have inappropriate sizes.
-impl<M: Matrixify> Sub<&M> for &Vector {
-    type Output = Vector;
-
-    fn sub(self, rhs: &M) -> Self::Output {
-        self.mat_add(rhs, Sign::Minus).to_vector().unwrap()
-    }
-}
-
-/// Provides Mul for Matrix and arbitrary Matrixify implementor. Vector * impl Matrixify = Matrix.
-/// Operation panics if operands have inappropriate sizes.
-impl<M: Matrixify> Mul<&M> for &Vector {
-    type Output = Matrix;
-
-    fn mul(self, rhs: &M) -> Self::Output {
-        self.mat_mul(rhs)
-    }
-}
-
-/// Provides Div for Vector and Matrix. Vector / Matrix = Matrix.
-/// Operation panics if operands have inappropriate sizes or RHS has no inversed.
-impl Div<&Matrix> for &Vector {
-    type Output = Matrix;
-
-    fn div(self, rhs: &Matrix) -> Self::Output {
-        self.mat_mul(&(rhs.inverse().unwrap()))
+impl From<(Vec<Vec<f64>>, Repr)> for Matrixify {
+    fn from((inner, mut repr): (Vec<Vec<f64>>, Repr)) -> Self {
+        if let Repr::Err(_) = repr {
+            repr = Repr::Err(ErrByDesign);
+        }
+        Self {
+            inner: Inner::Duet(inner),
+            trans: false,
+            repr,
+        }
+            .against_curve_sides()
+            .against_empty_atall()
+            .against_crooked_square()
     }
 }
 
 
-/// Used in definitions of scalar product in basis or without it.
-pub fn scalar_prod(lhs: &Vector, matrix: &Matrix, rhs: &Vector) -> f64 {
-    assert_eq!(lhs.inner_len(), matrix.size().rows());
-    assert_eq!(matrix.size().rows(), matrix.size().cols());
-    assert_eq!(matrix.size().cols(), rhs.inner_len());
-
-    (0..rhs.inner_len())
-        .map(|i| rhs[i] *
-            (0..lhs.inner_len())
-                .map(|j| lhs[j] * matrix[(j, i)])
-                .sum::<f64>())
-        .sum::<f64>()
+pub struct RowIter<'m> {
+    matr: &'m Matrixify,
+    curr: usize,
 }
 
-// Vector >>>
+
+pub struct ColIter<'m> {
+    matr: &'m Matrixify,
+    curr: usize,
+}
+
+
+pub struct ElemIter<'m> {
+    matr: &'m Matrixify,
+    base: usize,
+    curr: usize,
+    dir: Direction,
+}
+
+
+enum Direction {
+    Hor,
+    Ver,
+}
