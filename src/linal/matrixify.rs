@@ -44,47 +44,47 @@ impl Matrixify {
         if let Failure(_) = repr {
             repr = Failure(ErrByDesign);
         }
-        // for row (Inner::Solo)
+        // for row (Inner::Lin)
         if let Row = repr {
             if r == 1 {
                 let inner = vec![with; c];
                 Self {
-                    inner: Solo(inner),
+                    inner: Lin(inner),
                     trans: false,
                     repr: Row,
                 }
             } else {
                 let inner = vec![];
                 Self {
-                    inner: Solo(inner),
+                    inner: Lin(inner),
                     trans: false,
                     repr: Failure(TooManyRows),
                 }
             }
         }
-        // for col (Inner::Solo)
+        // for col (Inner::Lin)
         else if let Col = repr {
             if c == 1 {
                 let inner = vec![with; r];
                 Self {
-                    inner: Solo(inner),
+                    inner: Lin(inner),
                     trans: true,
                     repr: Col,
                 }
             } else {
                 let inner = vec![];
                 Self {
-                    inner: Solo(inner),
+                    inner: Lin(inner),
                     trans: true,
                     repr: Failure(TooManyCols),
                 }
             }
         }
-        // for two-dim (Inner::Duet)
+        // for two-dim (Inner::Rec)
         else {
             let inner = vec![vec![with; c]; r];
             Self {
-                inner: Duet(inner),
+                inner: Rec(inner),
                 trans: false,
                 repr,
             }
@@ -97,7 +97,7 @@ impl Matrixify {
             repr = Failure(ErrByDesign);
         }
         Self {
-            inner: Solo(inner),
+            inner: Lin(inner),
             trans: false,
             repr,
         }
@@ -111,7 +111,7 @@ impl Matrixify {
             repr = Failure(ErrByDesign);
         }
         Self {
-            inner: Duet(inner),
+            inner: Rec(inner),
             trans: false,
             repr,
         }
@@ -320,12 +320,12 @@ impl Matrixify {
     pub fn against_crooked_square(mut self) -> Self {
         if let Square = self.repr {
             match &self.inner {
-                Solo(inner) => {
+                Lin(inner) => {
                     if inner.len() != 1 {
                         self.repr = Failure(CrookedSquare);
                     }
                 }
-                Duet(inner) => {
+                Rec(inner) => {
                     if inner.len() != inner[0].len() {
                         self.repr = Failure(CrookedSquare);
                     }
@@ -333,6 +333,53 @@ impl Matrixify {
             }
         }
         self
+    }
+
+    pub fn add(&self, rhs: &Self) -> Self {
+        let output = self.clone();
+        output.add_assign(rhs)
+    }
+
+    pub fn add_assign(self, rhs: &Self) -> Self {
+        todo!()
+    }
+
+    pub fn sub(&self, rhs: &Self) -> Self {
+        let output = self.clone();
+        output.sub_assign(rhs)
+    }
+
+    pub fn sub_assign(self, rhs: &Self) -> Self {
+        todo!()
+    }
+
+    pub fn mul(&self, rhs: &Self) -> Self {
+        todo!()
+    }
+
+    pub fn div(&self, rhs: &Self) -> Self {
+        todo!()
+    }
+
+    pub fn mul_num(&self, num: f64) -> Self {
+        let output = self.clone();
+        output.mul_num_assign(num)
+    }
+
+    pub fn neg(self) -> Self {
+        self.mul_num_assign(-1.0)
+    }
+
+    pub fn mul_num_assign(self, num: f64) -> Self {
+        todo!()
+    }
+
+    pub fn determinant(&self) -> Option<f64> {
+        todo!()
+    }
+
+    pub fn inversed(&self) -> Self {
+        todo!()
     }
 }
 

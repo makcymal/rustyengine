@@ -1,19 +1,19 @@
-use crate::linal::enums::MatrErr::{CurveSides, EmptyAtAll};
+
 
 /// Provides possibity of picking a suitable storage of elements;
 #[derive(Debug, Clone)]
 pub enum Inner {
     /// One-dimension vector;
-    Solo(Vec<f64>),
+    Lin(Vec<f64>),
     /// Two-dimension matrix;
-    Duet(Vec<Vec<f64>>),
+    Rec(Vec<Vec<f64>>),
 }
 
 impl Inner {
     /// Whether it's one-dimension vector;
     pub fn is_solo(&self) -> bool {
         match self {
-            Inner::Solo(_) => true,
+            Inner::Lin(_) => true,
             _ => false,
         }
     }
@@ -21,7 +21,7 @@ impl Inner {
     /// Whether it's two-dimension matrix;
     pub fn is_duet(&self) -> bool {
         match self {
-            Inner::Duet(_) => true,
+            Inner::Rec(_) => true,
             _ => false,
         }
     }
@@ -29,27 +29,27 @@ impl Inner {
     /// Whether it's empty at all and has shape or right rectangle;
     pub fn validate(&self) -> Result<(), MatrErr> {
         match self {
-            Inner::Solo(inner) => {
+            Inner::Lin(inner) => {
                 if inner.len() == 0 {
-                    Err(EmptyAtAll)
+                    Err(MatrErr::EmptyAtAll)
                 } else {
                     Ok(())
                 }
             }
-            Inner::Duet(inner) => {
+            Inner::Rec(inner) => {
                 if inner.len() == 0 {
-                    Err(EmptyAtAll)
+                    Err(MatrErr::EmptyAtAll)
                 } else {
                     let mut cols = None;
                     for r in 0..inner.len() {
                         if cols.is_none() {
                             cols = Some(inner[r].len());
                         } else if inner[r].len() != cols.unwrap() {
-                            return Err(CurveSides);
+                            return Err(MatrErr::CurveSides);
                         }
                     }
                     if cols.unwrap() == 0 {
-                        Err(EmptyAtAll)
+                        Err(MatrErr::EmptyAtAll)
                     } else {
                         Ok(())
                     }
@@ -61,17 +61,17 @@ impl Inner {
     /// Number of rows;
     pub fn rows(&self) -> usize {
         match self {
-            Self::Solo(_) => 1,
-            Self::Duet(inner) => inner.len(),
+            Self::Lin(_) => 1,
+            Self::Rec(inner) => inner.len(),
         }
     }
 
     /// Number of cols;
-    /// Suppose self as Duet isn't emtpy;
+    /// Suppose self isn't emtpy;
     pub fn cols(&self) -> usize {
         match self {
-            Self::Solo(inner) => inner.len(),
-            Self::Duet(inner) => inner[0].len(),
+            Self::Lin(inner) => inner.len(),
+            Self::Rec(inner) => inner[0].len(),
         }
     }
 
@@ -79,8 +79,8 @@ impl Inner {
     pub fn att(&self, (r, c): (usize, usize)) -> Result<&f64, MatrErr> {
         if 0 <= r && r < self.rows() && 0 <= c && c < self.cols() {
             match self {
-                Inner::Solo(inner) => Ok(&inner[c]),
-                Inner::Duet(inner) => Ok(&inner[r][c]),
+                Inner::Lin(inner) => Ok(&inner[c]),
+                Inner::Rec(inner) => Ok(&inner[r][c]),
             }
         } else {
             Err(MatrErr::OutOfBounds)
@@ -91,8 +91,8 @@ impl Inner {
     pub fn att_mut(&mut self, (r, c): (usize, usize)) -> Result<&mut f64, MatrErr> {
         if 0 <= r && r < self.rows() && 0 <= c && c < self.cols() {
             match self {
-                Inner::Solo(inner) => Ok(&mut inner[c]),
-                Inner::Duet(inner) => Ok(&mut inner[r][c]),
+                Inner::Lin(inner) => Ok(&mut inner[c]),
+                Inner::Rec(inner) => Ok(&mut inner[r][c]),
             }
         } else {
             Err(MatrErr::OutOfBounds)
