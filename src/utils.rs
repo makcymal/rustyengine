@@ -1,3 +1,9 @@
+use {
+    crate::linal::{
+        Point, Vector
+    },
+};
+
 /// Enum describes shape of Matrixify implementors.
 /// Matrix is intended to have size of Rect and Vector of Row or Col.
 #[derive(Debug, Clone, Copy)]
@@ -101,4 +107,13 @@ pub fn pow_minus(deg: usize) -> f64 {
         true => 1.0,
         false => -1.0,
     }
+}
+
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum AnyVal {
+    None,
+    Point(Point),
+    Vector(Vector),
+    Float(f64),
 }

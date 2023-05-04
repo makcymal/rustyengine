@@ -7,7 +7,7 @@ use {
         utils::{
             pow_minus, Sign, Size,
         },
-        enums::MatrixifyErr::{self, *},
+        errs::MatrixifyErr::{self, *},
     },
     std::{
         ops::{Add, Div, Index, IndexMut, Mul, Neg, Sub},

@@ -1,76 +1,74 @@
-use std::ops::IndexMut;
-/// Vecspace, Point and CoordSys structs.
-/// Depends on global 3, BIFORM, COORDSYS and Matrix, Vector from matrixify module.
-/// Provides singleton with GRAMM matrix in current basis defined in COORDSYS.
+/// Vecspace, Point and CoordSys structs
+/// Depends on global 3, BIFORM, COORDSYS and Matrix, Vector from matrixify module
+/// Provides singleton with GRAMM matrix in current basis defined in COORDSYS
 
 use {
     crate::{
+        globals::DIM,
         utils::Size,
         linal::{
             BIFORM,
             matrixify::{
                 Matrixify, Matrix, Vector,
-                scalar_prod
-            }
+                scalar_prod,
+            },
         },
     },
     std::ops::{
-        Add, Sub, Index,
+        Add, Sub, Index, IndexMut
     },
+    once_cell::sync::OnceCell,
 };
 
 
-// /// Actual coordinate system. Must be initialized in main() function.
-// static COORDSYS: OnceCell<CoordSys> = OnceCell::new();
-//
-// /// Signleton with GRAMM matrix in current basis defined in COORDSYS. Accessible via COORDSYS::gramm().
-// static GRAM: OnceCell<Matrix> = OnceCell::new();
+/// Actual coordinate system. Must be initialized in main() function
+static COORDSYS: OnceCell<CoordSys> = OnceCell::new();
+
+/// Signleton with GRAMM matrix in current basis defined in COORDSYS. Accessible via COORDSYS::gramm()
+static GRAM: OnceCell<Matrix> = OnceCell::new();
 
 
 // <<< Vecspace
 
-/// Vector space defined by static array of basis vectors of 3 length.
+/// Vector space defined by static array of basis vectors of 3 length
 #[derive(Debug)]
 pub struct VecSpace {
-    /// Basis vectors themselves. Must not be linear-dependent.
+    /// Basis vectors themselves. Must not be linear-dependent
     basis: [Vector; 3],
-    /// Gram matrix in this basis
-    gram: Matrix,
-    /// Inversed
-    /// False if it's unknown that basis vectors are orthogonal pairwise.
+    /// False if it's unknown that basis vectors are orthogonal pairwise
     ortho: bool,
 }
 
 impl VecSpace {
-    /// The most common orthonormal basis.
+    /// The most common orthonormal basis
     pub fn identity() -> Self {
-        let mut basis = Default::default();
+        let mut basis: [Vector; 3] = Default::default();
         for i in 0..3 {
             basis[i] = Vector::from(vec![0.0; 3]);
             basis[i][i] = 1.0;
         }
+        Self { basis, ortho: true }
+    }
 
-        let mut gram = Matrix::zeros(Size::Rect((3, 3)));
-        for row in 0..3 {
-            for col in 0..3 {
-                gram[(row, col)] = &basis[row] % &basis[col];
+    /// As long as GRAM depends on basis it's defined here.
+    /// But this method is private. See CoordSys impl for public method.
+    fn gram(&self) -> &'static Matrix {
+        if GRAM.get().is_none() {
+            let mut gram = Matrix::zeros(Size::Rect((DIM, DIM)));
+            for row in 0..DIM {
+                for col in 0..DIM {
+                    gram[(row, col)] = &self.basis[row] % &self.basis[col];
+                }
             }
+            GRAM.set(gram).expect("GRAMM initialization failed");
         }
-
-        Self { basis, gram, ortho: true }
+        GRAM.get().expect("GRAMM is not initialized")
     }
 }
 
 /// Creates basis with the given vectors without any checks for linear-independency or orthonormality.
 impl From<[Vector; 3]> for VecSpace {
     fn from(basis: [Vector; 3]) -> Self {
-        let mut gram = Matrix::zeros(Size::Rect((3, 3)));
-        for row in 0..3 {
-            for col in 0..3 {
-                gram[(row, col)] = &basis[row] % &basis[col];
-            }
-        }
-
         let mut ortho = true;
         for i in 0..3 {
             let (lhs, rhs) = (&basis[i], &basis[(i + 1) % 3]);
@@ -80,7 +78,7 @@ impl From<[Vector; 3]> for VecSpace {
             }
         }
 
-        Self { basis, gram, ortho }
+        Self { basis, ortho }
     }
 }
 
@@ -112,7 +110,7 @@ impl PartialEq for VecSpace {
 // <<< Point
 
 /// The end of the radius vector, pinned to origin of coordinates.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Point {
     /// Radius vector itself.
     radvec: Vector,
@@ -178,11 +176,11 @@ pub struct CoordSys {
 
 impl CoordSys {
     /// Basic constructor.
-    pub fn from(init_pt: Point, vecspace: VecSpace) -> Self {
-        Self { initpt: init_pt, vecspace }
+    pub fn from(initpt: Point, vecspace: VecSpace) -> Self {
+        Self { initpt, vecspace }
     }
 
-    /// Provides access to the private field property - vecspace.surely_is_ortho
+    /// Provides access to the private field property - vecspace.ortho
     pub fn is_ortho(&self) -> bool {
         self.vecspace.ortho
     }
@@ -190,6 +188,14 @@ impl CoordSys {
     /// Returns global COORDSYS from singleton. Panics if it's not initialized yet.
     pub fn global() -> &'static CoordSys {
         COORDSYS.get().expect("COORDSYS is not initialized")
+    }
+
+    /// Initializes global singleton COORDSYS with zero point and identity vecspace.
+    pub fn init_coordsys() {
+        let initpt = Point::zeros();
+        let vecspace = VecSpace::identity();
+        COORDSYS.set(CoordSys::from(initpt, vecspace))
+            .expect("COORDSYS initialization failed");
     }
 
     /// Returns actual vector space of global COORDSYS. Panics if it's not initialized yet.

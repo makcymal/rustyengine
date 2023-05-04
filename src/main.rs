@@ -1,18 +1,14 @@
 #![allow(warnings)]
 
-/// Types related to linear algebra, such as Matrix, Vector, Point, VectorSpace, CoordinateSystem.
+/// Types related to linear algebra
 mod linal;
-/// Global configuration parameters and state variables.
+/// Core engine logic
+mod engine;
+/// Global configuration parameters and state variables
 mod globals;
-/// Types that may be useful in any module.
+/// Types that may be useful in any module
 mod utils;
-/// Enums defining errors and some useful things.
-mod enums;
+/// Enums defining errors and some useful things
+mod errs;
 
-use globals::{
-    init_linal,
-};
-
-fn main() {
-    init_linal();
-}
+fn main() {}

@@ -12,6 +12,12 @@ pub enum MatrixifyErr {
 /// Errors that can arise while applying rotations.
 #[derive(Debug, PartialEq)]
 pub enum RotationErr {
-    NonExistentAxis,
+    InexistentAxis,
     RepeatedAxis,
+}
+
+/// Errors that can arise within entity module
+#[derive(Debug, PartialEq)]
+pub enum EntityErr {
+    InexistentProp,
 }

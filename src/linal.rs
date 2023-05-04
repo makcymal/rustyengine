@@ -6,21 +6,25 @@ pub mod coord_sys;
 #[cfg(test)]
 mod tests;
 
-use {
-    crate::{
-        globals::{
-            DIM, COORDSYS,
-        },
-        enums::RotationErr::{self, *},
-        utils::{
-            Size, pow_minus,
-        },
-    },
+pub use {
     matrixify::{
-        Matrix, Vector, scalar_prod,
+        Matrix, Vector,
     },
     coord_sys::{
         VecSpace, Point, CoordSys,
+    },
+};
+
+use {
+    crate::{
+        linal::matrixify::scalar_prod,
+        globals::{
+            DIM,
+        },
+        errs::RotationErr::{self, *},
+        utils::{
+            Size, pow_minus,
+        },
     },
     std::ops::{
         BitOr, BitXor, Rem,
@@ -44,7 +48,7 @@ impl Matrix {
     /// Returns rotational matrix on plane from one axis to another by given angle.
     pub fn rot(mut from_axis: usize, mut to_axis: usize, mut angle: f64) -> Result<Self, RotationErr> {
         if DIM <= from_axis || DIM <= to_axis {
-            return Err(NonExistentAxis);
+            return Err(InexistentAxis);
         } else if from_axis == to_axis {
             return Err(RepeatedAxis);
         }
@@ -104,8 +108,8 @@ impl BitOr for &Vector {
     type Output = Vector;
 
     fn bitor(self, rhs: Self) -> Self::Output {
-        if DIM != 3 || self.inner_len() != 3 || rhs.inner_len() != 3 {
-            panic!("Trying to compute vector product in non 3D space");
+        if self.inner_len() != 3 || rhs.inner_len() != 3 {
+            panic!("Trying to compute vector product of vectors with length of not 3");
         }
         Vector::from(vec![
             self[1] * rhs[2] - self[2] * rhs[1],
@@ -121,11 +125,3 @@ pub fn init_biform() {
         .expect("BIFORM initialization failed");
 }
 
-
-/// Initializes global singleton COORDSYS with zero point and identity vecspace.
-pub fn init_coordsys() {
-    let init_pt = Point::zeros();
-    let vecspace = VecSpace::identity();
-    COORDSYS.set(CoordSys::from(init_pt, vecspace))
-        .expect("COORDSYS initialization failed");
-}
