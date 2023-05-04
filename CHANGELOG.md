@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.0.3] - 2023-05-04
+
+### Added
+- `Ray` struct using `Point` and `Vector` in the given `CoordSys`
+- `IdSet` uses crate `uuid`. More specifically it uses UUID standard v4. It's prohibited to mutate `Id`. 
+- `EntityCore` used in every particular `Entity` (following principle Composition Over Inheritance). It's intended to create it within `Game` instance
+- Properties in `EntityCore` are set via enums `Prop` and `AnyVal`
+- `Entity` is the enum with variants of different entities
+- `EntityList` instance is used in `Game` for storing all related to the entities within game `Id`s 
+- `Game` that responsible for storing current `CoordSys` and `EntityList` and running related scripts
+- `GameObject` that stands for basic game object
+- `GameCamera` with four different constructors
+- Reexports into scope of namespace `engine`
+
+### Changed
+- `linalg` module renamed to `linal`
+- `enums` module rightfully renamed to `errs`
+
+### Fixed
+- `VecSpace` now knows precisely whether the basis is orthogonal or not
+
+### Dependecies
+- `Uuid` crate with feauture `v4`
+
+
 ## [0.0.2] - 2023-04-13
 
 ### Added
