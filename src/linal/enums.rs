@@ -1,5 +1,5 @@
 /// Provides possibity of picking a suitable storage of elements;
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Inner {
     Lin(Vec<f64>),
     Rec(Vec<Vec<f64>>),
@@ -96,19 +96,6 @@ impl Inner {
 }
 
 
-/// Describes how to treat the `Matr.grid`
-#[derive(Debug, Default, Clone, Copy, PartialEq)]
-pub enum Repr {
-    #[default]
-    Matrix,
-    Row,
-    Col,
-    RowList,
-    ColList,
-    Failure(MatrErr),
-}
-
-
 /// Result for actions related to `Matr`
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum MatrRes<T> {
@@ -136,6 +123,8 @@ pub enum MatrErr {
     NotLin,
     NotRec,
     NotSqr,
+    TooManyRows,
+    TooManyCols,
     OutOfBounds,
     AddSizesMismatch,
     MulSizesMismatch,
