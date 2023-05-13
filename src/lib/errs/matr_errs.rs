@@ -11,22 +11,16 @@ pub enum MatrErr {
         lhs: (usize, usize),
         rhs: (usize, usize),
     },
+
     #[error("mul on LHS of size {lhs:?}, RHS of size {rhs:?}")]
     MulSizesMismatch {
         lhs: (usize, usize),
         rhs: (usize, usize),
     },
-}
 
-// impl MatrErr {
-//     pub fn dbg(&self) {
-//         match self {
-//             Self::AddSizesMismatch(lhs, rhs) =>
-//                 println!("LHS has {:?} rows and {:?} cols, RHS has {:?} rows and {:?} cols",
-//                          lhs.0, lhs.1, rhs.0, rhs.1),
-//             Self::MulSizesMismatch(lhs, rhs) =>
-//                 println!("LHS has {:?} rows and {:?} cols, RHS has {:?} rows and {:?} cols",
-//                          lhs.0, lhs.1, rhs.0, rhs.1),
-//         }
-//     }
-// }
+    #[error("determinant of non-square matr, size: {0}")]
+    DeterminantOfNonSquare((usize, usize)),
+
+    #[error("inverse of matr with null determinant")]
+    NullDeterminant,
+}

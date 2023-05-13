@@ -17,33 +17,11 @@ impl Line {
 }
 
 
-#[derive(Debug, Display, Clone, Copy, PartialEq)]
-pub enum Cardinal {
-    North, East, South, West,
-}
-
-impl Cardinal {
-    pub fn inv(&self) -> Self {
-        match self {
-            Cardinal::North => Cardinal::South,
-            Cardinal::South => Cardinal::North,
-            Cardinal::East => Cardinal::West,
-            Cardinal::West => Cardinal::East,
-        }
-    }
-}
-
-
-#[derive(Debug, Display, Clone, Copy, PartialEq)]
-pub enum HandSide {
-    Left, Right
-}
-
-impl HandSide {
-    pub fn inv(&self) -> Self {
-        match self {
-            HandSide::Left => HandSide::Right,
-            HandSide::Right => HandSide::Left,
-        }
+#[inline(always)]
+pub fn pow_minus(x: usize) -> f64 {
+    match x % 2 {
+        0 => 1.0,
+        1 => -1.0,
+        _ => unreachable!(),
     }
 }
