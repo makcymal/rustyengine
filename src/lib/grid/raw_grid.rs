@@ -1,7 +1,7 @@
 use {
     crate::{
         errs::{
-            AnyRes::{self, *},
+            AnyRes,
             AnyErr::{self, *},
             GridErr::{self, *}
         },
@@ -19,32 +19,46 @@ pub(in super) enum VecWrapper<T> {
 }
 
 impl<T> VecWrapper<T> {
+    pub(in super) fn is_lin(&self) -> bool {
+        match self {
+            VecWrapper::Lin(_) => true,
+            _ => false
+        }
+    }
+
+    pub(in super) fn is_rec(&self) -> bool {
+        match self {
+            VecWrapper::Rec(_) => true,
+            _ => false
+        }
+    }
+
     /// Whether it's empty and has shape or right rectangle
     pub(in super) fn is_valid(&self) -> AnyRes<()> {
         match self {
             VecWrapper::Lin(vec) => {
                 if vec.len() == 0 {
-                    No(GridErr(IsEmpty))
+                    Err(GridErr(IsEmpty))
                 } else {
-                    Go(())
+                    Ok(())
                 }
             }
             VecWrapper::Rec(vec) => {
                 if vec.len() == 0 {
-                    No(GridErr(IsEmpty))
+                    Err(GridErr(IsEmpty))
                 } else {
                     let mut cols = None;
                     for r in 0..vec.len() {
                         if cols.is_none() {
                             cols = Some(vec[r].len());
                         } else if vec[r].len() != cols.unwrap() {
-                            return No(GridErr(CurveSides(r)));
+                            return Err(GridErr(CurveSides(r)));
                         }
                     }
                     if cols.unwrap() == 0 {
-                        No(GridErr(IsEmpty))
+                        Err(GridErr(IsEmpty))
                     } else {
-                        Go(())
+                        Ok(())
                     }
                 }
             }
@@ -68,42 +82,18 @@ impl<T> VecWrapper<T> {
     }
 
     /// Element in `r` row and `c` column
-    pub(in super) fn att(&self, r: usize, c: usize) -> AnyRes<&T> {
+    pub(in super) fn att(&self, r: usize, c: usize) -> &T {
         match self {
-            VecWrapper::Lin(vec) => {
-                if r == 0 && 0 <= c && c < vec.len() {
-                    Go(&vec[c])
-                } else {
-                    No(GridErr(OutOfBounds((r, c), (1, vec.len()))))
-                }
-            }
-            VecWrapper::Rec(vec) => {
-                if 0 <= r && r < vec.len() && 0 <= c && c < vec[0].len() {
-                    Go(&vec[r][c])
-                } else {
-                    No(GridErr(OutOfBounds((r, c), (vec.len(), vec[0].len()))))
-                }
-            }
+            VecWrapper::Lin(vec) => &vec[c],
+            VecWrapper::Rec(vec) => &vec[r][c],
         }
     }
 
     /// Mut ref to element in `r` row and `c` column
-    pub(in super) fn att_mut(&mut self, r: usize, c: usize) -> AnyRes<&mut T> {
+    pub(in super) fn att_mut(&mut self, r: usize, c: usize) -> &mut T {
         match self {
-            VecWrapper::Lin(vec) => {
-                if r == 0 && 0 <= c && c < vec.len() {
-                    Go(&mut vec[c])
-                } else {
-                    No(GridErr(OutOfBounds((r, c), (1, vec.len()))))
-                }
-            }
-            VecWrapper::Rec(vec) => {
-                if 0 <= r && r < vec.len() && 0 <= c && c < vec[0].len() {
-                    Go(&mut vec[r][c])
-                } else {
-                    No(GridErr(OutOfBounds((r, c), (vec.len(), vec[0].len()))))
-                }
-            }
+            VecWrapper::Lin(vec) => &mut vec[c],
+            VecWrapper::Rec(vec) => &mut vec[r][c],
         }
     }
 }
@@ -121,11 +111,11 @@ impl<T> RawGrid<T> {
     pub fn from_lin(lin: Vec<T>) -> AnyRes<Self> {
         let vec = VecWrapper::Lin(lin);
         match vec.is_valid() {
-            Go(_) => Go(Self {
+            Ok(_) => Ok(Self {
                 vec,
                 trans: false,
             }),
-            No(err) => No(err),
+            Err(err) => Err(err),
         }
     }
 
@@ -133,12 +123,16 @@ impl<T> RawGrid<T> {
     pub fn from_rec(rec: Vec<Vec<T>>) -> AnyRes<Self> {
         let vec = VecWrapper::Rec(rec);
         match vec.is_valid() {
-            Go(_) => Go(Self {
+            Ok(_) => Ok(Self {
                 vec,
                 trans: false,
             }),
-            No(err) => No(err),
+            Err(err) => Err(err),
         }
+    }
+
+    pub fn is_transposed(&self) -> bool {
+        self.trans
     }
 
     /// Transposes (inverses `trans` flag) and returns self
@@ -166,8 +160,38 @@ impl<T> RawGrid<T> {
     /// Element in `r` row and `c` column, accounting `self.trans` and passed `t` flag
     pub fn att(&self, r: usize, c: usize, t: bool) -> AnyRes<&T> {
         match self.trans ^ t {
-            false => self.vec.att(r, c),
-            true => self.vec.att(c, r),
+            false => {
+                match &self.vec {
+                    VecWrapper::Lin(lin) => {
+                        match r == 0 && c < lin.len() {
+                            true => Ok(self.vec.att(r, c)),
+                            false => Err(GridErr(OutOfBounds { size: (1, lin.len()), idx: (r, c) }))
+                        }
+                    },
+                    VecWrapper::Rec(rec) => {
+                        match r < rec.len() && c < rec[0].len() {
+                            true => Ok(self.vec.att(r, c)),
+                            false => Err(GridErr(OutOfBounds { size: (rec.len(), rec[0].len()), idx: (r, c) }))
+                        }
+                    }
+                }
+            },
+            true => {
+                match &self.vec {
+                    VecWrapper::Lin(lin) => {
+                        match c == 0 && r < lin.len() {
+                            true => Ok(self.vec.att(c, r)),
+                            false => Err(GridErr(OutOfBounds { size: (lin.len(), 1), idx: (r, c) }))
+                        }
+                    },
+                    VecWrapper::Rec(rec) => {
+                        match c < rec.len() && r < rec[0].len() {
+                            true => Ok(self.vec.att(c, r)),
+                            false => Err(GridErr(OutOfBounds { size: (rec[0].len(), rec.len()), idx: (r, c) }))
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -175,8 +199,38 @@ impl<T> RawGrid<T> {
     /// accounting `self.trans` and passed `t` flag
     pub fn att_mut(&mut self, r: usize, c: usize, t: bool) -> AnyRes<&mut T> {
         match self.trans ^ t {
-            false => self.vec.att_mut(r, c),
-            true => self.vec.att_mut(c, r),
+            false => {
+                match &self.vec {
+                    VecWrapper::Lin(lin) => {
+                        match r == 0 && c < lin.len() {
+                            true => Ok(self.vec.att_mut(r, c)),
+                            false => Err(GridErr(OutOfBounds { size: (1, lin.len()), idx: (r, c) }))
+                        }
+                    },
+                    VecWrapper::Rec(rec) => {
+                        match r == rec.len() && c < rec[0].len() {
+                            true => Ok(self.vec.att_mut(r, c)),
+                            false => Err(GridErr(OutOfBounds { size: (rec.len(), rec[0].len()), idx: (r, c) }))
+                        }
+                    }
+                }
+            },
+            true => {
+                match &self.vec {
+                    VecWrapper::Lin(lin) => {
+                        match c == 0 && r < lin.len() {
+                            true => Ok(self.vec.att_mut(c, r)),
+                            false => Err(GridErr(OutOfBounds { size: (lin.len(), 1), idx: (c, r) }))
+                        }
+                    },
+                    VecWrapper::Rec(rec) => {
+                        match c == rec.len() && r < rec[0].len() {
+                            true => Ok(self.vec.att_mut(c, r)),
+                            false => Err(GridErr(OutOfBounds { size: (rec[0].len(), rec.len()), idx: (c, r) }))
+                        }
+                    }
+                }
+            }
         }
     }
 }
