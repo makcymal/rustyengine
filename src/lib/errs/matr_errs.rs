@@ -18,7 +18,7 @@ pub enum MatrErr {
         rhs: (usize, usize),
     },
 
-    #[error("determinant of non-square matr, size: {0}")]
+    #[error("determinant of non-square matr, size: {0:?}")]
     DeterminantOfNonSquare((usize, usize)),
 
     #[error("inverse of matr with null determinant")]

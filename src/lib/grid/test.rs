@@ -111,31 +111,47 @@ fn t_trans_cols_raw_grid() {
 #[test]
 fn att_raw_grid() {
     let rg = RawGrid::from_rec(vec![vec![1, 2, 3], vec![4, 5, 6]]).unwrap();
-    assert_eq!(rg.att(0, 1, false), Ok(&2));
-}
-
-#[test]
-fn att_out_raw_grid() {
-    let rg = RawGrid::from_rec(vec![vec![1, 2, 3], vec![4, 5, 6]]).unwrap();
-    assert_eq!(rg.att(2, 1, false), Err(GridErr(OutOfBounds { size: (2, 3), idx: (2, 1) })));
+    assert_eq!(*rg.att(0, 1, false), 2);
 }
 
 #[test]
 fn att_trans_raw_grid() {
     let rg = RawGrid::from_rec(vec![vec![1, 2, 3], vec![4, 5, 6]]).unwrap().transpose();
-    assert_eq!(rg.att(0, 1, false), Ok(&4));
-}
-
-#[test]
-fn att_out_trans_raw_grid() {
-    let rg = RawGrid::from_rec(vec![vec![1, 2, 3], vec![4, 5, 6]]).unwrap().transpose();
-    assert_eq!(rg.att(1, 2, false), Err(GridErr(OutOfBounds { size: (3, 2), idx: (1, 2) })));
+    assert_eq!(*rg.att(0, 1, false), 4);
 }
 
 #[test]
 fn att_t_trans_raw_grid() {
     let rg = RawGrid::from_rec(vec![vec![1, 2, 3], vec![4, 5, 6]]).unwrap().transpose();
-    assert_eq!(rg.att(0, 1, true), Ok(&2));
+    assert_eq!(*rg.att(0, 1, true), 2);
+}
+
+#[test]
+fn equal_raw_grids() {
+    let lhs = RawGrid::from_rec(vec![vec![1, 2, 3], vec![4, 5, 6]]).unwrap().transpose();
+    let rhs = RawGrid::from_rec(vec![vec![1, 2, 3], vec![4, 5, 6]]).unwrap().transpose();
+    assert_eq!(lhs, rhs);
+}
+
+#[test]
+fn equal_rec_lin_raw_grids() {
+    let lhs = RawGrid::from_rec(vec![vec![1, 2, 3]]).unwrap();
+    let rhs = RawGrid::from_lin(vec![1, 2, 3]).unwrap();
+    assert_eq!(lhs, rhs);
+}
+
+#[test]
+fn equal_rec_lin_transposed_raw_grids() {
+    let lhs = RawGrid::from_rec(vec![vec![1], vec![2], vec![3]]).unwrap();
+    let rhs = RawGrid::from_lin(vec![1, 2, 3]).unwrap().transpose();
+    assert_eq!(lhs, rhs);
+}
+
+#[test]
+fn inequal_raw_grids() {
+    let lhs = RawGrid::from_rec(vec![vec![1], vec![2], vec![3]]).unwrap();
+    let rhs = RawGrid::from_lin(vec![1, 2, 3]).unwrap();
+    assert_ne!(lhs, rhs);
 }
 
 // RawGrid tests >>>
@@ -218,7 +234,7 @@ fn raw_transposed_grid_cols() {
 #[test]
 fn raw_transpose_matrix() {
     let grid = Grid::from_rec(vec![vec![1, 2], vec![4, 5], vec![4, 5]]).raw_transpose();
-    assert_eq!(*grid.att(0, 1).unwrap(), 4);
+    assert_eq!(*grid.att(0, 1), 4);
 }
 
 #[test]
@@ -264,61 +280,63 @@ fn grid_is_transposed() {
 #[test]
 fn at_lin_row_grid() {
     let grid = Grid::from_lin(vec![0, 1, 2, 3]).to_row();
-    assert_eq!(*grid.at(2).unwrap(), 2);
+    assert_eq!(*grid.at(2), 2);
 }
 
 #[test]
 fn at_rec_row_grid() {
     let grid = Grid::from_rec(vec![vec![0], vec![1], vec![2], vec![3]]).raw_transpose().to_row();
-    assert_eq!(*grid.at(2).unwrap(), 2);
+    assert_eq!(*grid.at(2), 2);
 }
 
 #[test]
 fn at_rec_col_grid() {
     let grid = Grid::from_rec(vec![vec![0], vec![1], vec![2], vec![3]]).to_col();
-    assert_eq!(*grid.at(2).unwrap(), 2);
+    assert_eq!(*grid.at(2), 2);
 }
 
 #[test]
 fn att_rec_matrix_grid() {
     let grid = Grid::from_rec(vec![vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9]]);
-    assert_eq!(*grid.att(2, 1).unwrap(), 8);
-}
-
-#[test]
-fn att_out_rec_matrix_grid() {
-    let grid = Grid::from_rec(vec![vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9]]).to_matrix();
-    assert_eq!(grid.att(3, 3), Err(GridErr(OutOfBounds { size: (3, 3), idx: (3, 3) })));
+    assert_eq!(*grid.att(2, 1), 8);
 }
 
 #[test]
 fn att_rec_rowlist_grid() {
     let grid = Grid::from_rec(vec![vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9]]).to_rowlist();
-    assert_eq!(*grid.att(2, 1).unwrap(), 8);
+    assert_eq!(*grid.att(2, 1), 8);
 }
 
 #[test]
 fn att_rec_collist_grid() {
     let grid = Grid::from_rec(vec![vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9]]).to_collist();
-    assert_eq!(*grid.att(2, 1).unwrap(), 6);
+    assert_eq!(*grid.att(2, 1), 6);
 }
 
 #[test]
 fn att_lin_matrix_grid() {
     let grid = Grid::from_lin(vec![0, 1, 2, 3]).to_matrix();
-    assert_eq!(*grid.att(0, 2).unwrap(), 2);
-}
-
-#[test]
-fn att_out_lin_collist_grid() {
-    let grid = Grid::from_lin(vec![0, 1, 2, 3]).to_collist();
-    assert_eq!(grid.att(0, 2), Err(GridErr(OutOfBounds { size: (4, 1), idx: (0, 2) })));
+    assert_eq!(*grid.att(0, 2), 2);
 }
 
 #[test]
 fn att_lin_collist_grid() {
     let grid = Grid::from_lin(vec![1]).to_collist();
-    assert_eq!(*grid.att(0, 0).unwrap(), 1);
+    assert_eq!(*grid.att(0, 0), 1);
+}
+
+#[test]
+fn equal_grid() {
+    let lhs = Grid::from_rec(vec![vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9]]).to_collist();
+    let rhs = Grid::from_rec(vec![vec![1, 4, 7], vec![2, 5, 8], vec![3, 6, 9]]).to_collist().raw_transpose();
+    assert_eq!(lhs, rhs);
+}
+
+#[test]
+fn inequal_grid() {
+    let lhs = Grid::from_rec(vec![vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9]]).to_collist();
+    let rhs = Grid::from_rec(vec![vec![1, 4, 7], vec![2, 5, 8], vec![3, 6, 9]]).to_collist().transpose();
+    assert_ne!(lhs, rhs);
 }
 
 // Grid tests >>>

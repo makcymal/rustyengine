@@ -9,7 +9,7 @@ use {
         },
         util::pow_minus,
     },
-    super::prec::round,
+    super::prec::{round, round_prec},
 };
 
 pub type Matr = Grid<f64>;
@@ -17,7 +17,9 @@ pub type Matr = Grid<f64>;
 impl Matr {
     pub fn identity(side: usize) -> Self {
         let mut id = Self::zero(side, side);
-        let _ = (0..side).map(|d| *id.att_mut(d, d).unwrap() = 1.0);
+        for d in 0..side {
+            *id.att_mut(d, d) = 1.0;
+        }
         id
     }
 
@@ -42,9 +44,8 @@ impl Matr {
         }
         for r in 0..lhs_rows {
             for c in 0..lhs_cols {
-                *self.rawgrid_mut().att_mut(r, c, false).unwrap() =
-                    round(*self.rawgrid_mut().att_mut(r, c, false).unwrap() +
-                        rhs.rawgrid().att(r, c, t).unwrap())
+                *self.rawgrid_mut().att_mut(r, c, false) =
+                    round(*self.rawgrid_mut().att_mut(r, c, false) + rhs.rawgrid().att(r, c, t))
             }
         }
         self
@@ -67,9 +68,8 @@ impl Matr {
         }
         for r in 0..lhs_rows {
             for c in 0..lhs_cols {
-                *self.rawgrid_mut().att_mut(r, c, false).unwrap() =
-                    round(*self.rawgrid_mut().att_mut(r, c, false).unwrap() -
-                        rhs.rawgrid().att(r, c, t).unwrap())
+                *self.rawgrid_mut().att_mut(r, c, false) =
+                    round(*self.rawgrid_mut().att_mut(r, c, false) - rhs.rawgrid().att(r, c, t))
             }
         }
         self
@@ -89,9 +89,9 @@ impl Matr {
         let mut output = Self::zero(out_rows, out_cols);
         for r in 0..out_rows {
             for c in 0..out_cols {
-                *output.att_mut(r, c).unwrap() =
+                *output.att_mut(r, c) =
                     round((0..self.rawgrid().cols(false))
-                        .map(|i| self.rawgrid().att(r, i, false).unwrap() * rhs.rawgrid().att(i, c, t).unwrap())
+                        .map(|i| self.rawgrid().att(r, i, false) * rhs.rawgrid().att(i, c, t))
                         .sum())
             }
         }
@@ -104,11 +104,11 @@ impl Matr {
         if self.is_failure() {
             return Err(GridErr(UnhandledFailure));
         }
-        if self.size.rows() != self.size.cols() {
-            return Err(MatrErr(DeterminantOfNonSquare((self.size.rows(), self.size.cols()))));
+        if self.rows() != self.cols() {
+            return Err(MatrErr(DeterminantOfNonSquare((self.rows(), self.cols()))));
         }
-        let mut rows = vec![true; self.size.rows()];
-        let mut cols = vec![true; self.size.cols()];
+        let mut rows = vec![true; self.rows()];
+        let mut cols = vec![true; self.cols()];
         Ok(round(self.minor(&mut rows, &mut cols)))
     }
 
@@ -120,10 +120,10 @@ impl Matr {
             return Err(MatrErr(NullDeterminant));
         }
 
-        let mut rows = vec![true; self.size.rows()];
-        let mut cols = vec![true; self.size.cols()];
+        let mut rows = vec![true; self.rows()];
+        let mut cols = vec![true; self.cols()];
 
-        let mut inversed = Matr::zeros(self.rows(), self.cols());
+        let mut inversed = Matr::zero(self.rows(), self.cols());
         for row in 0..self.rows() {
             cols[row] = false;
             for col in 0..self.cols() {
@@ -137,34 +137,50 @@ impl Matr {
         Ok(inversed)
     }
 
-    /// Minor based on ignored rows and columns, computed recursively
-    fn minor(&self, rows: &mut Vec<bool>, cols: &mut Vec<bool>) -> f64 {
-        // when this code is reached, matrix surely is square
-        let mut row = 0;
-        while row < self.size.rows() && rows[row] == false { row += 1 }
-
-        // now row = self.size.rows() or rows[row] = true
-
-        if row == self.size.rows() {
+    /// Minor based on ignored rows and columns, computed recursively.
+    /// `rows` and `cols` must contain equal number of `true`s
+    pub fn minor(&self, rows: &mut Vec<bool>, cols: &mut Vec<bool>) -> f64 {
+        let row = rows.iter().position(|&x| x);
+        if row.is_none() {
             return 1.0;
-        } else {
-            rows[row] = false;
         }
+        let row = row.unwrap();
+        rows[row] = false;
 
         let mut minor = 0.0;
         let mut j = 0;
         for col in 0..self.cols() {
             if cols[col] {
-                if self.att(row, col) == 0.0 {
+                let elem = *self.att(row, col);
+                if elem != 0.0 {
                     cols[col] = false;
-                    minor += pow_minus(j) * self.att(row, col) * self.minor(rows, cols);
+                    minor += pow_minus(j) * elem * self.minor(rows, cols);
                     cols[col] = true;
                 }
                 j += 1;
             }
         }
         rows[row] = true;
-
         minor
+    }
+
+    pub fn round(mut self) -> Self {
+        for r in 0..self.rawgrid().rows(false) {
+            for c in 0..self.rawgrid().cols(false) {
+                let elem = *self.rawgrid().att(r, c, false);
+                *self.rawgrid_mut().att_mut(r, c, false) = round(elem);
+            }
+        }
+        self
+    }
+
+    pub fn round_prec(mut self, prec: u16) -> Self {
+        for r in 0..self.rawgrid().rows(false) {
+            for c in 0..self.rawgrid().cols(false) {
+                let elem = *self.rawgrid().att(r, c, false);
+                *self.rawgrid_mut().att_mut(r, c, false) = round_prec(elem, prec);
+            }
+        }
+        self
     }
 }

@@ -237,57 +237,44 @@ impl<'g, E> Grid<E> {
     }
 
     /// Element in `i` position in `Row` / `Col`
-    pub fn at(&self, i: usize) -> AnyRes<&E> {
+    pub fn at(&self, i: usize) -> &E {
         match self {
-            Self::Row(grid) => {
-                grid.att(0, i, false)
-            }
-            Self::Col(grid) => {
-                grid.att(i, 0, false)
-            }
-            Self::Failure(_) => Err(GridErr(UnhandledFailure)),
-            _ => Err(GridErr(IsNotLin(self.repr()))),
+            Self::Row(grid) => grid.att(0, i, false),
+            Self::Col(grid) => grid.att(i, 0, false),
+            Self::Failure(err) => panic!("calling at({:?}) on Failure({:?})", i, err),
+            _ => panic!("calling at({:?}) on {:?}", i, self.repr()),
         }
     }
 
     /// Mut ref to element in `i` position in `Row` / `Col`
-    pub fn at_mut(&mut self, i: usize) -> AnyRes<&mut E> {
+    pub fn at_mut(&mut self, i: usize) -> &mut E {
         match self {
-            Self::Row(grid) => {
-                grid.att_mut(0, i, false)
-            }
-            Self::Col(grid) => {
-                grid.att_mut(i, 0, false)
-            }
-            Self::Failure(_) => Err(GridErr(UnhandledFailure)),
-            _ => Err(GridErr(IsNotLin(self.repr()))),
+            Self::Row(grid) => grid.att_mut(0, i, false),
+            Self::Col(grid) => grid.att_mut(i, 0, false),
+            Self::Failure(err) => panic!("calling at({:?}) on Failure({:?})", i, err),
+            _ => panic!("calling at({:?}) on {:?}", i, self.repr()),
         }
     }
 
     /// Element in `i` row and `j` column in `Matrix` / `RowList`
     /// or in `i` column and `j` row in `ColList` (or error)
-    pub fn att(&self, i: usize, j: usize) -> AnyRes<&E> {
+    pub fn att(&self, i: usize, j: usize) -> &E {
         match self {
             Self::Matrix(grid) | Self::RowList(grid) => grid.att(i, j, false),
-            Self::ColList(grid) => {
-                match grid.att(j, i, false) {
-                    Ok(val) => Ok(val),
-                    Err(_) => Err(GridErr(OutOfBounds { size: (self.cols(), self.rows()), idx: (i, j) })),
-                }
-            }
-            Self::Failure(_) => Err(GridErr(UnhandledFailure)),
-            _ => Err(GridErr(IsNotRec(self.repr()))),
+            Self::ColList(grid) => grid.att(j, i, false),
+            Self::Failure(err) => panic!("calling at({:?}, {:?}) on Failure({:?})", i, j, err),
+            _ => panic!("calling at({:?}, {:?}) on {:?}", i, j, self.repr()),
         }
     }
 
     /// Mut ref to element in `i` row and `j` column in `Matrix` / `RowList`
     /// or in `i` column and `j` row in `ColList` (or error)
-    pub fn att_mut(&mut self, i: usize, j: usize) -> AnyRes<&mut E> {
+    pub fn att_mut(&mut self, i: usize, j: usize) -> &mut E {
         match self {
             Self::Matrix(grid) | Self::RowList(grid) => grid.att_mut(i, j, false),
             Self::ColList(grid) => grid.att_mut(j, i, false),
-            Self::Failure(_) => Err(GridErr(UnhandledFailure)),
-            _ => Err(GridErr(IsNotRec(self.repr()))),
+            Self::Failure(err) => panic!("calling at({:?}, {:?}) on Failure({:?})", i, j, err),
+            _ => panic!("calling at({:?}, {:?}) on {:?}", i, j, self.repr()),
         }
     }
 
@@ -377,16 +364,16 @@ impl<'g, E> Iterator for ElemIter<'g, E> {
         let item;
         match self.dir {
             Line::Row => {
-                item = match self.grid.att(self.row, self.col) {
-                    Ok(item) => Some(item),
-                    Err(_) => None,
+                item = match self.col < self.grid.cols() {
+                    true => Some(self.grid.att(self.row, self.col)),
+                    false => None
                 };
                 self.col += 1
             },
             Line::Col => {
-                item = match self.grid.att(self.col, self.row) {
-                    Ok(item) => Some(item),
-                    Err(_) => None,
+                item = match self.row < self.grid.rows() {
+                    true => Some(self.grid.att(self.col, self.row)),
+                    false => None
                 };
                 self.row += 1
             },

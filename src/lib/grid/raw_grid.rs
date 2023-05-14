@@ -10,15 +10,15 @@ use {
 
 
 /// Provides possibity of picking a suitable storage of elements
-#[derive(Debug, Clone, PartialEq)]
-pub(in super) enum VecWrapper<T> {
+#[derive(Debug, Clone)]
+pub(in super) enum VecWrapper<E> {
     /// One-dimensional `Vec`
-    Lin(Vec<T>),
+    Lin(Vec<E>),
     /// Two-dimensional `Vec`
-    Rec(Vec<Vec<T>>),
+    Rec(Vec<Vec<E>>),
 }
 
-impl<T> VecWrapper<T> {
+impl<E> VecWrapper<E> {
     pub(in super) fn is_lin(&self) -> bool {
         match self {
             VecWrapper::Lin(_) => true,
@@ -82,7 +82,7 @@ impl<T> VecWrapper<T> {
     }
 
     /// Element in `r` row and `c` column
-    pub(in super) fn att(&self, r: usize, c: usize) -> &T {
+    pub(in super) fn att(&self, r: usize, c: usize) -> &E {
         match self {
             VecWrapper::Lin(vec) => &vec[c],
             VecWrapper::Rec(vec) => &vec[r][c],
@@ -90,7 +90,7 @@ impl<T> VecWrapper<T> {
     }
 
     /// Mut ref to element in `r` row and `c` column
-    pub(in super) fn att_mut(&mut self, r: usize, c: usize) -> &mut T {
+    pub(in super) fn att_mut(&mut self, r: usize, c: usize) -> &mut E {
         match self {
             VecWrapper::Lin(vec) => &mut vec[c],
             VecWrapper::Rec(vec) => &mut vec[r][c],
@@ -100,15 +100,15 @@ impl<T> VecWrapper<T> {
 
 
 /// One- or two-dimensional `Vec` with transposing flag
-#[derive(Debug, Clone, PartialEq)]
-pub struct RawGrid<T> {
-    vec: VecWrapper<T>,
+#[derive(Debug, Clone)]
+pub struct RawGrid<E> {
+    vec: VecWrapper<E>,
     trans: bool,
 }
 
-impl<T> RawGrid<T> {
+impl<E> RawGrid<E> {
     /// Constructor for one-dimensional `Vec`, not transposed
-    pub fn from_lin(lin: Vec<T>) -> AnyRes<Self> {
+    pub fn from_lin(lin: Vec<E>) -> AnyRes<Self> {
         let vec = VecWrapper::Lin(lin);
         match vec.is_valid() {
             Ok(_) => Ok(Self {
@@ -120,7 +120,7 @@ impl<T> RawGrid<T> {
     }
 
     /// Constructor for two-dimensional `Vec`, not transposed
-    pub fn from_rec(rec: Vec<Vec<T>>) -> AnyRes<Self> {
+    pub fn from_rec(rec: Vec<Vec<E>>) -> AnyRes<Self> {
         let vec = VecWrapper::Rec(rec);
         match vec.is_valid() {
             Ok(_) => Ok(Self {
@@ -158,79 +158,32 @@ impl<T> RawGrid<T> {
     }
 
     /// Element in `r` row and `c` column, accounting `self.trans` and passed `t` flag
-    pub fn att(&self, r: usize, c: usize, t: bool) -> AnyRes<&T> {
+    pub fn att(&self, r: usize, c: usize, t: bool) -> &E {
         match self.trans ^ t {
-            false => {
-                match &self.vec {
-                    VecWrapper::Lin(lin) => {
-                        match r == 0 && c < lin.len() {
-                            true => Ok(self.vec.att(r, c)),
-                            false => Err(GridErr(OutOfBounds { size: (1, lin.len()), idx: (r, c) }))
-                        }
-                    },
-                    VecWrapper::Rec(rec) => {
-                        match r < rec.len() && c < rec[0].len() {
-                            true => Ok(self.vec.att(r, c)),
-                            false => Err(GridErr(OutOfBounds { size: (rec.len(), rec[0].len()), idx: (r, c) }))
-                        }
-                    }
-                }
-            },
-            true => {
-                match &self.vec {
-                    VecWrapper::Lin(lin) => {
-                        match c == 0 && r < lin.len() {
-                            true => Ok(self.vec.att(c, r)),
-                            false => Err(GridErr(OutOfBounds { size: (lin.len(), 1), idx: (r, c) }))
-                        }
-                    },
-                    VecWrapper::Rec(rec) => {
-                        match c < rec.len() && r < rec[0].len() {
-                            true => Ok(self.vec.att(c, r)),
-                            false => Err(GridErr(OutOfBounds { size: (rec[0].len(), rec.len()), idx: (r, c) }))
-                        }
-                    }
-                }
-            }
+            false => self.vec.att(r, c),
+            true => self.vec.att(c, r)
         }
     }
 
     /// Mut ref to element in `r` row and `c` column,
     /// accounting `self.trans` and passed `t` flag
-    pub fn att_mut(&mut self, r: usize, c: usize, t: bool) -> AnyRes<&mut T> {
+    pub fn att_mut(&mut self, r: usize, c: usize, t: bool) -> &mut E {
         match self.trans ^ t {
-            false => {
-                match &self.vec {
-                    VecWrapper::Lin(lin) => {
-                        match r == 0 && c < lin.len() {
-                            true => Ok(self.vec.att_mut(r, c)),
-                            false => Err(GridErr(OutOfBounds { size: (1, lin.len()), idx: (r, c) }))
-                        }
-                    },
-                    VecWrapper::Rec(rec) => {
-                        match r == rec.len() && c < rec[0].len() {
-                            true => Ok(self.vec.att_mut(r, c)),
-                            false => Err(GridErr(OutOfBounds { size: (rec.len(), rec[0].len()), idx: (r, c) }))
-                        }
-                    }
-                }
-            },
-            true => {
-                match &self.vec {
-                    VecWrapper::Lin(lin) => {
-                        match c == 0 && r < lin.len() {
-                            true => Ok(self.vec.att_mut(c, r)),
-                            false => Err(GridErr(OutOfBounds { size: (lin.len(), 1), idx: (c, r) }))
-                        }
-                    },
-                    VecWrapper::Rec(rec) => {
-                        match c == rec.len() && r < rec[0].len() {
-                            true => Ok(self.vec.att_mut(c, r)),
-                            false => Err(GridErr(OutOfBounds { size: (rec[0].len(), rec.len()), idx: (c, r) }))
-                        }
-                    }
+            false => self.vec.att_mut(r, c),
+            true => self.vec.att_mut(c, r)
+        }
+    }
+}
+
+impl<E: PartialEq> PartialEq for RawGrid<E> {
+    fn eq(&self, other: &Self) -> bool {
+        for r in 0..self.rows(false) {
+            for c in 0..self.cols(false) {
+                if self.att(r, c, false) != other.att(r, c, false) {
+                    return false;
                 }
             }
         }
+        true
     }
 }
