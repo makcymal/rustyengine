@@ -23,4 +23,7 @@ pub enum MatrErr {
 
     #[error("inverse of matr with null determinant")]
     NullDeterminant,
+
+    #[error("matrix was divided by number zero")]
+    ZeroDivision,
 }

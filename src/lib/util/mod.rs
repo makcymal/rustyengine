@@ -17,6 +17,12 @@ impl Line {
 }
 
 
+#[derive(Debug, Display, Clone, Copy, PartialEq)]
+pub enum Sign {
+    Plus, Minus,
+}
+
+
 #[inline(always)]
 pub fn pow_minus(x: usize) -> f64 {
     match x % 2 {
