@@ -3,11 +3,11 @@ use {
 };
 
 #[derive(Debug, Display, Clone, Copy, PartialEq)]
-pub enum Line {
+pub enum LineTp {
     Row, Col,
 }
 
-impl Line {
+impl LineTp {
     pub fn inv(&self) -> Self {
         match self {
             Self::Row => Self::Col,
@@ -30,4 +30,11 @@ pub fn pow_minus(x: usize) -> f64 {
         1 => -1.0,
         _ => unreachable!(),
     }
+}
+
+
+#[derive(Debug, Display, Clone, PartialEq)]
+pub enum Idx {
+    Single(usize),
+    Double((usize, usize)),
 }

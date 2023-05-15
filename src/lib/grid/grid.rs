@@ -1,9 +1,13 @@
 use {
+    std::ops::{Index, IndexMut},
     crate::{
-        util::Line,
+        util::{
+            LineTp,
+            Idx,
+        },
         errs::{
-            AnyRes,
-            AnyErr::{self, *},
+            ReRes,
+            ReErr::{self, *},
             GridErr::{self, *},
         },
     },
@@ -14,108 +18,157 @@ use {
 };
 
 
+/// How `RawGrid` can be treaten
 #[derive(Debug, Display, Clone, Copy, PartialEq)]
 pub enum Repr {
-    Matrix,
+    /// Arbitrary `RawGrid`.
+    /// Indexing through rows first, then columns
+    Arbitrary,
+    /// `RawGrid` with equal numbers of rows and columns.
+    /// Avoids checks like `self.rows() == self.cols()`.
+    /// Indexing through rows first, then columns
+    Square,
+    /// `RawGrid` with `rows() == 1`.
+    /// It provides all the `Arbitrary` features, but also can treat as horizontal vector.
+    /// Indexing through elements
     Row,
+    /// `RawGrid` with `cols() == 1`.
+    /// It provides all the `Arbitrary` features, but also can treat as vertical vector.
+    /// Indexing through elements
     Col,
-    RowList,
-    ColList,
+    /// Treat `RawGrid` as set of rows.
+    /// Indexing through rows first, then columns
+    MultiRow,
+    /// Treat `RawGrid` as set of columns.
+    /// Indexing through columns first, then rows
+    MultiCol,
+    /// `RawGrid` can be replaced with error message
     Failure,
 }
 
 
+/// `Grid` holds collection of elements of type `E`, structured in rectangular table.
+/// The same variants of treating `RawGrid` as the `Repr`
 #[derive(Debug, Clone, PartialEq)]
 pub enum Grid<E> {
-    Matrix(RawGrid<E>),
+    Arbitrary(RawGrid<E>),
+    Square(RawGrid<E>),
     Row(RawGrid<E>),
     Col(RawGrid<E>),
-    RowList(RawGrid<E>),
-    ColList(RawGrid<E>),
-    Failure(AnyErr),
+    MultiRow(RawGrid<E>),
+    MultiCol(RawGrid<E>),
+    Failure(ReErr),
 }
 
 
 impl<E: Clone> Grid<E> {
     /// Returns grid of the given size filled with the given E
-    pub fn fill_with(r: usize, c: usize, with: E) -> Self {
+    pub fn fill(r: usize, c: usize, with: E) -> Self {
         match r == 0 || c == 0 {
             false => {
                 let (mut lin, mut rec) = (vec![], vec![]);
                 lin.resize(c, with);
                 rec.resize(r, lin);
-                Self::Matrix(RawGrid::from_rec(rec).unwrap())
+                Self::Arbitrary(RawGrid::from_double(rec).unwrap())
             }
             true => Self::Failure(GridErr(IsEmpty)),
         }
     }
 }
 
-
 impl<'g, E> Grid<E> {
-    pub fn from_lin(lin: Vec<E>) -> Self {
-        match RawGrid::from_lin(lin) {
-            Ok(grid) => Self::Matrix(grid),
+    /// Constructor for single `Vec<E>`, not transposed, with `Arbitrary` representation
+    pub fn from_single(single: Vec<E>) -> Self {
+        match RawGrid::from_single(single) {
+            Ok(grid) => Self::Arbitrary(grid),
             Err(err) => Self::Failure(err),
         }
     }
 
-    pub fn from_rec(rec: Vec<Vec<E>>) -> Self {
-        match RawGrid::from_rec(rec) {
-            Ok(grid) => Self::Matrix(grid),
+
+    /// Constructor for double `Vec<Vec<E>>`, not transposed, with `Arbitrary` representation
+    pub fn from_double(double: Vec<Vec<E>>) -> Self {
+        match RawGrid::from_double(double) {
+            Ok(grid) => Self::Arbitrary(grid),
             Err(err) => Self::Failure(err),
         }
     }
 
-    pub fn rawgrid(&self) -> &RawGrid<E> {
+    pub fn rawgrid(self) -> RawGrid<E> {
         match self {
-            Self::Matrix(grid) | Self::Row(grid) | Self::Col(grid) |
-            Self::RowList(grid) | Self::ColList(grid) => grid,
+            Self::Arbitrary(rg) | Self::Square(rg) | Self::Row(rg) | Self::Col(rg) |
+            Self::MultiRow(rg) | Self::MultiCol(rg) => rg,
             _ => unreachable!(),
         }
     }
 
+    /// Ref to `RawGrid` wrapped in any representation except `Self::Failure`
+    pub fn rawgrid_ref(&self) -> &RawGrid<E> {
+        match self {
+            Self::Arbitrary(rg) | Self::Square(rg) | Self::Row(rg) | Self::Col(rg) |
+            Self::MultiRow(rg) | Self::MultiCol(rg) => rg,
+            _ => unreachable!(),
+        }
+    }
+
+    /// Mut ref to `RawGrid` wrapped in any representation except `Self::Failure`
     pub fn rawgrid_mut(&mut self) -> &mut RawGrid<E> {
         match self {
-            Self::Matrix(grid) | Self::Row(grid) | Self::Col(grid) |
-            Self::RowList(grid) | Self::ColList(grid) => grid,
+            Self::Arbitrary(rg) | Self::Square(rg) | Self::Row(rg) | Self::Col(rg) |
+            Self::MultiRow(rg) | Self::MultiCol(rg) => rg,
             _ => unreachable!(),
         }
     }
 
+    /// Whether flag `trans` in `RawGrid` is `true`
     pub fn is_transposed(&self) -> bool {
-        self.rawgrid().is_transposed()
+        self.rawgrid_ref().is_transposed()
     }
 
+    /// Transposes only `RawGrid` without switching between `Row` and `Col` or `MultiRow` and `MultiCol`
     pub fn raw_transpose(mut self) -> Self {
         match self {
-            Self::Matrix(mut grid) => Self::Matrix(grid.transpose()),
-            Self::RowList(mut grid) => Self::RowList(grid.transpose()),
-            Self::ColList(mut grid) => Self::ColList(grid.transpose()),
+            Self::Arbitrary(mut grid) => Self::Arbitrary(grid.transpose()),
+            Self::Square(mut grid) => Self::Square(grid.transpose()),
+            Self::MultiRow(mut grid) => Self::MultiRow(grid.transpose()),
+            Self::MultiCol(mut grid) => Self::MultiCol(grid.transpose()),
             Self::Row(_) => Self::Failure(GridErr(Untransposable(Repr::Row))),
             Self::Col(_) => Self::Failure(GridErr(Untransposable(Repr::Col))),
             Self::Failure(_) => Self::Failure(GridErr(UnhandledFailure)),
         }
     }
 
+    /// Transposes only `RawGrid` switching between `Row` and `Col` or `MultiRow` and `MultiCol`
     pub fn transpose(mut self) -> Self {
         match self {
-            Self::Matrix(mut grid) => Self::Matrix(grid.transpose()),
-            Self::RowList(mut grid) => Self::ColList(grid.transpose()),
-            Self::ColList(mut grid) => Self::RowList(grid.transpose()),
+            Self::Arbitrary(mut grid) => Self::Arbitrary(grid.transpose()),
+            Self::Square(mut grid) => Self::Square(grid.transpose()),
+            Self::MultiRow(mut grid) => Self::MultiCol(grid.transpose()),
+            Self::MultiCol(mut grid) => Self::MultiRow(grid.transpose()),
             Self::Row(mut grid) => Self::Col(grid.transpose()),
             Self::Col(mut grid) => Self::Row(grid.transpose()),
             Self::Failure(_) => Self::Failure(GridErr(UnhandledFailure)),
         }
     }
 
-    pub fn is_matrix(&self) -> bool {
+    /// Whether `RawGrid` is represented as `Arbitrary`
+    pub fn is_arbitrary(&self) -> bool {
         match self {
-            Self::Matrix(_) => true,
+            Self::Arbitrary(_) => true,
             _ => false,
         }
     }
 
+    /// Whether `RawGrid` is represented as `Square` or `self.rows() == self.cols()`
+    pub fn is_square(&self) -> bool {
+        match self {
+            Self::Square(_) => true,
+            Self::Failure(_) => false,
+            _ => self.rows() == self.cols(),
+        }
+    }
+
+    /// Whether `RawGrid` is represented as `Row`
     pub fn is_row(&self) -> bool {
         match self {
             Self::Row(_) => true,
@@ -123,6 +176,7 @@ impl<'g, E> Grid<E> {
         }
     }
 
+    /// Whether `RawGrid` is represented as `Col`
     pub fn is_col(&self) -> bool {
         match self {
             Self::Col(_) => true,
@@ -130,117 +184,143 @@ impl<'g, E> Grid<E> {
         }
     }
 
-    pub fn is_rowlist(&self) -> bool {
+    /// Whether `RawGrid` is represented as `MultiRow`
+    pub fn is_multirow(&self) -> bool {
         match self {
-            Self::RowList(_) => true,
+            Self::MultiRow(_) => true,
             _ => false,
         }
     }
 
-    pub fn is_collist(&self) -> bool {
+    /// Whether `RawGrid` is represented as `MultiCol`
+    pub fn is_multicol(&self) -> bool {
         match self {
-            Self::ColList(_) => true,
+            Self::MultiCol(_) => true,
             _ => false,
         }
     }
 
-    pub fn is_failure(&self) -> bool {
+    /// Whether `RawGrid` is represented as `Failure`
+    pub fn failed(&self) -> bool {
         match self {
             Self::Failure(_) => true,
             _ => false,
         }
     }
 
+    /// `Repr` of how `RawGrid` is treaten
     pub fn repr(&self) -> Repr {
         match self {
-            Self::Matrix(_) => Repr::Matrix,
+            Self::Arbitrary(_) => Repr::Arbitrary,
+            Self::Square(_) => Repr::Square,
             Self::Row(_) => Repr::Row,
             Self::Col(_) => Repr::Col,
-            Self::RowList(_) => Repr::RowList,
-            Self::ColList(_) => Repr::ColList,
+            Self::MultiRow(_) => Repr::MultiRow,
+            Self::MultiCol(_) => Repr::MultiCol,
             Self::Failure(_) => Repr::Failure,
         }
     }
 
-    pub fn to_matrix(self) -> Self {
+    /// Trying to convert, if fails then returns `Self::Failure` with relevant error
+    pub fn to_arbitrary(self) -> Self {
         match self {
             Self::Failure(_) => Self::Failure(GridErr(UnhandledFailure)),
-            Self::Matrix(grid) |
-            Self::Row(grid) | Self::Col(grid) |
-            Self::RowList(grid) | Self::ColList(grid) => Self::Matrix(grid),
+            Self::Arbitrary(rg) | Self::Square(rg) |
+            Self::Row(rg) | Self::Col(rg) |
+            Self::MultiRow(rg) | Self::MultiCol(rg) => Self::Arbitrary(rg),
         }
     }
 
+    /// Trying to convert, if fails then returns `Self::Failure` with relevant error
+    pub fn to_square(self) -> Self {
+        if self.rows() == self.cols() {
+            match self {
+                Self::Arbitrary(rg) | Self::Square(rg) |
+                Self::Row(rg) | Self::Col(rg) |
+                Self::MultiRow(rg) | Self::MultiCol(rg) => Self::Square(rg),
+                _ => Self::Failure(GridErr(UnhandledFailure)),
+            }
+        } else {
+            Self::Failure(GridErr(IsNotSquare((self.rows(), self.cols()))))
+        }
+    }
+
+    /// Trying to convert, if fails then returns `Self::Failure` with relevant error
     pub fn to_row(self) -> Self {
         match self {
             Self::Failure(_) => Self::Failure(GridErr(UnhandledFailure)),
-            Self::Matrix(grid) |
-            Self::Row(grid) | Self::Col(grid) |
-            Self::RowList(grid) | Self::ColList(grid) => {
-                match grid.rows(false) {
-                    1 => Self::Row(grid),
+            Self::Arbitrary(rg) | Self::Square(rg) |
+            Self::Row(rg) | Self::Col(rg) |
+            Self::MultiRow(rg) | Self::MultiCol(rg) => {
+                match rg.rows(false) {
+                    1 => Self::Row(rg),
                     r => Self::Failure(GridErr(TooManyRows(r))),
                 }
             }
         }
     }
 
+    /// Trying to convert, if fails then returns `Self::Failure` with relevant error
     pub fn to_col(self) -> Self {
         match self {
             Self::Failure(_) => Self::Failure(GridErr(UnhandledFailure)),
-            Self::Matrix(grid) |
-            Self::Row(grid) | Self::Col(grid) |
-            Self::RowList(grid) | Self::ColList(grid) => {
-                match grid.cols(false) {
-                    1 => Self::Col(grid),
+            Self::Arbitrary(rg) | Self::Square(rg) |
+            Self::Row(rg) | Self::Col(rg) |
+            Self::MultiRow(rg) | Self::MultiCol(rg) => {
+                match rg.cols(false) {
+                    1 => Self::Col(rg),
                     c => Self::Failure(GridErr(TooManyCols(c))),
                 }
             }
         }
     }
 
-    pub fn to_rowlist(self) -> Self {
+    /// Trying to convert, if fails then returns `Self::Failure` with relevant error
+    pub fn to_multirow(self) -> Self {
         match self {
             Self::Failure(_) => Self::Failure(GridErr(UnhandledFailure)),
-            Self::Matrix(grid) |
-            Self::Row(grid) | Self::Col(grid) |
-            Self::RowList(grid) | Self::ColList(grid) => Self::RowList(grid),
+            Self::Arbitrary(rg) | Self::Square(rg) |
+            Self::Row(rg) | Self::Col(rg) |
+            Self::MultiRow(rg) | Self::MultiCol(rg) => Self::MultiRow(rg),
         }
     }
 
-    pub fn to_collist(self) -> Self {
+    /// Trying to convert, if fails then returns `Self::Failure` with relevant error
+    pub fn to_multicol(self) -> Self {
         match self {
             Self::Failure(_) => Self::Failure(GridErr(UnhandledFailure)),
-            Self::Matrix(grid) |
-            Self::Row(grid) | Self::Col(grid) |
-            Self::RowList(grid) | Self::ColList(grid) => Self::ColList(grid),
+            Self::Arbitrary(rg) | Self::Square(rg) |
+            Self::Row(rg) | Self::Col(rg) |
+            Self::MultiRow(rg) | Self::MultiCol(rg) => Self::MultiCol(rg),
         }
     }
 
+    /// Trying to convert into given `Repr`, if fails then returns `Self::Failure` with relevant error
     pub fn into(self, repr: Repr) -> Self {
         match repr {
-            Repr::Matrix => self.to_matrix(),
+            Repr::Arbitrary => self.to_arbitrary(),
+            Repr::Square => self.to_square(),
             Repr::Row => self.to_row(),
             Repr::Col => self.to_col(),
-            Repr::RowList => self.to_rowlist(),
-            Repr::ColList => self.to_collist(),
-            Repr::Failure => unreachable!(),
+            Repr::MultiRow => self.to_multirow(),
+            Repr::MultiCol => self.to_multicol(),
+            Repr::Failure => Self::Failure(GridErr(ConvertedToFailure)),
         }
     }
 
     pub fn rows(&self) -> usize {
-        self.rawgrid().rows(false)
+        self.rawgrid_ref().rows(false)
     }
 
     pub fn cols(&self) -> usize {
-        self.rawgrid().cols(false)
+        self.rawgrid_ref().cols(false)
     }
 
-    /// Element in `i` position in `Row` / `Col`
+    /// Ref to element in `i` position in `Row` / `Col`
     pub fn at(&self, i: usize) -> &E {
         match self {
-            Self::Row(grid) => grid.att(0, i, false),
-            Self::Col(grid) => grid.att(i, 0, false),
+            Self::Row(rg) => rg.att(0, i, false),
+            Self::Col(rg) => rg.att(i, 0, false),
             Self::Failure(err) => panic!("calling at({:?}) on Failure({:?})", i, err),
             _ => panic!("calling at({:?}) on {:?}", i, self.repr()),
         }
@@ -249,56 +329,119 @@ impl<'g, E> Grid<E> {
     /// Mut ref to element in `i` position in `Row` / `Col`
     pub fn at_mut(&mut self, i: usize) -> &mut E {
         match self {
-            Self::Row(grid) => grid.att_mut(0, i, false),
-            Self::Col(grid) => grid.att_mut(i, 0, false),
+            Self::Row(rg) => rg.att_mut(0, i, false),
+            Self::Col(rg) => rg.att_mut(i, 0, false),
             Self::Failure(err) => panic!("calling at({:?}) on Failure({:?})", i, err),
             _ => panic!("calling at({:?}) on {:?}", i, self.repr()),
         }
     }
 
-    /// Element in `i` row and `j` column in `Matrix` / `RowList`
-    /// or in `i` column and `j` row in `ColList` (or error)
+    /// Ref to element in `i` row and `j` column in `Matrix` or `Square` or `MultiRow`,
+    /// in `i` column and `j` row in `MultiCol`, in `j` column in `Row`, in `i` row in `Col`
     pub fn att(&self, i: usize, j: usize) -> &E {
         match self {
-            Self::Matrix(grid) | Self::RowList(grid) => grid.att(i, j, false),
-            Self::ColList(grid) => grid.att(j, i, false),
+            Self::Arbitrary(rg) | Self::Square(rg) | Self::MultiRow(rg) => rg.att(i, j, false),
+            Self::MultiCol(rg) => rg.att(j, i, false),
+            Self::Row(rg) => rg.att(0, j, false),
+            Self::Col(rg) => rg.att(i, 0, false),
             Self::Failure(err) => panic!("calling at({:?}, {:?}) on Failure({:?})", i, j, err),
             _ => panic!("calling at({:?}, {:?}) on {:?}", i, j, self.repr()),
         }
     }
 
-    /// Mut ref to element in `i` row and `j` column in `Matrix` / `RowList`
-    /// or in `i` column and `j` row in `ColList` (or error)
+    /// Mut ref to element in `i` row and `j` column in `Matrix` or `Square` or `MultiRow`
+    /// or in `i` column and `j` row in `MultiCol`, in `j` column in `Row`, in `i` row in `Col`
     pub fn att_mut(&mut self, i: usize, j: usize) -> &mut E {
         match self {
-            Self::Matrix(grid) | Self::RowList(grid) => grid.att_mut(i, j, false),
-            Self::ColList(grid) => grid.att_mut(j, i, false),
+            Self::Arbitrary(rg) | Self::Square(rg) | Self::MultiRow(rg) => rg.att_mut(i, j, false),
+            Self::MultiCol(rg) => rg.att_mut(j, i, false),
+            Self::Row(rg) => rg.att_mut(0, j, false),
+            Self::Col(rg) => rg.att_mut(i, 0, false),
             Self::Failure(err) => panic!("calling at({:?}, {:?}) on Failure({:?})", i, j, err),
             _ => panic!("calling at({:?}, {:?}) on {:?}", i, j, self.repr()),
         }
     }
 
-    pub fn row_iter(&'g self) -> AnyRes<LineIter<'g, E>> {
-        let repr = self.repr();
-        match repr {
-            Repr::RowList => Ok(LineIter {
+    /// Constructs `Line` that implements `Iterator`. Calling `next()` makes step to next line.
+    /// `Line` is specified to be `Row` or `Col` on the basis of `self.repr()`
+    pub fn iter(&'g self) -> ReRes<Line<'g, E>> {
+        match self {
+            Self::Row(_) | Self::MultiRow(_) | Self::Col(_) | Self::MultiCol(_) => Ok(Line {
                 grid: self,
-                line: Line::Row,
                 curr: 0,
             }),
-            _ => Err(GridErr(NotIterableByRows(repr)))
+            _ => Err(GridErr(NotIterableByLines(self.repr())))
         }
     }
 
-    pub fn col_iter(&'g self) -> AnyRes<LineIter<'g, E>> {
-        let repr = self.repr();
-        match repr {
-            Repr::ColList => Ok(LineIter {
-                grid: self,
-                line: Line::Col,
-                curr: 0,
-            }),
-            _ => Err(GridErr(NotIterableByCols(repr)))
+    /// Whether both operands aren't represented as `Failure`
+    pub fn approve_ops(&self, other: &Self) -> ReRes<()> {
+        if self.failed() || other.failed() {
+            return Err(GridErr(UnhandledFailure));
+        }
+        Ok(())
+    }
+}
+
+impl<E: Clone> Grid<E> {
+    /// Appends given set of rows at the tail
+    pub fn append_rows(mut self, mut tail: Self) -> ReRes<Self> {
+        self.approve_ops(&tail)?;
+        match self.rawgrid().append_rows(tail.rawgrid(), false) {
+            Ok(rg) => Ok(Self::MultiRow(rg)),
+            Err(err) => Err(err),
+        }
+    }
+
+    /// Appends given set of cols at the tail
+    pub fn append_cols(mut self, mut tail: Self) -> ReRes<Self> {
+        self.approve_ops(&tail)?;
+        match self.rawgrid().append_cols(tail.rawgrid(), false) {
+            Ok(rg) => Ok(Self::MultiCol(rg)),
+            Err(err) => Err(err),
+        }
+    }
+}
+
+
+impl<E> Index<Idx> for Grid<E> {
+    type Output = E;
+
+    fn index(&self, idx: Idx) -> &Self::Output {
+        match self {
+            Self::Failure(err) => panic!("indexing into Grid::Failure({:?})", err),
+            Self::Row(_) | Self::Col(_) => {
+                match idx {
+                    Idx::Single(idx) => self.at(idx),
+                    Idx::Double(_) => panic!("rectangular indexing into {:?}", self.repr()),
+                }
+            }
+            Self::Arbitrary(_) | Self::Square(_) | Self::MultiRow(_) | Self::MultiCol(_) => {
+                match idx {
+                    Idx::Double(idx) => self.att(idx.0, idx.1),
+                    Idx::Single(_) => panic!("linear indexing into {:?}", self.repr()),
+                }
+            }
+        }
+    }
+}
+
+impl<E> IndexMut<Idx> for Grid<E> {
+    fn index_mut(&mut self, idx: Idx) -> &mut Self::Output {
+        match self {
+            Self::Failure(err) => panic!("indexing into Grid::Failure({:?})", err),
+            Self::Row(_) | Self::Col(_) => {
+                match idx {
+                    Idx::Single(idx) => self.at_mut(idx),
+                    Idx::Double(_) => panic!("rectangular indexing into {:?}", self.repr()),
+                }
+            }
+            Self::Arbitrary(_) | Self::Square(_) | Self::MultiRow(_) | Self::MultiCol(_) => {
+                match idx {
+                    Idx::Double(idx) => self.att_mut(idx.0, idx.1),
+                    Idx::Single(_) => panic!("linear indexing into {:?}", self.repr()),
+                }
+            }
         }
     }
 }
@@ -306,78 +449,103 @@ impl<'g, E> Grid<E> {
 
 // <<< Iterators
 
-// 'g stands for grid, E stands for Element
+/// Wrapper on particular `Row` or `Col` in `Grid`, that is specified on the basis of `grid.repr()`
 #[derive(Debug, Clone, PartialEq)]
-pub struct LineIter<'g, E> {
+pub struct Line<'g, E> {
     grid: &'g Grid<E>,
-    line: Line,
     curr: usize,
 }
 
-impl<'g, E> Iterator for LineIter<'g, E> {
-    type Item = ElemIter<'g, E>;
+impl<'g, E> Line<'g, E> {
+    /// Constructor
+    pub fn new(grid: &'g Grid<E>, curr: usize) -> Self {
+        Self { grid, curr }
+    }
+
+    /// Provides indexing in particular line of `Grid`
+    pub fn at(&self, idx: usize) -> &E {
+        self.grid.att(self.curr, idx)
+    }
+}
+
+/// Calling `next()` makes step to next line
+impl<'g, E> Iterator for Line<'g, E> {
+    type Item = Elem<'g, E>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let item;
-        match self.line {
-            Line::Row => {
-                item = match self.curr < self.grid.rows() {
-                    true => Some(ElemIter {
+        let item =
+            if self.grid.repr() == Repr::Row || self.grid.repr() == Repr::MultiRow {
+                match self.curr < self.grid.rows() {
+                    true => Some(Elem {
                         grid: self.grid,
-                        dir: Line::Row,
                         row: self.curr,
                         col: 0,
                     }),
                     false => None,
-                };
-            }
-            Line::Col => {
-                item = match self.curr < self.grid.cols() {
-                    true => Some(ElemIter {
+                }
+            } else if self.grid.repr() == Repr::Col || self.grid.repr() == Repr::MultiCol {
+                match self.curr < self.grid.cols() {
+                    true => Some(Elem {
                         grid: self.grid,
-                        dir: Line::Col,
                         row: 0,
                         col: self.curr,
                     }),
                     false => None,
                 }
-            }
-        }
+            } else {
+                None
+            };
         self.curr += 1;
         item
     }
 }
 
+impl<'g, E> Index<usize> for Line<'g, E> {
+    type Output = E;
 
+    fn index(&self, idx: usize) -> &Self::Output {
+        self.grid.att(self.curr, idx)
+    }
+}
+
+
+/// Wrapper on particular element of `Grid`
 #[derive(Debug, Clone, PartialEq)]
-pub struct ElemIter<'g, E> {
+pub struct Elem<'g, E> {
     grid: &'g Grid<E>,
-    dir: Line,
     row: usize,
     col: usize,
 }
 
-impl<'g, E> Iterator for ElemIter<'g, E> {
+impl<'g, E> Elem<'g, E> {
+    /// Value of current element
+    pub fn get(&self) -> &E {
+        self.grid.att(self.row, self.col)
+    }
+}
+
+/// Calling `next()` makes step to next element in the line,
+/// specified with `grid.repr()` and `self.row` or `self.col`
+impl<'g, E> Iterator for Elem<'g, E> {
     type Item = &'g E;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let item;
-        match self.dir {
-            Line::Row => {
-                item = match self.col < self.grid.cols() {
-                    true => Some(self.grid.att(self.row, self.col)),
+        let item =
+            if self.grid.repr() == Repr::Row || self.grid.repr() == Repr::MultiRow {
+                self.col += 1;
+                match self.col < self.grid.cols() {
+                    true => Some(self.grid.att(self.row, self.col - 1)),
                     false => None
-                };
-                self.col += 1
-            },
-            Line::Col => {
-                item = match self.row < self.grid.rows() {
-                    true => Some(self.grid.att(self.col, self.row)),
+                }
+            } else if self.grid.repr() == Repr::Col || self.grid.repr() == Repr::MultiCol {
+                self.row += 1;
+                match self.row < self.grid.rows() {
+                    true => Some(self.grid.att(self.row - 1, self.col)),
                     false => None
-                };
-                self.row += 1
-            },
-        };
+                }
+            } else {
+                None
+            };
         item
     }
 }

@@ -1,15 +1,24 @@
 mod grid_errs;
-mod matr_errs;
+mod math_errs;
 
 pub use {
     grid_errs::GridErr,
-    matr_errs::MatrErr,
+    math_errs::{
+        MatrixErr,
+        CoordSysErr,
+    },
 };
 
-pub type AnyRes<T> = Result<T, AnyErr>;
+use strum_macros::Display;
 
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum AnyErr {
+/// `Result` with `ReErr` as `Err` variant
+pub type ReRes<T> = Result<T, ReErr>;
+
+/// Unified errors enum, holds different errors in variants with related names.
+/// `ReErr` stands for RustyEngineError
+#[derive(Debug, Display, Clone, Copy, PartialEq)]
+pub enum ReErr {
     GridErr(GridErr),
-    MatrErr(MatrErr),
+    MatrixErr(MatrixErr),
+    CoordSysErr(CoordSysErr),
 }
