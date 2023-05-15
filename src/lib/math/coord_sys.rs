@@ -40,7 +40,7 @@ impl VectorSpace {
     }
 
     pub fn scalar_prod(&self, lhs: &Matrix, rhs: &Matrix) -> ReRes<f64> {
-        lhs.approve_vector_ops(rhs)?;
+        lhs.approve_single_vector_ops(rhs)?;
         let first = match lhs {
             Matrix::Row(_) => lhs.mul(get_biform()),
             Matrix::Col(_) => lhs.mul_left_t(get_biform()).transpose(),

@@ -19,13 +19,7 @@ pub enum MatrixErr {
     },
 
     #[error("scalar product between vectors with dim {lhs:?} and {rhs:?}")]
-    ScalarProdDimMismatch {
-        lhs: usize,
-        rhs: usize,
-    },
-
-    #[error("vector product between vectors with dim {lhs:?} and {rhs:?}")]
-    VectorProdDimMismatch {
+    DimMismatch {
         lhs: usize,
         rhs: usize,
     },

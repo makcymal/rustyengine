@@ -16,7 +16,7 @@ use {
         util::{
             pow_minus,
             Sign::{self, *},
-            LineTp
+            LineTp,
         },
     },
     super::{
@@ -375,40 +375,6 @@ impl Matrix {
             Self::Failure(_) => Err(GridErr(UnhandledFailure)),
         }
     }
-
-    // /// Scalar
-    // pub fn scalar_prod(&self, rhs: &Self) -> ReRes<f64> {
-    //     self.approve_vector_ops(rhs)?;
-    //     Ok((0..self.dim().unwrap())
-    //         .map(|i| self.at(i) * rhs.at(i))
-    //         .sum())
-    // }
-    //
-    // pub fn vector_prod(&self, rhs: &Self) -> ReRes<Self> {
-    //     self.approve_vector_ops(rhs)?;
-    //     if self.dim() != Ok(3) {
-    //         return Err(MatrixErr(VectorProdDimMismatch { lhs: self.dim().unwrap(), rhs: rhs.dim().unwrap() }));
-    //     }
-    //     Ok(Self::from_single(vec![
-    //         self.at(1) * rhs.at(2) - self.at(2) * rhs.at(1),
-    //         self.at(2) * rhs.at(0) - self.at(0) * rhs.at(2),
-    //         self.at(0) * rhs.at(1) - self.at(1) * rhs.at(0),
-    //     ]).raw_transpose().to_col())
-    // }
-    //
-    // pub fn vector_prod_of(&self, i: usize, rhs: &Self, j: usize) -> ReRes<Self> {
-    //     self.approve_ops(other)?;
-    //     if !self.is_multirow() && !self.is_multicol() || !other.is_rowlist() && !other.is_collist() {
-    //         return Err(GridErr(NotMultiRowOrCol));
-    //     } else if self.dim() != Ok(3) || other.dim() != Ok(3) {
-    //         return Err(MatrixErr(VectorProdDimMismatch { lhs: self.dim().unwrap(), rhs: rhs.dim().unwrap() }));
-    //     }
-    //     Ok(Self::from_single(vec![
-    //         self.att(i, 1) * rhs.att(j, 2) - self.att(i, 2) * rhs.att(j, 1),
-    //         self.att(i, 2) * rhs.att(j, 0) - self.att(i, 0) * rhs.att(j, 2),
-    //         self.att(i, 0) * rhs.att(j, 1) - self.att(i, 1) * rhs.att(j, 0),
-    //     ]).raw_transpose().to_col())
-    // }
 }
 
 impl<'g> Matrix {
@@ -417,16 +383,30 @@ impl<'g> Matrix {
         Vector::new(self, idx)
     }
 
-    /// Whether both operands aren't `Matrix::Failure`'s and have the same dim
-    pub fn approve_vector_ops(&self, other: &Self) -> ReRes<()> {
-        self.approve_ops(other)?;
-        if !self.is_row() && !self.is_col() || !other.is_row() && !other.is_col() {
-            return Err(GridErr(NotRowOrCol));
+    pub fn combine(&self, coef: Vec<f64>) -> ReRes<Self> {
+        match self.repr() {
+            Repr::Row | Repr::Col => Ok(self.num_mul(coef[0])),
+            Repr::MultiRow => {
+                let mut comb = Self::zero(1, self.cols()).to_row();
+                for c in 0..self.cols() {
+                    for r in 0..self.rows() {
+                        *comb.at_mut(c) += *self.att(r, c) * coef[r];
+                    }
+                }
+                Ok(comb)
+            },
+            Repr::MultiCol => {
+                let mut comb = Self::zero(1, self.rows()).transpose().to_col();
+                for r in 0..self.rows() {
+                    for c in 0..self.cols() {
+                        *comb.at_mut(r) += *self.att(c, r) * coef[c];
+                    }
+                }
+                Ok(comb)
+            },
+            Repr::Arbitrary | Repr::Square => Err(MatrixErr(TooArbitrary)),
+            _ => Err(GridErr(UnhandledFailure)),
         }
-        else if self.dim() != other.dim() {
-            return Err(MatrixErr(ScalarProdDimMismatch { lhs: self.dim().unwrap(), rhs: other.dim().unwrap() }));
-        }
-        Ok(())
     }
 
     /// Whether `self` contains only one `Row` or `Col`
@@ -434,15 +414,43 @@ impl<'g> Matrix {
         match self.repr() {
             Repr::Row | Repr::MultiRow => {
                 if self.rows() != 1 {
-                    return Err(GridErr(TooManyRows(self.rows())))
+                    return Err(GridErr(TooManyRows(self.rows())));
                 }
-            },
+            }
             Repr::Col | Repr::MultiCol => {
                 if self.rows() != 1 {
-                    return Err(GridErr(TooManyCols(self.cols())))
+                    return Err(GridErr(TooManyCols(self.cols())));
                 }
-            },
-            _ => return Err(GridErr(NotRowOrCol))
+            }
+            _ => return Err(GridErr(NotRowOrCol)),
+        };
+        Ok(())
+    }
+
+    /// Whether both operands aren't `Matrix::Failure`'s, have the same dim and contains only one `Row` or `Col`
+    pub fn approve_single_vector_ops(&self, rhs: &Self) -> ReRes<()> {
+        self.approve_ops(rhs)?;
+        self.approve_single_vector()?;
+        rhs.approve_single_vector()?;
+        if self.dim() != rhs.dim() {
+            return Err(MatrixErr(DimMismatch { lhs: self.dim().unwrap(), rhs: rhs.dim().unwrap() }));
+        }
+        Ok(())
+    }
+
+    /// Whether both operands aren't `Matrix::Failure`'s, have the same dim and splitted to rows or cols
+    pub fn approve_multi_vector_ops(&self, rhs: &Self) -> ReRes<()> {
+        self.approve_ops(rhs)?;
+        match self.repr() {
+            Repr::Arbitrary | Repr::Square => return Err(GridErr(NotRowOrCol)),
+            _ => (),
+        };
+        match rhs.repr() {
+            Repr::Arbitrary | Repr::Square => return Err(GridErr(NotRowOrCol)),
+            _ => (),
+        };
+        if self.dim() != rhs.dim() {
+            return Err(MatrixErr(DimMismatch { lhs: self.dim().unwrap(), rhs: rhs.dim().unwrap() }));
         }
         Ok(())
     }
@@ -471,33 +479,32 @@ impl<'g> Matrix {
         }
     }
 
-    /// Scalar product without basis according only to `BIFORM` matrix.
+    /// Orthonorm scalar product without basis according only to `BIFORM` matrix.
     /// Operands must have single `Row` or `Col` having the same dim. Produces `f64`
     pub fn scalar_prod(&self, rhs: &Self) -> ReRes<f64> {
-        self.approve_single_vector()?;
-        rhs.approve_single_vector()?;
+        self.approve_single_vector_ops(rhs)?;
         Ok(*self.raw_scalar_prod(rhs, get_biform())?.att(0, 0))
     }
 
-    /// Scalar product without basis according only to `BIFORM` matrix.
+    /// Orthonorm scalar product without basis according only to `BIFORM` matrix.
     /// Operands at the given indices must have the same dim.
     /// Between `Row`'s or `Col`'s produces `Col`
     pub fn scalar_prod_at(&self, i: usize, rhs: &Self, j: usize) -> ReRes<f64> {
         self.raw_scalar_prod_at(i, rhs, j, get_biform())
     }
 
-    /// Scalar product without basis according only to `BIFORM` matrix.
+    /// Orthonorm scalar product without basis according only to `BIFORM` matrix.
     /// Operands must have `Row` or `Col` of the same dim.
     /// Produces `Arbitrary` matrix of `f64`, that is pair-wise scalar products
     pub fn multi_scalar_prod(&self, rhs: &Self) -> ReRes<Self> {
         self.raw_scalar_prod(rhs, get_biform())
     }
 
-    /// Scalar product without basis according to given `core` matrix.
+    /// Scalar product according to given `core` matrix.
     /// Operands must have `Row` or `Col` of the same dim.
     /// Produces `Arbitrary` matrix of `f64`, that is pair-wise scalar products
     pub(in super) fn raw_scalar_prod(&self, rhs: &Self, core: &Self) -> ReRes<Self> {
-        self.approve_vector_ops(rhs)?;
+        self.approve_multi_vector_ops(rhs)?;
         let lhs = match self.repr() {
             Repr::Row | Repr::MultiRow => self.mul(core),
             Repr::Col | Repr::MultiCol => self.mul_left_t(core).transpose(),
@@ -510,21 +517,46 @@ impl<'g> Matrix {
         })
     }
 
-    /// Scalar product without basis according to given `core` matrix.
+    /// Scalar product according to given `core` matrix.
     /// Operands at the given indices must have the same dim.
     /// Between `Row`'s or `Col`'s produces `f64`
     pub(in super) fn raw_scalar_prod_at(&self, s: usize, rhs: &Self, r: usize, core: &Self) -> ReRes<f64> {
-        self.approve_vector_ops(rhs)?;
+        self.approve_multi_vector_ops(rhs)?;
         Ok((0..self.dim().unwrap())
             .map(|i| {
-                (0..rhs.dim().unwrap())
+                self.att(s, i) * (0..rhs.dim().unwrap())
                     .map(|j| core.att(i, j) * rhs.att(r, j))
-                    .sum::<f64>()})
+                    .sum::<f64>()
+            })
             .sum::<f64>()
         )
     }
 
+    /// Orthonorm vector product
+    pub fn vector_prod(&self, rhs: &Self) -> ReRes<Self> {
+        self.approve_single_vector_ops(rhs)?;
+        if self.dim() != Ok(3) {
+            return Err(MatrixErr(DimMismatch { lhs: self.dim().unwrap(), rhs: rhs.dim().unwrap() }));
+        }
+        Ok(Self::from_single(vec![
+            self.att(0, 1) * rhs.att(0, 2) - self.att(0, 2) * rhs.att(0, 1),
+            self.att(0, 2) * rhs.att(0, 0) - self.att(0, 0) * rhs.att(0, 2),
+            self.att(0, 0) * rhs.att(0, 1) - self.att(0, 1) * rhs.att(0, 0),
+        ]).raw_transpose().to_col())
+    }
 
+    /// Orthonorm vector product without basis according only to `BIFORM` matrix between vectors on given indices
+    pub fn vector_prod_at(&self, s: usize, rhs: &Self, r: usize) -> ReRes<Self> {
+        self.approve_multi_vector_ops(rhs)?;
+        if self.dim() != Ok(3) {
+            return Err(MatrixErr(DimMismatch { lhs: self.dim().unwrap(), rhs: rhs.dim().unwrap() }));
+        }
+        Ok(Self::from_single(vec![
+            self.att(s, 1) * rhs.att(r, 2) - self.att(s, 2) * rhs.att(r, 1),
+            self.att(s, 2) * rhs.att(r, 0) - self.att(s, 0) * rhs.att(r, 2),
+            self.att(s, 0) * rhs.att(r, 1) - self.att(s, 1) * rhs.att(r, 0),
+        ]).raw_transpose().to_col())
+    }
 }
 
 impl Add for &Matrix {
