@@ -40,14 +40,14 @@ impl<E> VecWrapper<E> {
         match self {
             VecWrapper::Single(vec) => {
                 if vec.len() == 0 {
-                    Err(GridErr(IsEmpty))
+                    Err(GridErr(Emptiness))
                 } else {
                     Ok(())
                 }
             }
             VecWrapper::Double(vec) => {
                 if vec.len() == 0 {
-                    Err(GridErr(IsEmpty))
+                    Err(GridErr(Emptiness))
                 } else {
                     let mut cols = None;
                     for r in 0..vec.len() {
@@ -58,7 +58,7 @@ impl<E> VecWrapper<E> {
                         }
                     }
                     if cols.unwrap() == 0 {
-                        Err(GridErr(IsEmpty))
+                        Err(GridErr(Emptiness))
                     } else {
                         Ok(())
                     }

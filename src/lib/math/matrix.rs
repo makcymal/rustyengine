@@ -31,7 +31,7 @@ use {
 /// Grid with `f64` numbers
 pub type Matrix = Grid<f64>;
 
-impl<'g> Matrix {
+impl Matrix {
     /// Square `Matrix` with 1 on the diagonal and 0 elsewhere
     pub fn identity(side: usize) -> Self {
         let mut id = Self::zero(side, side).to_square();
@@ -53,7 +53,7 @@ impl<'g> Matrix {
             return Err(GridErr(UnhandledFailure));
         }
         if self.rows() != self.cols() {
-            return Err(GridErr(IsNotSquare((self.rows(), self.cols()))));
+            return Err(GridErr(NotSquare((self.rows(), self.cols()))));
         }
         let mut rows = vec![true; self.rows()];
         let mut cols = vec![true; self.cols()];
@@ -349,74 +349,33 @@ impl<'g> Matrix {
         self
     }
 
-    /// `Vector` instance pointing to the given idx
-    pub fn vector(&'g self, idx: usize) -> Vector<'g> {
-        Vector::new(self, idx)
-    }
-
-    /// Whether both operands aren't `Matrix::Failure`'s and have the same dim
-    pub fn approve_vector_ops(&self, other: &Self) -> ReRes<()> {
-        self.approve_ops(other)?;
-        if !self.is_row() && !self.is_col() || !other.is_row() && !other.is_col() {
-            return Err(GridErr(NotRowOrCol));
-        }
-        else if self.dim() != other.dim() {
-            return Err(MatrixErr(ScalarProdDimMismatch { lhs: self.dim().unwrap(), rhs: other.dim().unwrap() }));
-        }
-        Ok(())
-    }
-
-    // /// Norm of the `Matrix` as sqrt of sum of square of elements
-    // pub fn norm(&self) -> ReRes<f64> {
-    //     match self {
-    //         Self::Arbitrary(grid) | Self::Square(grid) | Self::MultiRow(grid) | Self::MultiCol(grid) => {
-    //             Ok((0..grid.rows(false))
-    //                 .map(|r| (0..grid.cols(false))
-    //                     .map(|c| grid.att(r, c, false).powi(2))
-    //                     .sum::<f64>())
-    //                 .sum::<f64>()
-    //                 .sqrt())
-    //         }
-    //         Self::Row(grid) => {
-    //             Ok((0..grid.cols(false))
-    //                 .map(|c| grid.att(0, c, false).powi(2))
-    //                 .sum::<f64>()
-    //                 .sqrt())
-    //         }
-    //         Self::Col(grid) => {
-    //             Ok((0..grid.rows(false))
-    //                 .map(|r| grid.att(r, 0, false).powi(2))
-    //                 .sum::<f64>()
-    //                 .sqrt())
-    //         }
-    //         Self::Failure(_) => Err(GridErr(UnhandledFailure)),
-    //     }
-    // }
-
-    /// How many elements contains such `Vector` as `Row`, `Col` or in `MultiRow`, `MultiCol`
-    pub fn dim(&self) -> ReRes<usize> {
+    /// Norm of the `Matrix` as sqrt of sum of square of elements
+    pub fn norm(&self) -> ReRes<f64> {
         match self {
-            Self::Row(_) | Self::MultiRow(_) => {
-                Ok(self.cols())
+            Self::Arbitrary(grid) | Self::Square(grid) | Self::MultiRow(grid) | Self::MultiCol(grid) => {
+                Ok((0..grid.rows(false))
+                    .map(|r| (0..grid.cols(false))
+                        .map(|c| grid.att(r, c, false).powi(2))
+                        .sum::<f64>())
+                    .sum::<f64>()
+                    .sqrt())
             }
-            Self::Col(_) | Self::MultiCol(_) => {
-                Ok(self.rows())
+            Self::Row(grid) => {
+                Ok((0..grid.cols(false))
+                    .map(|c| grid.att(0, c, false).powi(2))
+                    .sum::<f64>()
+                    .sqrt())
             }
-            Self::Arbitrary(_) | Self::Square(_) => Err(GridErr(NotRowOrCol)),
+            Self::Col(grid) => {
+                Ok((0..grid.rows(false))
+                    .map(|r| grid.att(r, 0, false).powi(2))
+                    .sum::<f64>()
+                    .sqrt())
+            }
             Self::Failure(_) => Err(GridErr(UnhandledFailure)),
         }
     }
 
-    // /// Length of `Vector` without basis according only to `BIFORM` matrix
-    // pub fn len(&self) -> ReRes<f64> {
-    //     match self {
-    //         Self::Row(_) => Ok(self.mul(get_biform()).mul_t(self).att(0, 0).sqrt()),
-    //         Self::Col(_) => Ok(self.mul_left_t(get_biform()).transpose().mul(self).att(0, 0).sqrt()),
-    //         Self::Failure(_) => Err(GridErr(UnhandledFailure)),
-    //         _ => Err(GridErr(NotRowOrCol)),
-    //     }
-    // }
-    //
     // /// Scalar
     // pub fn scalar_prod(&self, rhs: &Self) -> ReRes<f64> {
     //     self.approve_vector_ops(rhs)?;
@@ -450,6 +409,122 @@ impl<'g> Matrix {
     //         self.att(i, 0) * rhs.att(j, 1) - self.att(i, 1) * rhs.att(j, 0),
     //     ]).raw_transpose().to_col())
     // }
+}
+
+impl<'g> Matrix {
+    /// `Vector` instance pointing to the `Row` or `Col` at the given idx
+    pub fn vector(&'g self, idx: usize) -> Vector<'g> {
+        Vector::new(self, idx)
+    }
+
+    /// Whether both operands aren't `Matrix::Failure`'s and have the same dim
+    pub fn approve_vector_ops(&self, other: &Self) -> ReRes<()> {
+        self.approve_ops(other)?;
+        if !self.is_row() && !self.is_col() || !other.is_row() && !other.is_col() {
+            return Err(GridErr(NotRowOrCol));
+        }
+        else if self.dim() != other.dim() {
+            return Err(MatrixErr(ScalarProdDimMismatch { lhs: self.dim().unwrap(), rhs: other.dim().unwrap() }));
+        }
+        Ok(())
+    }
+
+    /// Whether `self` contains only one `Row` or `Col`
+    pub fn approve_single_vector(&self) -> ReRes<()> {
+        match self.repr() {
+            Repr::Row | Repr::MultiRow => {
+                if self.rows() != 1 {
+                    return Err(GridErr(TooManyRows(self.rows())))
+                }
+            },
+            Repr::Col | Repr::MultiCol => {
+                if self.rows() != 1 {
+                    return Err(GridErr(TooManyCols(self.cols())))
+                }
+            },
+            _ => return Err(GridErr(NotRowOrCol))
+        }
+        Ok(())
+    }
+
+    /// How many elements contains such `Vector` as `Row`, `Col` or in `MultiRow`, `MultiCol`
+    pub fn dim(&self) -> ReRes<usize> {
+        match self {
+            Self::Row(_) | Self::MultiRow(_) => {
+                Ok(self.cols())
+            }
+            Self::Col(_) | Self::MultiCol(_) => {
+                Ok(self.rows())
+            }
+            Self::Arbitrary(_) | Self::Square(_) => Err(GridErr(NotRowOrCol)),
+            Self::Failure(_) => Err(GridErr(UnhandledFailure)),
+        }
+    }
+
+    /// Orthonorm length of `Vector` without basis according only to `BIFORM` matrix
+    pub fn len(&self) -> ReRes<f64> {
+        match self {
+            Self::Row(_) => Ok(self.mul(get_biform()).mul_t(self).att(0, 0).sqrt()),
+            Self::Col(_) => Ok(self.mul_left_t(get_biform()).transpose().mul(self).att(0, 0).sqrt()),
+            Self::Failure(_) => Err(GridErr(UnhandledFailure)),
+            _ => Err(GridErr(NotRowOrCol)),
+        }
+    }
+
+    /// Scalar product without basis according only to `BIFORM` matrix.
+    /// Operands must have single `Row` or `Col` having the same dim. Produces `f64`
+    pub fn scalar_prod(&self, rhs: &Self) -> ReRes<f64> {
+        self.approve_single_vector()?;
+        rhs.approve_single_vector()?;
+        Ok(*self.raw_scalar_prod(rhs, get_biform())?.att(0, 0))
+    }
+
+    /// Scalar product without basis according only to `BIFORM` matrix.
+    /// Operands at the given indices must have the same dim.
+    /// Between `Row`'s or `Col`'s produces `Col`
+    pub fn scalar_prod_at(&self, i: usize, rhs: &Self, j: usize) -> ReRes<f64> {
+        self.raw_scalar_prod_at(i, rhs, j, get_biform())
+    }
+
+    /// Scalar product without basis according only to `BIFORM` matrix.
+    /// Operands must have `Row` or `Col` of the same dim.
+    /// Produces `Arbitrary` matrix of `f64`, that is pair-wise scalar products
+    pub fn multi_scalar_prod(&self, rhs: &Self) -> ReRes<Self> {
+        self.raw_scalar_prod(rhs, get_biform())
+    }
+
+    /// Scalar product without basis according to given `core` matrix.
+    /// Operands must have `Row` or `Col` of the same dim.
+    /// Produces `Arbitrary` matrix of `f64`, that is pair-wise scalar products
+    pub(in super) fn raw_scalar_prod(&self, rhs: &Self, core: &Self) -> ReRes<Self> {
+        self.approve_vector_ops(rhs)?;
+        let lhs = match self.repr() {
+            Repr::Row | Repr::MultiRow => self.mul(core),
+            Repr::Col | Repr::MultiCol => self.mul_left_t(core).transpose(),
+            _ => unreachable!()
+        };
+        Ok(match rhs.repr() {
+            Repr::Col | Repr::MultiCol => lhs.mul(rhs),
+            Repr::Row | Repr::MultiRow => lhs.mul_t(rhs),
+            _ => unreachable!()
+        })
+    }
+
+    /// Scalar product without basis according to given `core` matrix.
+    /// Operands at the given indices must have the same dim.
+    /// Between `Row`'s or `Col`'s produces `f64`
+    pub(in super) fn raw_scalar_prod_at(&self, s: usize, rhs: &Self, r: usize, core: &Self) -> ReRes<f64> {
+        self.approve_vector_ops(rhs)?;
+        Ok((0..self.dim().unwrap())
+            .map(|i| {
+                (0..rhs.dim().unwrap())
+                    .map(|j| core.att(i, j) * rhs.att(r, j))
+                    .sum::<f64>()})
+            .sum::<f64>()
+        )
+    }
+
+
 }
 
 impl Add for &Matrix {

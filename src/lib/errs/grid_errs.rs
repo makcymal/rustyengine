@@ -10,7 +10,7 @@ pub enum GridErr {
     CurveSides(usize),
 
     #[error("trying to create empty Grid or Matr")]
-    IsEmpty,
+    Emptiness,
 
     #[error("trying to access on double index in {0}")]
     SingleIndexed(Repr),
@@ -49,7 +49,7 @@ pub enum GridErr {
     NotMultiRowOrCol,
 
     #[error("treating non-square matrix as square of size: {0:?}")]
-    IsNotSquare((usize, usize)),
+    NotSquare((usize, usize)),
 
     #[error("appending rows of len {tail:?} to rows of len {dest:?}")]
     RowsAppendMismatch {

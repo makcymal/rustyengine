@@ -21,7 +21,7 @@ use {
 #[test]
 fn fill_grid_with() {
     let grid = Grid::fill(0, 1, 3);
-    assert_eq!(grid, Failure(GridErr(IsEmpty)));
+    assert_eq!(grid, Failure(GridErr(Emptiness)));
 }
 
 #[test]

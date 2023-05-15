@@ -71,7 +71,7 @@ impl<E: Clone> Grid<E> {
                 rec.resize(r, lin);
                 Self::Arbitrary(RawGrid::from_double(rec).unwrap())
             }
-            true => Self::Failure(GridErr(IsEmpty)),
+            true => Self::Failure(GridErr(Emptiness)),
         }
     }
 }
@@ -241,7 +241,7 @@ impl<'g, E> Grid<E> {
                 _ => Self::Failure(GridErr(UnhandledFailure)),
             }
         } else {
-            Self::Failure(GridErr(IsNotSquare((self.rows(), self.cols()))))
+            Self::Failure(GridErr(NotSquare((self.rows(), self.cols()))))
         }
     }
 

@@ -104,7 +104,7 @@ fn determinant_of_non_square() {
         vec![2.0, 0.0, -5.0],
         vec![0.0, -3.0, 0.0]
     ]);
-    assert_eq!(m.det(), Err(MatrixErr(IsNotSquare((2, 3)))));
+    assert_eq!(m.det(), Err(MatrixErr(NotSquare((2, 3)))));
 }
 
 #[test]
@@ -113,7 +113,7 @@ fn determinant_of_non_square_trans() {
         vec![2.0, 0.0, -5.0],
         vec![0.0, -3.0, 0.0]
     ]).transpose();
-    assert_eq!(m.det(), Err(MatrixErr(IsNotSquare((3, 2)))));
+    assert_eq!(m.det(), Err(MatrixErr(NotSquare((3, 2)))));
 }
 
 #[test]
@@ -177,7 +177,7 @@ fn inversed_of_non_square() {
         vec![2.0, 0.0, -5.0],
         vec![0.0, -3.0, 0.0]
     ]);
-    assert_eq!(m.det(), Err(MatrixErr(IsNotSquare((2, 3)))));
+    assert_eq!(m.det(), Err(MatrixErr(NotSquare((2, 3)))));
 }
 
 // #[test]
