@@ -86,15 +86,15 @@ impl Point {
         Ok(Self { radvec })
     }
 
-    pub fn mv(mut self, vec: &Matrix) -> ReRes<Self> {
+    pub fn mv(&mut self, vec: &Matrix) -> ReRes<()> {
         vec.ag_failed()?.ag_not_row_or_col()?;
         self.radvec.approve_single_vector_ops(vec)?;
         self.radvec = match vec.repr() {
-            Repr::Col => self.radvec.add_assign(vec),
-            Repr::Row => self.radvec.add_assign_t(vec),
+            Repr::Col => self.radvec.add(vec),
+            Repr::Row => self.radvec.add_t(vec),
             _ => unreachable!(),
         };
-        Ok(self)
+        Ok(())
     }
 }
 

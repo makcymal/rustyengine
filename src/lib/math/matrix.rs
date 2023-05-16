@@ -12,6 +12,7 @@ use {
             ReErr::{self, *},
             GridErr::{self, *},
             MatrixErr::{self, *},
+            CoordSysErr::{self, *},
         },
         util::{
             pow_minus,
@@ -21,13 +22,13 @@ use {
     },
     super::{
         BIFORM, get_biform,
-        prec::{round, round_prec},
+        precision::{round, round_prec},
     },
     std::ops::{
         Add, Sub, Mul, Div, Neg,
     },
 };
-use crate::errs::CoordSysErr::RotationInOneAxis;
+
 
 /// Grid with `f64` numbers
 pub type Matrix = Grid<f64>;

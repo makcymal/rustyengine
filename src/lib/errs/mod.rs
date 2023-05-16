@@ -2,13 +2,12 @@ mod grid_errs;
 mod math_errs;
 
 pub use {
-    grid_errs::GridErr,
+    grid_errs::GridErr::{self, *},
     math_errs::{
-        MatrixErr,
-        CoordSysErr,
+        MatrixErr::{self, *},
+        CoordSysErr::{self, *},
     },
 };
-
 use strum_macros::Display;
 
 /// `Result` with `ReErr` as `Err` variant

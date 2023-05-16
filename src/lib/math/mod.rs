@@ -1,17 +1,16 @@
 mod matrix;
-mod prec;
+mod precision;
 mod coord_sys;
 
 #[cfg(test)]
 mod test;
 
 
-use std::iter::Once;
 pub use {
-    matrix::Matrix,
-    prec::round,
+    matrix::{Matrix, Vector},
+    coord_sys::{VectorSpace, Point, CoordSys},
+    precision::round,
 };
-
 use {
     once_cell::sync::OnceCell,
 };
