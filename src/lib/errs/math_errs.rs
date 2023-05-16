@@ -37,5 +37,6 @@ pub enum MatrixErr {
 /// Errors that can be obtained within `Result::Err::CoordSysErr`
 #[derive(Error, Debug, Clone, Copy, PartialEq)]
 pub enum CoordSysErr {
-
+    #[error("trying to create rotation matrix from {0} to {0} axis")]
+    RotationInOneAxis(usize),
 }

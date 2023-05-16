@@ -27,10 +27,12 @@ use {
         Add, Sub, Mul, Div, Neg,
     },
 };
+use crate::errs::CoordSysErr::RotationInOneAxis;
 
 /// Grid with `f64` numbers
 pub type Matrix = Grid<f64>;
 
+/// Common matrix methods
 impl Matrix {
     /// Square `Matrix` with 1 on the diagonal and 0 elsewhere
     pub fn identity(side: usize) -> Self {
@@ -373,6 +375,47 @@ impl Matrix {
     }
 }
 
+impl Add for &Matrix {
+    type Output = Matrix;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        self.add(rhs)
+    }
+}
+
+impl Sub for &Matrix {
+    type Output = Matrix;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        self.sub(rhs)
+    }
+}
+
+impl Mul for &Matrix {
+    type Output = Matrix;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        self.mul(rhs)
+    }
+}
+
+impl Div for &Matrix {
+    type Output = Matrix;
+
+    fn div(self, rhs: Self) -> Self::Output {
+        self.div(rhs)
+    }
+}
+
+impl Neg for Matrix {
+    type Output = Matrix;
+
+    fn neg(self) -> Self::Output {
+        self.neg()
+    }
+}
+
+
 /// All methods related to representation `Row`, `Col`, `MultiRow` or `MultiCol`
 impl<'g> Matrix {
     /// `Vector` instance pointing to the `Row` or `Col` at the given idx
@@ -550,45 +593,30 @@ impl<'g> Matrix {
     }
 }
 
-impl Add for &Matrix {
-    type Output = Matrix;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        self.add(rhs)
-    }
-}
-
-impl Sub for &Matrix {
-    type Output = Matrix;
-
-    fn sub(self, rhs: Self) -> Self::Output {
-        self.sub(rhs)
-    }
-}
-
-impl Mul for &Matrix {
-    type Output = Matrix;
-
-    fn mul(self, rhs: Self) -> Self::Output {
-        self.mul(rhs)
-    }
-}
-
-impl Div for &Matrix {
-    type Output = Matrix;
-
-    fn div(self, rhs: Self) -> Self::Output {
-        self.div(rhs)
-    }
-}
-
-impl Neg for Matrix {
-    type Output = Matrix;
-
-    fn neg(self) -> Self::Output {
-        self.neg()
-    }
-}
-
-
 pub type Vector<'g> = Line<'g, f64>;
+
+
+/// Rotations
+impl Matrix {
+    pub fn rotation(mut from: usize, mut to: usize, mut angle: f64, dim: usize) -> Self {
+        let mut matr = Self::identity(dim);
+        if from == to {
+            return Self::Failure(CoordSysErr(RotationInOneAxis(from)))
+        } else if from > to {
+            (from, to) = (to, from);
+            angle = -angle;
+        }
+        let (sin, cos) = (angle.sin(), angle.cos());
+        *matr.att_mut(from, from) = cos;
+        *matr.att_mut(from, to) = -sin;
+        *matr.att_mut(to, from) = sin;
+        *matr.att_mut(to, to) = cos;
+        matr
+    }
+
+    pub fn teit_bryan_rotation(x: f64, y: f64, z: f64) -> Self {
+        Self::rotation(1, 2, x, 3)
+            .mul(&Self::rotation(0, 2, -y, 3))
+            .mul(&Self::rotation(0, 1, z, 3))
+    }
+}
