@@ -10,20 +10,13 @@ pub enum GridErr {
     CurveSides(usize),
 
     #[error("trying to create empty Grid or Matr")]
-    Emptiness,
+    IsEmpty,
 
     #[error("trying to access on double index in {0}")]
     SingleIndexed(Repr),
 
     #[error("trying to access on single index in {0}")]
     DoubleIndexed(Repr),
-
-
-    // #[error("Trying to access element on {idx:?}, while the actual size is {size:?}")]
-    // OutOfBounds {
-    //     size: (usize, usize),
-    //     idx: (usize, usize),
-    // },
 
     #[error("operating on single row while there are {0} rows")]
     TooManyRows(usize),
@@ -47,6 +40,9 @@ pub enum GridErr {
 
     #[error("trying to operate on matrix as on the set of rows or cols")]
     NotMultiRowOrCol,
+
+    #[error("matrix should be stratified to rows or cols")]
+    NotStratified,
 
     #[error("treating non-square matrix as square of size: {0:?}")]
     NotSquare((usize, usize)),

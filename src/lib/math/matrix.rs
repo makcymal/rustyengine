@@ -49,15 +49,10 @@ impl Matrix {
     /// Determinant of square `Matrix`. If not square, `GridErr(IsNotSquare)` is returned.
     /// It doesn't matter whether `Matrix` is transposed or not
     pub fn det(&self) -> ReRes<f64> {
-        if self.failed() {
-            return Err(GridErr(UnhandledFailure));
-        }
-        if self.rows() != self.cols() {
-            return Err(GridErr(NotSquare((self.rows(), self.cols()))));
-        }
+        self.ag_failed()?.ag_not_square()?;
         let mut rows = vec![true; self.rows()];
         let mut cols = vec![true; self.cols()];
-        Ok(round(self.minor(&mut rows, &mut cols)))
+        Ok(self.minor(&mut rows, &mut cols))
     }
 
     /// Inversed `Matrix::Square` for square `Matrix` with non-null determinant.
@@ -338,7 +333,7 @@ impl Matrix {
 
     /// Multiplies by the given number
     fn raw_num_mul(mut self, num: f64) -> Self {
-        if self.failed() {
+        if self.is_failure() {
             return Self::Failure(GridErr(UnhandledFailure));
         }
         for r in 0..self.rows() {
@@ -351,6 +346,7 @@ impl Matrix {
 
     /// Norm of the `Matrix` as sqrt of sum of square of elements
     pub fn norm(&self) -> ReRes<f64> {
+        self.ag_failed()?;
         match self {
             Self::Arbitrary(grid) | Self::Square(grid) | Self::MultiRow(grid) | Self::MultiCol(grid) => {
                 Ok((0..grid.rows(false))
@@ -372,18 +368,21 @@ impl Matrix {
                     .sum::<f64>()
                     .sqrt())
             }
-            Self::Failure(_) => Err(GridErr(UnhandledFailure)),
+            _ => unreachable!()
         }
     }
 }
 
+/// All methods related to representation `Row`, `Col`, `MultiRow` or `MultiCol`
 impl<'g> Matrix {
     /// `Vector` instance pointing to the `Row` or `Col` at the given idx
     pub fn vector(&'g self, idx: usize) -> Vector<'g> {
         Vector::new(self, idx)
     }
 
+    /// Linear combination of rows or cols producing single row or col
     pub fn combine(&self, coef: Vec<f64>) -> ReRes<Self> {
+        self.ag_failed()?.ag_not_stratified()?;
         match self.repr() {
             Repr::Row | Repr::Col => Ok(self.num_mul(coef[0])),
             Repr::MultiRow => {
@@ -404,25 +403,17 @@ impl<'g> Matrix {
                 }
                 Ok(comb)
             },
-            Repr::Arbitrary | Repr::Square => Err(MatrixErr(TooArbitrary)),
-            _ => Err(GridErr(UnhandledFailure)),
+            _ => unreachable!(),
         }
     }
 
     /// Whether `self` contains only one `Row` or `Col`
     pub fn approve_single_vector(&self) -> ReRes<()> {
+        self.ag_failed()?.ag_not_stratified()?;
         match self.repr() {
-            Repr::Row | Repr::MultiRow => {
-                if self.rows() != 1 {
-                    return Err(GridErr(TooManyRows(self.rows())));
-                }
-            }
-            Repr::Col | Repr::MultiCol => {
-                if self.rows() != 1 {
-                    return Err(GridErr(TooManyCols(self.cols())));
-                }
-            }
-            _ => return Err(GridErr(NotRowOrCol)),
+            Repr::Row | Repr::MultiRow => self.ag_too_many_rows()?,
+            Repr::Col | Repr::MultiCol => self.ag_too_many_cols()?,
+            _ => unreachable!(),
         };
         Ok(())
     }
@@ -438,17 +429,11 @@ impl<'g> Matrix {
         Ok(())
     }
 
-    /// Whether both operands aren't `Matrix::Failure`'s, have the same dim and splitted to rows or cols
+    /// Whether both operands aren't `Matrix::Failure`'s, have the same dim and stratified to rows or cols
     pub fn approve_multi_vector_ops(&self, rhs: &Self) -> ReRes<()> {
         self.approve_ops(rhs)?;
-        match self.repr() {
-            Repr::Arbitrary | Repr::Square => return Err(GridErr(NotRowOrCol)),
-            _ => (),
-        };
-        match rhs.repr() {
-            Repr::Arbitrary | Repr::Square => return Err(GridErr(NotRowOrCol)),
-            _ => (),
-        };
+        self.ag_not_stratified()?;
+        rhs.ag_not_stratified()?;
         if self.dim() != rhs.dim() {
             return Err(MatrixErr(DimMismatch { lhs: self.dim().unwrap(), rhs: rhs.dim().unwrap() }));
         }
@@ -457,6 +442,7 @@ impl<'g> Matrix {
 
     /// How many elements contains such `Vector` as `Row`, `Col` or in `MultiRow`, `MultiCol`
     pub fn dim(&self) -> ReRes<usize> {
+        self.ag_failed()?.ag_not_stratified()?;
         match self {
             Self::Row(_) | Self::MultiRow(_) => {
                 Ok(self.cols())
@@ -464,18 +450,17 @@ impl<'g> Matrix {
             Self::Col(_) | Self::MultiCol(_) => {
                 Ok(self.rows())
             }
-            Self::Arbitrary(_) | Self::Square(_) => Err(GridErr(NotRowOrCol)),
-            Self::Failure(_) => Err(GridErr(UnhandledFailure)),
+            _ => unreachable!()
         }
     }
 
     /// Orthonorm length of `Vector` without basis according only to `BIFORM` matrix
     pub fn len(&self) -> ReRes<f64> {
+        self.ag_failed()?.ag_not_row_or_col()?;
         match self {
             Self::Row(_) => Ok(self.mul(get_biform()).mul_t(self).att(0, 0).sqrt()),
             Self::Col(_) => Ok(self.mul_left_t(get_biform()).transpose().mul(self).att(0, 0).sqrt()),
-            Self::Failure(_) => Err(GridErr(UnhandledFailure)),
-            _ => Err(GridErr(NotRowOrCol)),
+            _ => unreachable!()
         }
     }
 
@@ -548,14 +533,20 @@ impl<'g> Matrix {
     /// Orthonorm vector product without basis according only to `BIFORM` matrix between vectors on given indices
     pub fn vector_prod_at(&self, s: usize, rhs: &Self, r: usize) -> ReRes<Self> {
         self.approve_multi_vector_ops(rhs)?;
-        if self.dim() != Ok(3) {
-            return Err(MatrixErr(DimMismatch { lhs: self.dim().unwrap(), rhs: rhs.dim().unwrap() }));
-        }
+        self.ag_not_3_dim()?;
         Ok(Self::from_single(vec![
             self.att(s, 1) * rhs.att(r, 2) - self.att(s, 2) * rhs.att(r, 1),
             self.att(s, 2) * rhs.att(r, 0) - self.att(s, 0) * rhs.att(r, 2),
             self.att(s, 0) * rhs.att(r, 1) - self.att(s, 1) * rhs.att(r, 0),
         ]).raw_transpose().to_col())
+    }
+
+    pub fn ag_not_3_dim(&self) -> ReRes<&Self> {
+        match self.dim() {
+            Ok(3) => Ok(self),
+            Err(err) => Err(err),
+            _ => Err(MatrixErr(NotIn3Dim))
+        }
     }
 }
 

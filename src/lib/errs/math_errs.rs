@@ -30,13 +30,12 @@ pub enum MatrixErr {
     #[error("division by number zero")]
     ZeroDivision,
 
-    #[error("unclear whether rows or cols to use")]
-    TooArbitrary,
+    #[error("trying to operate in 3-dim space")]
+    NotIn3Dim
 }
 
 /// Errors that can be obtained within `Result::Err::CoordSysErr`
 #[derive(Error, Debug, Clone, Copy, PartialEq)]
 pub enum CoordSysErr {
-    #[error("matrix of basis vectors is not square: {0:?}")]
-    CurveBasis((usize, usize)),
+
 }

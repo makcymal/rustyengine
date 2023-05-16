@@ -32,7 +32,7 @@ fn is_not_lin_vec_wrapper() {
 #[test]
 fn empty_lin_vec_wrapper() {
     let vw: VecWrapper<f64> = Single(vec![]);
-    assert_eq!(vw.is_valid(), Err(GridErr(Emptiness)));
+    assert_eq!(vw.is_valid(), Err(GridErr(IsEmpty)));
 }
 
 #[test]
