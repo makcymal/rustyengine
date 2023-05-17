@@ -1,14 +1,14 @@
 mod grid_errs;
 mod math_errs;
+mod engn_errs;
 
 pub use {
-    grid_errs::GridErr::{self, *},
-    math_errs::{
-        MatrixErr::{self, *},
-        CoordSysErr::{self, *},
-    },
+    grid_errs::GridErr,
+    math_errs::MathErr,
+    engn_errs::EngnErr,
 };
 use strum_macros::Display;
+
 
 /// `Result` with `ReErr` as `Err` variant
 pub type ReRes<T> = Result<T, ReErr>;
@@ -17,7 +17,7 @@ pub type ReRes<T> = Result<T, ReErr>;
 /// `ReErr` stands for RustyEngineError
 #[derive(Debug, Display, Clone, Copy, PartialEq)]
 pub enum ReErr {
+    EngnErr(EngnErr),
     GridErr(GridErr),
-    MatrixErr(MatrixErr),
-    CoordSysErr(CoordSysErr),
+    MathErr(MathErr),
 }

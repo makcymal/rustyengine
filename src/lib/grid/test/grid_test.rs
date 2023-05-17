@@ -18,7 +18,7 @@ use {
 
 #[test]
 fn fill_grid_with() {
-    let grid = Grid::fill(0, 1, 3);
+    let grid = Grid::new(0, 1, 3);
     assert_eq!(grid, Failure(GridErr(IsEmpty)));
 }
 
@@ -30,7 +30,7 @@ fn grid_from_curve_double() {
 
 #[test]
 fn grid_is_matrix() {
-    let grid = Grid::fill(2, 1, 3);
+    let grid = Grid::new(2, 1, 3);
     assert_eq!(grid.is_arbitrary(), true);
 }
 

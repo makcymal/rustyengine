@@ -4,7 +4,7 @@
 //! `Grid` of floats as `Matrix`
 //!
 //! `Grid` inner incapsulated in struct `RawGrid` that holds `VecWrapper` and transposition flag.
-//! `VecWrapper` is a workaround to deal with `Vec<E>` as well as `Vec<Vec<E>>`.
+//! `VecWrapper` is a workaround to deal with `Vec<E>` as well as with `Vec<Vec<E>>`.
 //! `VecWrapper::Single` holds `Vec<E>` and `VecWrapper::Double` holds `Vec<Vec<E>>`.
 //! `RawGrid` is easy-transposable `VecWrapper`, furthermore it can take additional transpose flag,
 //! that provides possibility of treating `Grid` as once more transposed without mutating it.

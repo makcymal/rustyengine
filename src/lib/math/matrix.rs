@@ -1,5 +1,21 @@
+//! `Matrix` is defines as `Grid<f64>`.
+//! Besides inherited methods `Matrix` also has matrices-specific methods like determinant,
+//! inversed, minor, additions, subtractions, multiplications, divisions, norms. On matrices that
+//! stratified into `Row` and `Col` scalar and vector products can be applied, therefore also computing
+//! length and linear combinations. Provided constructors for rotation matrices
+
 use {
+    super::{
+        BIFORM, get_biform,
+        precision::{round, eq},
+    },
     crate::{
+        errs::{
+            ReRes,
+            ReErr::{self, *},
+            GridErr::{self, *},
+            MathErr::{self, *},
+        },
         grid::{
             RawGrid,
             Repr,
@@ -7,22 +23,10 @@ use {
             Line,
             Elem,
         },
-        errs::{
-            ReRes,
-            ReErr::{self, *},
-            GridErr::{self, *},
-            MatrixErr::{self, *},
-            CoordSysErr::{self, *},
-        },
         util::{
             pow_minus,
             Sign::{self, *},
-            LineTp,
         },
-    },
-    super::{
-        BIFORM, get_biform,
-        precision::{round, round_prec},
     },
     std::ops::{
         Add, Sub, Mul, Div, Neg,
@@ -46,7 +50,7 @@ impl Matrix {
 
     /// Arbitrary `Matrix`, full of zeros of `r` rows and `c` cols
     pub fn zero(r: usize, c: usize) -> Self {
-        Self::fill(r, c, 0.0)
+        Self::new(r, c, 0.0)
     }
 
     /// Determinant of square `Matrix`. If not square, `GridErr(IsNotSquare)` is returned.
@@ -55,15 +59,15 @@ impl Matrix {
         self.ag_failed()?.ag_not_square()?;
         let mut rows = vec![true; self.rows()];
         let mut cols = vec![true; self.cols()];
-        Ok(self.minor(&mut rows, &mut cols))
+        Ok(round(self.minor(&mut rows, &mut cols)))
     }
 
     /// Inversed `Matrix::Square` for square `Matrix` with non-null determinant.
     /// Unless it exists `GridErr(IsNotSquare)` or `MatrErr(NullDeterminant)` is returned
     pub fn inv(&self) -> ReRes<Self> {
         let det = self.det()?;
-        if det == 0.0 {
-            return Err(MatrixErr(NullDeterminant));
+        if eq(det, 0.0) {
+            return Err(MathErr(NullDeterminant));
         }
 
         let mut rows = vec![true; self.rows()];
@@ -98,7 +102,7 @@ impl Matrix {
         for col in 0..self.cols() {
             if cols[col] {
                 let elem = *self.att(row, col);
-                if elem != 0.0 {
+                if !eq(elem, 0.0) {
                     cols[col] = false;
                     minor += pow_minus(j) * elem * self.minor(rows, cols);
                     cols[col] = true;
@@ -107,7 +111,7 @@ impl Matrix {
             }
         }
         rows[row] = true;
-        minor
+        round(minor)
     }
 
     /// Rounds all the elements with precision specified in `math::prec`
@@ -116,17 +120,6 @@ impl Matrix {
             for c in 0..self.rawgrid_ref().cols(false) {
                 let elem = *self.rawgrid_ref().att(r, c, false);
                 *self.rawgrid_mut().att_mut(r, c, false) = round(elem);
-            }
-        }
-        self
-    }
-
-    /// Rounds all the elements with the given precision
-    pub fn round_prec(mut self, prec: u16) -> Self {
-        for r in 0..self.rawgrid_ref().rows(false) {
-            for c in 0..self.rawgrid_ref().cols(false) {
-                let elem = *self.rawgrid_ref().att(r, c, false);
-                *self.rawgrid_mut().att_mut(r, c, false) = round_prec(elem, prec);
             }
         }
         self
@@ -180,9 +173,12 @@ impl Matrix {
 
         for r in 0..self.rows() {
             for c in 0..self.cols() {
+                let lhs = *self.rawgrid_mut().att(r, c, false);
                 match sign {
-                    Plus => *self.rawgrid_mut().att_mut(r, c, false) += rhs.rawgrid_ref().att(r, c, t),
-                    Minus => *self.rawgrid_mut().att_mut(r, c, false) -= rhs.rawgrid_ref().att(r, c, t)
+                    Plus => *self.rawgrid_mut().att_mut(r, c, false) =
+                        round(lhs + rhs.rawgrid_ref().att(r, c, t)),
+                    Minus => *self.rawgrid_mut().att_mut(r, c, false) =
+                        round(lhs - rhs.rawgrid_ref().att(r, c, t))
                 }
             }
         }
@@ -238,9 +234,9 @@ impl Matrix {
         for r in 0..rows {
             for c in 0..cols {
                 *prod.rawgrid_mut().att_mut(r, c, false) =
-                    (0..self.cols())
+                    round((0..self.cols())
                         .map(|i| self.rawgrid_ref().att(r, i, false) * rhs.rawgrid_ref().att(i, c, t))
-                        .sum()
+                        .sum())
             }
         }
         prod
@@ -259,9 +255,9 @@ impl Matrix {
         for r in 0..rows {
             for c in 0..cols {
                 *prod.rawgrid_mut().att_mut(r, c, false) =
-                    (0..lhs.rawgrid_ref().cols(t))
+                    round((0..lhs.rawgrid_ref().cols(t))
                         .map(|i| lhs.rawgrid_ref().att(r, i, t) * self.rawgrid_ref().att(i, c, false))
-                        .sum()
+                        .sum())
             }
         }
         prod
@@ -271,7 +267,7 @@ impl Matrix {
     pub fn approve_add(&self, rhs: &Self, t: bool) -> ReRes<()> {
         self.approve_ops(rhs)?;
         if self.rows() != rhs.rawgrid_ref().rows(t) || self.cols() != rhs.rawgrid_ref().cols(t) {
-            return Err(MatrixErr(AddSizesMismatch {
+            return Err(MathErr(AddSizesMismatch {
                 lhs: (self.rows(), self.cols()),
                 rhs: (rhs.rawgrid_ref().rows(t), rhs.rawgrid_ref().cols(t)),
             }));
@@ -283,7 +279,7 @@ impl Matrix {
     pub fn approve_mul(&self, rhs: &Self, t: bool) -> ReRes<()> {
         self.approve_ops(rhs)?;
         if self.cols() != rhs.rawgrid_ref().rows(t) {
-            return Err(MatrixErr(MulSizesMismatch {
+            return Err(MathErr(MulSizesMismatch {
                 lhs: (self.rows(), self.cols()),
                 rhs: (rhs.rawgrid_ref().rows(t), rhs.rawgrid_ref().cols(t)),
             }));
@@ -295,7 +291,7 @@ impl Matrix {
     pub fn approve_mul_left(&self, lhs: &Self, t: bool) -> ReRes<()> {
         self.approve_ops(lhs)?;
         if lhs.rawgrid_ref().cols(t) != self.rows() {
-            return Err(MatrixErr(MulSizesMismatch {
+            return Err(MathErr(MulSizesMismatch {
                 lhs: (lhs.rawgrid_ref().rows(t), lhs.rawgrid_ref().cols(t)),
                 rhs: (self.rows(), self.cols()),
             }));
@@ -315,16 +311,16 @@ impl Matrix {
 
     /// Divides all the elements by the given number on the cloned `self`
     pub fn num_div(&self, num: f64) -> Self {
-        if num == 0.0 {
-            return Self::Failure(MatrixErr(ZeroDivision));
+        if eq(num, 0.0) {
+            return Self::Failure(MathErr(ZeroDivision));
         }
         self.clone().raw_num_mul(1.0 / num)
     }
 
     /// Divides all the elements by the given number on place
     pub fn num_div_assign(mut self, num: f64) -> Self {
-        if num == 0.0 {
-            return Self::Failure(MatrixErr(ZeroDivision));
+        if eq(num, 0.0) {
+            return Self::Failure(MathErr(ZeroDivision));
         }
         self.raw_num_mul(1.0 / num)
     }
@@ -341,7 +337,8 @@ impl Matrix {
         }
         for r in 0..self.rows() {
             for c in 0..self.cols() {
-                *self.rawgrid_mut().att_mut(r, c, false) *= num;
+                let elem = *self.rawgrid_mut().att(r, c, false);
+                *self.rawgrid_mut().att_mut(r, c, false) = round(elem * num);
             }
         }
         self
@@ -352,24 +349,30 @@ impl Matrix {
         self.ag_failed()?;
         match self {
             Self::Arbitrary(grid) | Self::Square(grid) | Self::MultiRow(grid) | Self::MultiCol(grid) => {
-                Ok((0..grid.rows(false))
+                Ok(
+                    round((0..grid.rows(false))
                     .map(|r| (0..grid.cols(false))
                         .map(|c| grid.att(r, c, false).powi(2))
                         .sum::<f64>())
                     .sum::<f64>()
                     .sqrt())
+                )
             }
             Self::Row(grid) => {
-                Ok((0..grid.cols(false))
+                Ok(
+                    round((0..grid.cols(false))
                     .map(|c| grid.att(0, c, false).powi(2))
                     .sum::<f64>()
                     .sqrt())
+                )
             }
             Self::Col(grid) => {
-                Ok((0..grid.rows(false))
+                Ok(
+                    round((0..grid.rows(false))
                     .map(|r| grid.att(r, 0, false).powi(2))
                     .sum::<f64>()
                     .sqrt())
+                )
             }
             _ => unreachable!()
         }
@@ -416,6 +419,12 @@ impl Neg for Matrix {
     }
 }
 
+impl PartialEq for Matrix {
+    fn eq(&self, other: &Self) -> bool {
+        self.eq(other, |f1, f2| eq(*f1, *f2))
+    }
+}
+
 
 /// All methods related to representation `Row`, `Col`, `MultiRow` or `MultiCol`
 impl<'g> Matrix {
@@ -436,7 +445,7 @@ impl<'g> Matrix {
                         *comb.at_mut(c) += *self.att(r, c) * coef[r];
                     }
                 }
-                Ok(comb)
+                Ok(comb.round())
             },
             Repr::MultiCol => {
                 let mut comb = Self::zero(1, self.rows()).transpose().to_col();
@@ -468,7 +477,7 @@ impl<'g> Matrix {
         self.approve_single_vector()?;
         rhs.approve_single_vector()?;
         if self.dim() != rhs.dim() {
-            return Err(MatrixErr(DimMismatch { lhs: self.dim().unwrap(), rhs: rhs.dim().unwrap() }));
+            return Err(MathErr(DimMismatch { lhs: self.dim().unwrap(), rhs: rhs.dim().unwrap() }));
         }
         Ok(())
     }
@@ -479,7 +488,7 @@ impl<'g> Matrix {
         self.ag_not_stratified()?;
         rhs.ag_not_stratified()?;
         if self.dim() != rhs.dim() {
-            return Err(MatrixErr(DimMismatch { lhs: self.dim().unwrap(), rhs: rhs.dim().unwrap() }));
+            return Err(MathErr(DimMismatch { lhs: self.dim().unwrap(), rhs: rhs.dim().unwrap() }));
         }
         Ok(())
     }
@@ -498,13 +507,39 @@ impl<'g> Matrix {
         }
     }
 
-    /// Orthonorm length of `Vector` without basis according only to `BIFORM` matrix
+    /// Orthonorm length of `Row` or `Col` without basis according only to `BIFORM` matrix
     pub fn len(&self) -> ReRes<f64> {
-        self.ag_failed()?.ag_not_row_or_col()?;
-        match self {
-            Self::Row(_) => Ok(self.mul(get_biform()).mul_t(self).att(0, 0).sqrt()),
-            Self::Col(_) => Ok(self.mul_left_t(get_biform()).transpose().mul(self).att(0, 0).sqrt()),
-            _ => unreachable!()
+        Ok(round(self.scalar_prod(self)?.sqrt()))
+    }
+
+    /// Orthonorm length of vector in the given index `s` in `Row`, `MultiRow`, `Col` or `MultiCol`
+    /// without basis according only to `BIFORM` matrix
+    pub fn len_at(&self, s: usize) -> ReRes<f64> {
+        Ok(round(self.scalar_prod_at(s, self, s)?.sqrt()))
+    }
+
+    /// Resizing each vector to length 1 using scalar product without basis
+    pub fn normalize(&mut self) {
+        match self.repr() {
+            Repr::Row | Repr::MultiRow => {
+                for r in 0..self.rows() {
+                    let len = self.len_at(r).unwrap();
+                    for c in 0..self.cols() {
+                        let elem = *self.att(r, c);
+                        *self.att_mut(r, c) = round(elem / len);
+                    }
+                }
+            },
+            Repr::Col | Repr::MultiCol => {
+                for c in 0..self.cols() {
+                    let len = self.len_at(c).unwrap();
+                    for r in 0..self.rows() {
+                        let elem = *self.att(c, r);
+                        *self.att_mut(c, r) = round(elem / len);
+                    }
+                }
+            },
+            _ => {}
         }
     }
 
@@ -517,7 +552,6 @@ impl<'g> Matrix {
 
     /// Orthonorm scalar product without basis according only to `BIFORM` matrix.
     /// Operands at the given indices must have the same dim.
-    /// Between `Row`'s or `Col`'s produces `Col`
     pub fn scalar_prod_at(&self, i: usize, rhs: &Self, j: usize) -> ReRes<f64> {
         self.raw_scalar_prod_at(i, rhs, j, get_biform())
     }
@@ -551,27 +585,21 @@ impl<'g> Matrix {
     /// Between `Row`'s or `Col`'s produces `f64`
     pub(in super) fn raw_scalar_prod_at(&self, s: usize, rhs: &Self, r: usize, core: &Self) -> ReRes<f64> {
         self.approve_multi_vector_ops(rhs)?;
-        Ok((0..self.dim().unwrap())
+        Ok(
+            round((0..self.dim().unwrap())
             .map(|i| {
                 self.att(s, i) * (0..rhs.dim().unwrap())
                     .map(|j| core.att(i, j) * rhs.att(r, j))
                     .sum::<f64>()
             })
-            .sum::<f64>()
+            .sum::<f64>())
         )
     }
 
     /// Orthonorm vector product
     pub fn vector_prod(&self, rhs: &Self) -> ReRes<Self> {
         self.approve_single_vector_ops(rhs)?;
-        if self.dim() != Ok(3) {
-            return Err(MatrixErr(DimMismatch { lhs: self.dim().unwrap(), rhs: rhs.dim().unwrap() }));
-        }
-        Ok(Self::from_single(vec![
-            self.att(0, 1) * rhs.att(0, 2) - self.att(0, 2) * rhs.att(0, 1),
-            self.att(0, 2) * rhs.att(0, 0) - self.att(0, 0) * rhs.att(0, 2),
-            self.att(0, 0) * rhs.att(0, 1) - self.att(0, 1) * rhs.att(0, 0),
-        ]).raw_transpose().to_col())
+        self.vector_prod_at(0, rhs, 0)
     }
 
     /// Orthonorm vector product without basis according only to `BIFORM` matrix between vectors on given indices
@@ -579,18 +607,29 @@ impl<'g> Matrix {
         self.approve_multi_vector_ops(rhs)?;
         self.ag_not_3_dim()?;
         Ok(Self::from_single(vec![
-            self.att(s, 1) * rhs.att(r, 2) - self.att(s, 2) * rhs.att(r, 1),
-            self.att(s, 2) * rhs.att(r, 0) - self.att(s, 0) * rhs.att(r, 2),
-            self.att(s, 0) * rhs.att(r, 1) - self.att(s, 1) * rhs.att(r, 0),
+            round(self.att(s, 1) * rhs.att(r, 2) - self.att(s, 2) * rhs.att(r, 1)),
+            round(self.att(s, 2) * rhs.att(r, 0) - self.att(s, 0) * rhs.att(r, 2)),
+            round(self.att(s, 0) * rhs.att(r, 1) - self.att(s, 1) * rhs.att(r, 0)),
         ]).raw_transpose().to_col())
     }
 
+    /// Doesn't pass any matrix that are not `Row`, `Col`, `MultiRow` or `MultiCol` or have dimension inequal to 3
     pub fn ag_not_3_dim(&self) -> ReRes<&Self> {
         match self.dim() {
             Ok(3) => Ok(self),
             Err(err) => Err(err),
-            _ => Err(MatrixErr(NotIn3Dim))
+            _ => Err(MathErr(NotIn3Dim))
         }
+    }
+
+    /// Doesn't pass matrices of null determinant
+    pub fn ag_linear_dependence(&self) -> ReRes<&Self> {
+        if let Ok(det) = self.det() {
+            if det == 0.0 {
+                return Err(MathErr(NullDeterminant))
+            }
+        }
+        Ok(self)
     }
 }
 
@@ -599,10 +638,11 @@ pub type Vector<'g> = Line<'g, f64>;
 
 /// Rotations
 impl Matrix {
+    /// Rotation matrix in n-dim space on the given angle
     pub fn rotation(mut from: usize, mut to: usize, mut angle: f64, dim: usize) -> Self {
         let mut matr = Self::identity(dim);
         if from == to {
-            return Self::Failure(CoordSysErr(RotationInOneAxis(from)))
+            return Self::Failure(MathErr(RotationInOneAxis(from)))
         } else if from > to {
             (from, to) = (to, from);
             angle = -angle;
@@ -615,6 +655,7 @@ impl Matrix {
         matr
     }
 
+    /// Rotation matrix in 3-dim space on the 3 given angles around cardinal axes
     pub fn teit_bryan_rotation(x: f64, y: f64, z: f64) -> Self {
         Self::rotation(1, 2, x, 3)
             .mul(&Self::rotation(0, 2, -y, 3))

@@ -1,3 +1,5 @@
+//! Core engine things
+
 mod ray;
 mod entity;
 mod game;
@@ -6,7 +8,7 @@ mod game;
 pub use {
     ray::Ray,
     entity::{
-        IdPool, EntityCore, Entity, EntityList, GameObject, GameCamera,
+        IdPool, EntityCore, Entity, Prop, EntityList, GameObject, Camera,
     },
     game::Game,
 };

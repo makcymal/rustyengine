@@ -5,7 +5,7 @@ use {
 
 /// Errors that can replace `Matrix` or be obtained within `ReRes::ReErr::MatrixErr`
 #[derive(Error, Debug, Clone, Copy, PartialEq)]
-pub enum MatrixErr {
+pub enum MathErr {
     #[error("add or sub on LHS of size {lhs:?}, RHS of size {rhs:?}")]
     AddSizesMismatch {
         lhs: (usize, usize),
@@ -31,12 +31,8 @@ pub enum MatrixErr {
     ZeroDivision,
 
     #[error("trying to operate in 3-dim space")]
-    NotIn3Dim
-}
+    NotIn3Dim,
 
-/// Errors that can be obtained within `Result::Err::CoordSysErr`
-#[derive(Error, Debug, Clone, Copy, PartialEq)]
-pub enum CoordSysErr {
     #[error("trying to create rotation matrix from {0} to {0} axis")]
     RotationInOneAxis(usize),
 }

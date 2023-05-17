@@ -101,7 +101,7 @@ impl<E> VecWrapper<E> {
 }
 
 impl<E: Clone> VecWrapper<E> {
-    /// Increases or decreases number of rows or columns by extending or reducing
+    /// Increases or decreases number of rows or columns by extending or reducing filling with given value
     pub(in super) fn resize(mut self, r: usize, c: usize, with: E) -> Self {
         self = match self {
             Self::Single(mut single) => {
@@ -250,6 +250,19 @@ impl<E> RawGrid<E> {
             true => self.vec.att_mut(c, r)
         }
     }
+
+    /// Whether `self` element-wise equals to `other` treating the given predicate.
+    /// Predicate should answer the same quastion: whether elements are equal
+    pub fn eq(&self, other: &Self, p: impl Fn(&E, &E) -> bool) -> bool {
+        for r in 0..self.rows(false) {
+            for c in 0..self.cols(false) {
+                if !p(self.att(r, c, false), other.att(r, c, false)) {
+                    return false
+                }
+            }
+        }
+        true
+    }
 }
 
 impl<E: Clone> RawGrid<E> {
@@ -289,19 +302,5 @@ impl<E: Clone> RawGrid<E> {
             }
         }
         Ok(self)
-    }
-}
-
-
-impl<E: PartialEq> PartialEq for RawGrid<E> {
-    fn eq(&self, other: &Self) -> bool {
-        for r in 0..self.rows(false) {
-            for c in 0..self.cols(false) {
-                if self.att(r, c, false) != other.att(r, c, false) {
-                    return false;
-                }
-            }
-        }
-        true
     }
 }

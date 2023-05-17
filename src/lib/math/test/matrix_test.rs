@@ -7,7 +7,7 @@ use {
         errs::{
             ReErr::*,
             GridErr::*,
-            MatrixErr::*,
+            MathErr::*,
         },
         grid::{
             Repr::*,
@@ -317,7 +317,7 @@ fn invalid_add_matr() {
         vec![8.0, 7.0],
         vec![8.0, 7.0],
     ]);
-    assert_eq!(lhs.add(&rhs), Matrix::Failure(MatrixErr(AddSizesMismatch { lhs: (2, 2), rhs: (3, 2) })));
+    assert_eq!(lhs.add(&rhs), Matrix::Failure(MathErr(AddSizesMismatch { lhs: (2, 2), rhs: (3, 2) })));
 }
 
 #[test]
@@ -331,7 +331,7 @@ fn invalid_add_t_matr() {
         vec![8.0, 7.0],
         vec![8.0, 7.0],
     ]).transpose();
-    assert_eq!(lhs.add_t(&rhs), Matrix::Failure(MatrixErr(AddSizesMismatch { lhs: (2, 2), rhs: (3, 2) })));
+    assert_eq!(lhs.add_t(&rhs), Matrix::Failure(MathErr(AddSizesMismatch { lhs: (2, 2), rhs: (3, 2) })));
 }
 
 #[test]
@@ -397,7 +397,7 @@ fn invalid_mul_t_matr() {
         vec![1.0, 1.0],
         vec![-2.0, 4.0],
     ]);
-    assert_eq!(lhs.mul_t(&rhs), Matrix::Failure(MatrixErr(MulSizesMismatch { lhs: (3, 3), rhs: (2, 2) })));
+    assert_eq!(lhs.mul_t(&rhs), Matrix::Failure(MathErr(MulSizesMismatch { lhs: (3, 3), rhs: (2, 2) })));
 }
 
 #[test]

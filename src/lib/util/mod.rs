@@ -2,20 +2,6 @@ use {
     strum_macros::Display,
 };
 
-#[derive(Debug, Display, Clone, Copy, PartialEq)]
-pub enum LineTp {
-    Row, Col,
-}
-
-impl LineTp {
-    pub fn inv(&self) -> Self {
-        match self {
-            Self::Row => Self::Col,
-            Self::Col => Self::Row,
-        }
-    }
-}
-
 
 #[derive(Debug, Display, Clone, Copy, PartialEq)]
 pub enum Sign {

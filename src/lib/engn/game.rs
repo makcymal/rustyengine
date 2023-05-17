@@ -1,15 +1,18 @@
 use {
     super::{
-        Ray, IdPool, EntityCore, EntityList, GameObject, GameCamera,
+        Ray, IdPool, EntityCore, EntityList, GameObject, Camera,
     },
     crate::math::{
         Point, Matrix, CoordSys
     },
     std::{
         rc::Rc,
-    }
+    },
+    crate::errs::{
+        ReRes,
+        ReErr::{self, *},
+    },
 };
-use crate::errs::ReRes;
 
 
 /// Struct responsible for storing current CoordSys and EntityList and running related scripts
@@ -48,11 +51,11 @@ impl Game {
     }
 
     /// `EntityCore` in current basis with appending it's `Uuid` into `IdPool`
-    /// Intended to call it from specific entity constructors
     pub fn entity_core(&mut self) -> EntityCore {
         EntityCore::new(&self.cs, &self.id_pool.generate())
     }
 
+    /// `GameObject` in current game, calls `self.entity_core()`
     pub fn game_object(&mut self, pos: Point, dir: Matrix) -> GameObject {
         GameObject::new(self.entity_core(), pos, dir)
     }

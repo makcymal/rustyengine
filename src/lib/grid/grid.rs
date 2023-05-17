@@ -1,19 +1,16 @@
 use {
-    std::ops::{Index, IndexMut},
+    super::raw_grid::{
+        VecWrapper, RawGrid,
+    },
     crate::{
-        util::{
-            LineTp,
-            Idx,
-        },
         errs::{
             ReRes,
             ReErr::{self, *},
             GridErr::{self, *},
         },
+        util::Idx,
     },
-    super::raw_grid::{
-        VecWrapper, RawGrid,
-    },
+    std::ops::{Index, IndexMut},
     strum_macros::Display,
 };
 
@@ -30,11 +27,11 @@ pub enum Repr {
     Square,
     /// `RawGrid` with `rows() == 1`.
     /// It provides all the `Arbitrary` features, but also can treat as horizontal vector.
-    /// Indexing through elements
+    /// Indexing with single index through elements or with double index through rows first, then columns
     Row,
     /// `RawGrid` with `cols() == 1`.
-    /// It provides all the `Arbitrary` features, but also can treat as vertical vector.
-    /// Indexing through elements
+    /// It provides all the `Arbitrary` features, but also can treat `RawGrid` as vertical vector.
+    /// Indexing with single index through elements or with double index through columns first, then rows
     Col,
     /// Treat `RawGrid` as set of rows.
     /// Indexing through rows first, then columns
@@ -48,8 +45,9 @@ pub enum Repr {
 
 
 /// `Grid` holds collection of elements of type `E`, structured in rectangular table.
-/// The same variants of treating `RawGrid` as the `Repr`
-#[derive(Debug, Clone, PartialEq)]
+/// The same variants of treating `RawGrid` as the `Repr`.
+/// See `Repr` documentation strings for explanation on how `RawGrid` can be treaten
+#[derive(Debug, Clone)]
 pub enum Grid<E> {
     Arbitrary(RawGrid<E>),
     Square(RawGrid<E>),
@@ -60,10 +58,9 @@ pub enum Grid<E> {
     Failure(ReErr),
 }
 
-
 impl<E: Clone> Grid<E> {
     /// Returns grid of the given size filled with the given E
-    pub fn fill(r: usize, c: usize, with: E) -> Self {
+    pub fn new(r: usize, c: usize, with: E) -> Self {
         match r == 0 || c == 0 {
             false => {
                 let (mut lin, mut rec) = (vec![], vec![]);
@@ -308,10 +305,12 @@ impl<'g, E> Grid<E> {
         }
     }
 
+    /// Number of rows in underlying `RawGrid`
     pub fn rows(&self) -> usize {
         self.rawgrid_ref().rows(false)
     }
 
+    /// Number of columns in underlying `RawGrid`
     pub fn cols(&self) -> usize {
         self.rawgrid_ref().cols(false)
     }
@@ -336,29 +335,29 @@ impl<'g, E> Grid<E> {
         }
     }
 
-    /// Ref to element in `i` row and `j` column in `Matrix` or `Square` or `MultiRow`,
-    /// in `i` column and `j` row in `MultiCol`, in `j` column in `Row`, in `i` row in `Col`
-    pub fn att(&self, i: usize, j: usize) -> &E {
+    /// Ref to element in `f` row and `s` column in `Matrix` or `Square` or `MultiRow`,
+    /// in `f` column and `s` row in `MultiCol`, in `s` column in `Row`, in `s` row in `Col`
+    pub fn att(&self, f: usize, s: usize) -> &E {
         match self {
-            Self::Arbitrary(rg) | Self::Square(rg) | Self::MultiRow(rg) => rg.att(i, j, false),
-            Self::MultiCol(rg) => rg.att(j, i, false),
-            Self::Row(rg) => rg.att(0, j, false),
-            Self::Col(rg) => rg.att(i, 0, false),
-            Self::Failure(err) => panic!("calling at({:?}, {:?}) on Failure({:?})", i, j, err),
-            _ => panic!("calling at({:?}, {:?}) on {:?}", i, j, self.repr()),
+            Self::Arbitrary(rg) | Self::Square(rg) | Self::MultiRow(rg) => rg.att(f, s, false),
+            Self::MultiCol(rg) => rg.att(s, f, false),
+            Self::Row(rg) => rg.att(0, s, false),
+            Self::Col(rg) => rg.att(s, 0, false),
+            Self::Failure(err) => panic!("calling at({:?}, {:?}) on Failure({:?})", f, s, err),
+            _ => panic!("calling at({:?}, {:?}) on {:?}", f, s, self.repr()),
         }
     }
 
-    /// Mut ref to element in `i` row and `j` column in `Matrix` or `Square` or `MultiRow`
-    /// or in `i` column and `j` row in `MultiCol`, in `j` column in `Row`, in `i` row in `Col`
-    pub fn att_mut(&mut self, i: usize, j: usize) -> &mut E {
+    /// Mut ref to element in `f` row and `s` column in `Matrix` or `Square` or `MultiRow`,
+    /// in `f` column and `s` row in `MultiCol`, in `s` column in `Row`, in `s` row in `Col`
+    pub fn att_mut(&mut self, f: usize, s: usize) -> &mut E {
         match self {
-            Self::Arbitrary(rg) | Self::Square(rg) | Self::MultiRow(rg) => rg.att_mut(i, j, false),
-            Self::MultiCol(rg) => rg.att_mut(j, i, false),
-            Self::Row(rg) => rg.att_mut(0, j, false),
-            Self::Col(rg) => rg.att_mut(i, 0, false),
-            Self::Failure(err) => panic!("calling at({:?}, {:?}) on Failure({:?})", i, j, err),
-            _ => panic!("calling at({:?}, {:?}) on {:?}", i, j, self.repr()),
+            Self::Arbitrary(rg) | Self::Square(rg) | Self::MultiRow(rg) => rg.att_mut(f, s, false),
+            Self::MultiCol(rg) => rg.att_mut(s, f, false),
+            Self::Row(rg) => rg.att_mut(0, s, false),
+            Self::Col(rg) => rg.att_mut(s, 0, false),
+            Self::Failure(err) => panic!("calling at({:?}, {:?}) on Failure({:?})", f, s, err),
+            _ => panic!("calling at({:?}, {:?}) on {:?}", f, s, self.repr()),
         }
     }
 
@@ -375,11 +374,31 @@ impl<'g, E> Grid<E> {
         }
     }
 
+    /// Applying mutating closure to each element, taking `self` by value and then returning it
+    pub fn exec(mut self, mut f: impl FnMut(&mut E)) -> Self {
+        for r in 0..self.rows() {
+            for c in 0..self.cols() {
+                f(self.att_mut(r, c));
+            }
+        }
+        self
+    }
+
     /// Whether both operands aren't represented as `Failure`
     pub fn approve_ops(&self, other: &Self) -> ReRes<()> {
         self.ag_failed()?;
         other.ag_failed()?;
         Ok(())
+    }
+
+    /// Whether `self` element-wise equals to `other` treating the given predicate and repr.
+    /// Predicate should answer the same quastion: whether elements are equal
+    pub fn eq(&self, other: &Self, p: fn(&E, &E) -> bool) -> bool {
+        if self.repr() == other.repr() {
+            self.rawgrid_ref().eq(other.rawgrid_ref(), p)
+        } else {
+            false
+        }
     }
 }
 
@@ -404,8 +423,9 @@ impl<E: Clone> Grid<E> {
     }
 }
 
-/// Checks against some conditions that can be chained
+// Checks against some conditions that can be chained via `?`
 impl<E> Grid<E> {
+    /// Doesn't pass matrices that can be single indexed: `Row`, `Col`
     pub fn ag_single_indexed(&self) -> ReRes<&Self> {
         match self.repr() {
             Repr::Row | Repr::Col => Err(GridErr(SingleIndexed(self.repr()))),
@@ -413,6 +433,7 @@ impl<E> Grid<E> {
         }
     }
 
+    /// Doesn't pass matrices that intended to be double indexed: `Arbitrary`, `Square`, `MultiRow`, `MultiCol`
     pub fn ag_double_indexed(&self) -> ReRes<&Self> {
         match self.repr() {
             Repr::Row | Repr::Col => Ok(self),
@@ -420,6 +441,7 @@ impl<E> Grid<E> {
         }
     }
 
+    /// Doesn't pass failures
     pub fn ag_failed(&self) -> ReRes<&Self> {
         match self.repr() {
             Repr::Failure => Err(GridErr(UnhandledFailure)),
@@ -427,6 +449,7 @@ impl<E> Grid<E> {
         }
     }
 
+    /// Doesn't pass untransposable matrices: `Row`, `Col`
     pub fn ag_untransposable(&self) -> ReRes<&Self> {
         match self.repr() {
             Repr::Row | Repr::Col => Err(GridErr(Untransposable(self.repr()))),
@@ -434,6 +457,7 @@ impl<E> Grid<E> {
         }
     }
 
+    /// Doesn't pass any matrix that are not `Row` or `Col`
     pub fn ag_not_row_or_col(&self) -> ReRes<&Self> {
         match self.repr() {
             Repr::Row | Repr::Col => Ok(self),
@@ -441,6 +465,7 @@ impl<E> Grid<E> {
         }
     }
 
+    /// Doesn't pass matrices with more than one rows
     pub fn ag_too_many_rows(&self) -> ReRes<&Self> {
         match self.rows() {
             1 => Ok(self),
@@ -448,6 +473,7 @@ impl<E> Grid<E> {
         }
     }
 
+    /// Doesn't pass matrices with more than one columns
     pub fn ag_too_many_cols(&self) -> ReRes<&Self> {
         match self.cols() {
             1 => Ok(self),
@@ -455,6 +481,7 @@ impl<E> Grid<E> {
         }
     }
 
+    /// Doesn't pass any matrix that are not `MultiRow` or `MultiCol`
     pub fn ag_not_multi_row_or_col(&self) -> ReRes<&Self> {
         match self.repr() {
             Repr::MultiRow | Repr::MultiCol => Ok(self),
@@ -462,6 +489,7 @@ impl<E> Grid<E> {
         }
     }
 
+    /// Doesn't pass any matrix that are not `Row`, `Col`, `MultiRow` or `MultiCol`
     pub fn ag_not_stratified(&self) -> ReRes<&Self> {
         match self.repr() {
             Repr::Row | Repr::MultiRow | Repr::Col | Repr::MultiCol => Ok(self),
@@ -469,6 +497,7 @@ impl<E> Grid<E> {
         }
     }
 
+    /// Doesn't pass matrices with inequal number of rows and columns
     pub fn ag_not_square(&self) -> ReRes<&Self> {
         match self.rows() == self.cols() {
             true => Ok(self),
@@ -524,7 +553,7 @@ impl<E> IndexMut<Idx> for Grid<E> {
 // <<< Iterators
 
 /// Wrapper on particular `Row` or `Col` in `Grid`, that is specified on the basis of `grid.repr()`
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct Line<'g, E> {
     grid: &'g Grid<E>,
     curr: usize,
@@ -584,7 +613,7 @@ impl<'g, E> Index<usize> for Line<'g, E> {
 
 
 /// Wrapper on particular element of `Grid`
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct Elem<'g, E> {
     grid: &'g Grid<E>,
     row: usize,
