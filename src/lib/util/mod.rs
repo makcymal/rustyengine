@@ -1,3 +1,5 @@
+//! Some useful things
+
 use {
     strum_macros::Display,
 };

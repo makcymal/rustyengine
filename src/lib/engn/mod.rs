@@ -4,6 +4,9 @@ mod ray;
 mod entity;
 mod game;
 
+#[cfg(test)]
+mod test;
+
 // re-exports in scope of namespace `engine`
 pub use {
     ray::Ray,

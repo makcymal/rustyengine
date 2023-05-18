@@ -6,7 +6,7 @@ use {
     super::{
         matrix::Matrix,
         get_biform,
-        precision::{round, eq},
+        precision::{round, aeq},
     },
     crate::{
         grid::Repr,
@@ -36,9 +36,9 @@ impl VectorSpace {
             basis = basis.transpose();
         }
         let ortho =
-            eq(basis.scalar_prod_at(0, &basis, 1).unwrap(), 0.0) &&
-            eq(basis.scalar_prod_at(0, &basis, 2).unwrap(), 0.0) &&
-            eq(basis.scalar_prod_at(1, &basis, 2).unwrap(), 0.0);
+            aeq(&basis.scalar_prod_at(0, &basis, 1).unwrap(), &0.0) &&
+            aeq(&basis.scalar_prod_at(0, &basis, 2).unwrap(), &0.0) &&
+            aeq(&basis.scalar_prod_at(1, &basis, 2).unwrap(), &0.0);
 
         Ok(Self {
             basis,

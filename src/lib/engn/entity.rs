@@ -52,6 +52,8 @@ impl IdPool {
         self.ids.push(Rc::new(Uuid::new_v4()));
         Rc::clone(self.ids.last().unwrap())
     }
+
+    pub fn len(&self) -> usize { self.ids.len() }
 }
 
 impl Index<usize> for IdPool {

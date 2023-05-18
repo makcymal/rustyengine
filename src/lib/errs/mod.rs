@@ -1,3 +1,5 @@
+//! All that relates to error handling
+
 mod grid_errs;
 mod math_errs;
 mod engn_errs;

@@ -7,7 +7,10 @@
 use {
     super::{
         BIFORM, get_biform,
-        precision::{round, eq},
+        precision::{
+            round, aeq,
+            round_mode::round_prec,
+        },
     },
     crate::{
         errs::{
@@ -66,7 +69,7 @@ impl Matrix {
     /// Unless it exists `GridErr(IsNotSquare)` or `MatrErr(NullDeterminant)` is returned
     pub fn inv(&self) -> ReRes<Self> {
         let det = self.det()?;
-        if eq(det, 0.0) {
+        if aeq(&det, &0.0) {
             return Err(MathErr(NullDeterminant));
         }
 
@@ -102,7 +105,7 @@ impl Matrix {
         for col in 0..self.cols() {
             if cols[col] {
                 let elem = *self.att(row, col);
-                if !eq(elem, 0.0) {
+                if !aeq(&elem, &0.0) {
                     cols[col] = false;
                     minor += pow_minus(j) * elem * self.minor(rows, cols);
                     cols[col] = true;
@@ -114,12 +117,23 @@ impl Matrix {
         round(minor)
     }
 
-    /// Rounds all the elements with precision specified in `math::prec`
+    /// Rounds all the elements with precision specified in `math::precision`
     pub fn round(mut self) -> Self {
         for r in 0..self.rawgrid_ref().rows(false) {
             for c in 0..self.rawgrid_ref().cols(false) {
                 let elem = *self.rawgrid_ref().att(r, c, false);
                 *self.rawgrid_mut().att_mut(r, c, false) = round(elem);
+            }
+        }
+        self
+    }
+
+    /// Rounds all the elements with given precision
+    pub fn round_prec(mut self, prec: u16) -> Self {
+        for r in 0..self.rawgrid_ref().rows(false) {
+            for c in 0..self.rawgrid_ref().cols(false) {
+                let elem = *self.rawgrid_ref().att(r, c, false);
+                *self.rawgrid_mut().att_mut(r, c, false) = round_prec(elem, prec);
             }
         }
         self
@@ -311,7 +325,7 @@ impl Matrix {
 
     /// Divides all the elements by the given number on the cloned `self`
     pub fn num_div(&self, num: f64) -> Self {
-        if eq(num, 0.0) {
+        if aeq(&num, &0.0) {
             return Self::Failure(MathErr(ZeroDivision));
         }
         self.clone().raw_num_mul(1.0 / num)
@@ -319,7 +333,7 @@ impl Matrix {
 
     /// Divides all the elements by the given number on place
     pub fn num_div_assign(mut self, num: f64) -> Self {
-        if eq(num, 0.0) {
+        if aeq(&num, &0.0) {
             return Self::Failure(MathErr(ZeroDivision));
         }
         self.raw_num_mul(1.0 / num)
@@ -377,6 +391,16 @@ impl Matrix {
             _ => unreachable!()
         }
     }
+
+    /// Whether `self` element-wise approximate equals to `other` treating the repr
+    pub fn aeq(&self, other: &Self) -> bool {
+        let p = |lhs: &f64, rhs: &f64| aeq(lhs, rhs);
+        if self.repr() == other.repr() {
+            self.rawgrid_ref().eqp(other.rawgrid_ref(), p)
+        } else {
+            false
+        }
+    }
 }
 
 impl Add for &Matrix {
@@ -416,12 +440,6 @@ impl Neg for Matrix {
 
     fn neg(self) -> Self::Output {
         self.neg()
-    }
-}
-
-impl PartialEq for Matrix {
-    fn eq(&self, other: &Self) -> bool {
-        self.eq(other, |f1, f2| eq(*f1, *f2))
     }
 }
 

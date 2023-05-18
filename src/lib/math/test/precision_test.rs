@@ -1,6 +1,6 @@
 use {
     super::super::{
-        precision::{
+        precision::round_mode::{
             float_exponent,
             round_prec,
         },

@@ -9,14 +9,13 @@ All notable changes to this project will be documented in this file.
 - `Grid` enum responsible for storing arbitrary type with all the features like access by index, transposing, 
 getting iterators. Furthermore, it stores the way how to treat the content (by the way, content is presented in 
 struct `RawGrid` that is responsible whether `Vec<T>` or `Vec<Vec<T>>` to choose, transposing flags and so on). Such ways
-listed in enum `Repr` - it's `Matrix`, `Row`, `Col`, `RowList`, `ColList`, `Failure`. The last one added in purpose
+listed in enum `Repr` - it's `Arbitrary`, `Sqaure`, `Row`, `Col`, `MultiRow`, `MultiCol`, `Failure`. The last one added in purpose
 of contigious observation whether the failure happens.
-- `Matr` is just wrapper upon `Grid` with `f64` instead of generic `T`. It can do arithmetic ops on top of existing possibilities.
-- `AnyErr` is the error enum, that have `GridErr`, `MatrErr` variants (list will be extended).
-- `GridErr` and `MatrErr` requires on creation additional information about error. As benefit, they provide `dbg`
+- `Matrix` is just wrapper upon `Grid` with `f64` instead of generic `E`. It can do arithmetic ops on top of existing possibilities.
+- `ReErr` is the error enum, that have `EngnErr`, `GridErr`, `MathErr` variants (list will be extended).
+- Errors implements `std::error::Error` and requires on creation additional information about error. As benefit, they provide `dbg`
 method, that describes error in human language
-- `AnyRes` works the same as built-in `Result` although it has renamed variants `Go` and `No` instead of `Ok` and `Err`
-(in interests of absense names collisions). Also, it always wraps `AnyErr` in `No`.  
+- `ReRes` is just wrapper upon `Result` with `ReErr` instead of generic error type
 
 ### Changed
 - All the code have been splitten into `lib` and `bin`. First is intended to contain all reusable code.
@@ -25,6 +24,10 @@ method, that describes error in human language
 
 ### Removed
 - All the old staff related to matrices and `Matrixify` trait
+
+### Dependencies
+- `thiserror` used for implementing `std::error::Error` for `ReErr`
+- `strum` and `strum_macros` used for implementing `std::fmt::Display` for `enum`s
 
 
 ## [0.0.3] - 2023-05-04

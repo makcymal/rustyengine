@@ -42,8 +42,9 @@ pub fn round(f: f64) -> f64 {
 }
 
 /// Equality comparasion based on the current precision mode
-pub fn eq(lhs: f64, rhs: f64) -> bool {
+pub fn aeq(lhs: &f64, rhs: &f64) -> bool {
     unsafe {
+        // dbg!(lhs, rhs);
         match PRECMODE {
             PrecMode::Exact => exact_mode::eq(lhs, rhs),
             PrecMode::Round => lhs == rhs
@@ -53,13 +54,13 @@ pub fn eq(lhs: f64, rhs: f64) -> bool {
 
 
 /// Roundation in `Round` mode
-pub(in super) mod round_mode {
+pub(in crate::math) mod round_mode {
     const EXPONENT_BYTES: u16 = 11;
     const EXPONENT_SHIFT: u16 = 1023;
-    pub(in super) const MANTISSA_BYTES: u16 = 52;
+    pub const MANTISSA_BYTES: u16 = 52;
 
     /// Number of digits after point in binary notation
-    pub(in super) static mut PRECISION: u16 = 40;
+    pub static mut PRECISION: u16 = 40;
 
     /// 1024 - mantissa shifting
     pub fn float_exponent(f: f64) -> u16 {
@@ -90,10 +91,10 @@ pub(in super) mod round_mode {
 }
 
 /// Equation in `Exact` mode
-pub(in super) mod exact_mode {
-    pub(in super) static mut EPSILON: f64 = f64::EPSILON;
+pub(in crate::math) mod exact_mode {
+    pub static mut EPSILON: f64 = f64::EPSILON * 10.0;
 
-    pub fn eq(lhs: f64, rhs: f64) -> bool {
+    pub fn eq(lhs: &f64, rhs: &f64) -> bool {
         unsafe {
             (lhs - rhs).abs() < EPSILON
         }

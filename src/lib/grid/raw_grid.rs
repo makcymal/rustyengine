@@ -5,12 +5,14 @@ use {
             ReErr::{self, *},
             GridErr::{self, *},
         },
+        math::aeq,
     },
+    std::any::{Any, TypeId},
 };
 
 
 /// `VecWrapper` is a workaround to deal with `Vec<E>` as well as `Vec<Vec<E>>`
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub(in super) enum VecWrapper<E> {
     /// `Vec<E>`
     Single(Vec<E>),
@@ -253,11 +255,11 @@ impl<E> RawGrid<E> {
 
     /// Whether `self` element-wise equals to `other` treating the given predicate.
     /// Predicate should answer the same quastion: whether elements are equal
-    pub fn eq(&self, other: &Self, p: impl Fn(&E, &E) -> bool) -> bool {
+    pub fn eqp(&self, other: &Self, p: impl Fn(&E, &E) -> bool) -> bool {
         for r in 0..self.rows(false) {
             for c in 0..self.cols(false) {
                 if !p(self.att(r, c, false), other.att(r, c, false)) {
-                    return false
+                    return false;
                 }
             }
         }
@@ -302,5 +304,18 @@ impl<E: Clone> RawGrid<E> {
             }
         }
         Ok(self)
+    }
+}
+
+impl<E: PartialEq> PartialEq for RawGrid<E> {
+    fn eq(&self, other: &Self) -> bool {
+        for r in 0..self.rows(false) {
+            for c in 0..self.cols(false) {
+                if self.att(r, c, false) != other.att(r, c, false) {
+                    return false;
+                }
+            }
+        }
+        true
     }
 }

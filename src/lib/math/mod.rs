@@ -16,7 +16,7 @@ pub use {
     matrix::{Matrix, Vector},
     coord_sys::{VectorSpace, Point, CoordSys},
     precision::{
-        round, eq,
+        round, aeq,
         set_exact_mode,
         set_round_mode,
         set_precision,
@@ -29,22 +29,36 @@ use {
 
 const DIM: usize = 3;
 
-static BIFORM: OnceCell<Matrix> = OnceCell::new();
+static mut BIFORM: OnceCell<Matrix> = OnceCell::new();
 
 
 pub fn set_biform_identity() {
     let biform = Matrix::identity(DIM);
-    BIFORM.set(biform).expect("BIFORM initialization failed");
+    unsafe {
+        if let Some(bf) = BIFORM.get_mut() {
+            *bf = biform;
+        } else {
+            BIFORM.set(biform).expect("BIFORM initialization failed");
+        }
+    }
 }
 
-pub fn set_biform(rec: Vec<Vec<f64>>) {
-    let biform = Matrix::from_double(rec);
+pub fn set_biform(double: Vec<Vec<f64>>) {
+    let biform = Matrix::from_double(double);
     if biform.is_square() {
-        BIFORM.set(biform).expect("BIFORM initialization failed");
+        unsafe {
+            if let Some(bf) = BIFORM.get_mut() {
+                *bf = biform;
+            } else {
+                BIFORM.set(biform).expect("BIFORM initialization failed");
+            }
+        }
     }
 }
 
 pub fn get_biform() -> &'static Matrix {
-    BIFORM.get().expect("BIFORM is not initialized")
+    unsafe {
+        BIFORM.get().expect("BIFORM is not initialized")
+    }
 }
 

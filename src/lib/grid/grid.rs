@@ -47,7 +47,7 @@ pub enum Repr {
 /// `Grid` holds collection of elements of type `E`, structured in rectangular table.
 /// The same variants of treating `RawGrid` as the `Repr`.
 /// See `Repr` documentation strings for explanation on how `RawGrid` can be treaten
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Grid<E> {
     Arbitrary(RawGrid<E>),
     Square(RawGrid<E>),
@@ -389,16 +389,6 @@ impl<'g, E> Grid<E> {
         self.ag_failed()?;
         other.ag_failed()?;
         Ok(())
-    }
-
-    /// Whether `self` element-wise equals to `other` treating the given predicate and repr.
-    /// Predicate should answer the same quastion: whether elements are equal
-    pub fn eq(&self, other: &Self, p: fn(&E, &E) -> bool) -> bool {
-        if self.repr() == other.repr() {
-            self.rawgrid_ref().eq(other.rawgrid_ref(), p)
-        } else {
-            false
-        }
     }
 }
 

@@ -2,6 +2,7 @@ use {
     super::super::{
         matrix::Matrix,
         set_biform_identity,
+        set_precision,
     },
     crate::{
         errs::{
@@ -180,15 +181,17 @@ fn inversed_of_non_square() {
     assert_eq!(m.det(), Err(GridErr(NotSquare((2, 3)))));
 }
 
-// #[test]
-// fn primal_times_inversed() {
-//     let primal = Matr::from_rec(vec![
-//         vec![2.0, 0.0, -5.0],
-//         vec![0.0, -3.0, 0.0],
-//         vec![-5.0, 7.0, 3.0]
-//     ]);
-//     assert_eq!(primal.inversed().unwrap().mul(&primal, false), Matr::identity(3));
-// }
+#[test]
+fn primal_times_inversed() {
+    let primal = Matrix::from_double(vec![
+        vec![2.0, 0.0, -5.0],
+        vec![0.0, -3.0, 0.0],
+        vec![-5.0, 7.0, 3.0]
+    ]);
+    let lhs = primal.inv().unwrap().mul(&primal).to_square();
+    let rhs = Matrix::identity(3);
+    assert!(lhs.aeq(&rhs));
+}
 
 #[test]
 fn round_matr() {
@@ -462,25 +465,26 @@ fn row_len() {
     assert_eq!(r.len().unwrap(), 59.0f64.sqrt());
 }
 
-// #[test]
-// fn div_square_matr() {
-//     let lhs = Matr::from_rec(vec![
-//         vec![4.0, 1.0, 0.0],
-//         vec![-1.0, 0.0, 1.0],
-//         vec![-2.0, 3.0, 7.0]
-//     ]);
-//     let rhs = Matr::from_rec(vec![
-//         vec![1.0, 1.0, 0.0],
-//         vec![-2.0, 4.0, 0.0],
-//         vec![0.0, 3.0, 5.0]
-//     ]);
-//     let prod = Matr::from_rec(vec![
-//         vec![2.0, 8.0, 0.0],
-//         vec![-1.0, 2.0, 5.0],
-//         vec![-8.0, 31.0, 35.0]
-//     ]);
-//     assert_eq!(prod.div(&rhs), lhs);
-// }
+#[test]
+fn div_square_matr() {
+    let lhs = Matrix::from_double(vec![
+        vec![4.0, 1.0, 0.0],
+        vec![-1.0, 0.0, 1.0],
+        vec![-2.0, 3.0, 7.0]
+    ]);
+    let rhs = Matrix::from_double(vec![
+        vec![1.0, 1.0, 0.0],
+        vec![-2.0, 4.0, 0.0],
+        vec![0.0, 3.0, 5.0]
+    ]);
+    let prod = Matrix::from_double(vec![
+        vec![2.0, 8.0, 0.0],
+        vec![-1.0, 2.0, 5.0],
+        vec![-8.0, 31.0, 35.0]
+    ]);
+    dbg!(prod.div(&rhs));
+    assert!(prod.div(&rhs).aeq(&lhs));
+}
 
 #[test]
 fn neg_rowlist() {
