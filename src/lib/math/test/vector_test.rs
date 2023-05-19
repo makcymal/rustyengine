@@ -2,7 +2,7 @@ use {
     super::super::{
         matrix::Matrix,
         set_biform_identity,
-        set_biform
+        set_biform_vec
     },
     crate::{
         errs::{
@@ -48,7 +48,7 @@ fn vector_multirow_dim() {
 
 #[test]
 fn scalar_prod() {
-    set_biform(vec![
+    set_biform_vec(vec![
         vec![2.0, 3.0, 0.0],
         vec![0.0, 2.0, 0.0],
         vec![0.0, 0.0, 2.0],
@@ -62,7 +62,7 @@ fn scalar_prod() {
 
 #[test]
 fn scalar_prod_at() {
-    set_biform(vec![
+    set_biform_vec(vec![
         vec![2.0, 0.0, 0.0],
         vec![0.0, 2.0, 0.0],
         vec![0.0, 0.0, 2.0],

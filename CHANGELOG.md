@@ -3,7 +3,27 @@
 All notable changes to this project will be documented in this file.
 
 
-## [0.0.4] - 2023-05-08
+## [0.0.5] - 2023-05-19
+
+### Added
+- `InceptedRays` that stands for bunch of rays having common inception point
+- `Camera` has method for creating a bunch of rays: `incepted_rays`, their number and direction response to `Canvas` size and `Camera` prop: `Dir` or `LookAt`
+- `Intersection` trait that requires possibility of being intersected with `Ray`. It also requires `Entity`
+- `HypePlane` that are defined with some point on it and normal vector
+- `Conf` struct with settings for `Game`
+- `Default` implementations for `VectorSpace`, `Point`, `CoordSys`, `Ray`, `Conf`, `Game`
+- `Game` constructor immediately creates also `Camera` and `Canvas` that stored as `Game`'s fields
+- Checks for whether `initpt` and `space` in `CoordSys` or `inc` and `dir` in `Ray` have exactly the same dimension
+- `dim()` methods in `VectorSpace`, `Point`, `CoordSys`
+- `ReRes` extended `NoneOpt` variant that stands for success computation yet without useful value
+- `sub()` method in `Point` that subtracts themselves
+
+### Changed
+- `Point` constructor now takes one-dim vector as the only parameter
+- `EntityList` now stores `dyn Intersection` instead of `dyn Entity`
+
+
+## [0.0.4] - 2023-05-18
 
 ### Added
 - `Grid` enum responsible for storing arbitrary type with all the features like access by index, transposing, 

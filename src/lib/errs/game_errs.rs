@@ -6,13 +6,13 @@ use {
 
 /// Errors that can be obtained within `Result::Err::EngnErr`
 #[derive(Error, Debug, Clone, Copy, PartialEq)]
-pub enum EngnErr {
+pub enum GameErr {
     #[error("requasted property of GameObject isn't initialized yet")]
     NotInitializedProp,
 
     #[error("trying to set property {key:?} to value {val:?}")]
-    InvalidPropF64{
+    InvalidPropF64 {
         key: Prop,
-        val: f64
+        val: f64,
     },
 }

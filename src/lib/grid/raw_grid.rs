@@ -5,7 +5,6 @@ use {
             ReErr::{self, *},
             GridErr::{self, *},
         },
-        math::aeq,
     },
     std::any::{Any, TypeId},
 };

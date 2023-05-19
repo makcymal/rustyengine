@@ -6,7 +6,6 @@
 
 use {
     super::{
-        BIFORM, get_biform,
         precision::{
             round, aeq,
             round_mode::round_prec,
@@ -19,13 +18,7 @@ use {
             GridErr::{self, *},
             MathErr::{self, *},
         },
-        grid::{
-            RawGrid,
-            Repr,
-            Grid,
-            Line,
-            Elem,
-        },
+        grid::*,
         util::{
             pow_minus,
             Sign::{self, *},
@@ -34,6 +27,7 @@ use {
     std::ops::{
         Add, Sub, Mul, Div, Neg,
     },
+    once_cell::sync::OnceCell,
 };
 
 
@@ -365,27 +359,27 @@ impl Matrix {
             Self::Arbitrary(grid) | Self::Square(grid) | Self::MultiRow(grid) | Self::MultiCol(grid) => {
                 Ok(
                     round((0..grid.rows(false))
-                    .map(|r| (0..grid.cols(false))
-                        .map(|c| grid.att(r, c, false).powi(2))
-                        .sum::<f64>())
-                    .sum::<f64>()
-                    .sqrt())
+                        .map(|r| (0..grid.cols(false))
+                            .map(|c| grid.att(r, c, false).powi(2))
+                            .sum::<f64>())
+                        .sum::<f64>()
+                        .sqrt())
                 )
             }
             Self::Row(grid) => {
                 Ok(
                     round((0..grid.cols(false))
-                    .map(|c| grid.att(0, c, false).powi(2))
-                    .sum::<f64>()
-                    .sqrt())
+                        .map(|c| grid.att(0, c, false).powi(2))
+                        .sum::<f64>()
+                        .sqrt())
                 )
             }
             Self::Col(grid) => {
                 Ok(
                     round((0..grid.rows(false))
-                    .map(|r| grid.att(r, 0, false).powi(2))
-                    .sum::<f64>()
-                    .sqrt())
+                        .map(|r| grid.att(r, 0, false).powi(2))
+                        .sum::<f64>()
+                        .sqrt())
                 )
             }
             _ => unreachable!()
@@ -444,11 +438,45 @@ impl Neg for Matrix {
 }
 
 
+static mut BIFORM: OnceCell<Matrix> = OnceCell::new();
+
+pub fn set_biform(biform: Matrix) {
+    unsafe {
+        BIFORM.take();
+        BIFORM.set(biform).expect("BIFORM init failed");
+    }
+}
+
+pub fn set_biform_vec(double: Vec<Vec<f64>>) {
+    unsafe {
+        BIFORM.take();
+        BIFORM.set(Matrix::from_double(double)).expect("BIFORM init failed");
+    }
+}
+
+pub fn set_biform_identity() {
+    unsafe {
+        BIFORM.take();
+        BIFORM.set(Matrix::identity(3)).expect("BIFORM init failed");
+    }
+}
+
+fn biform() -> &'static Matrix {
+    unsafe {
+        BIFORM.get().expect("BIFORM isn't initialized")
+    }
+}
+
+
 /// All methods related to representation `Row`, `Col`, `MultiRow` or `MultiCol`
 impl<'g> Matrix {
     /// `Vector` instance pointing to the `Row` or `Col` at the given idx
     pub fn vector(&'g self, idx: usize) -> Vector<'g> {
         Vector::new(self, idx)
+    }
+
+    pub fn col(comp: Vec<f64>) -> Self {
+        Self::from_single(comp).raw_transpose().to_col()
     }
 
     /// Linear combination of rows or cols producing single row or col
@@ -464,7 +492,7 @@ impl<'g> Matrix {
                     }
                 }
                 Ok(comb.round())
-            },
+            }
             Repr::MultiCol => {
                 let mut comb = Self::zero(1, self.rows()).transpose().to_col();
                 for r in 0..self.rows() {
@@ -473,7 +501,7 @@ impl<'g> Matrix {
                     }
                 }
                 Ok(comb)
-            },
+            }
             _ => unreachable!(),
         }
     }
@@ -547,7 +575,7 @@ impl<'g> Matrix {
                         *self.att_mut(r, c) = round(elem / len);
                     }
                 }
-            },
+            }
             Repr::Col | Repr::MultiCol => {
                 for c in 0..self.cols() {
                     let len = self.len_at(c).unwrap();
@@ -556,7 +584,7 @@ impl<'g> Matrix {
                         *self.att_mut(c, r) = round(elem / len);
                     }
                 }
-            },
+            }
             _ => {}
         }
     }
@@ -565,20 +593,20 @@ impl<'g> Matrix {
     /// Operands must have single `Row` or `Col` having the same dim. Produces `f64`
     pub fn scalar_prod(&self, rhs: &Self) -> ReRes<f64> {
         self.approve_single_vector_ops(rhs)?;
-        Ok(*self.raw_scalar_prod(rhs, get_biform())?.att(0, 0))
+        Ok(*self.raw_scalar_prod(rhs, biform())?.att(0, 0))
     }
 
     /// Orthonorm scalar product without basis according only to `BIFORM` matrix.
     /// Operands at the given indices must have the same dim.
     pub fn scalar_prod_at(&self, i: usize, rhs: &Self, j: usize) -> ReRes<f64> {
-        self.raw_scalar_prod_at(i, rhs, j, get_biform())
+        self.raw_scalar_prod_at(i, rhs, j, biform())
     }
 
     /// Orthonorm scalar product without basis according only to `BIFORM` matrix.
     /// Operands must have `Row` or `Col` of the same dim.
     /// Produces `Arbitrary` matrix of `f64`, that is pair-wise scalar products
     pub fn multi_scalar_prod(&self, rhs: &Self) -> ReRes<Self> {
-        self.raw_scalar_prod(rhs, get_biform())
+        self.raw_scalar_prod(rhs, biform())
     }
 
     /// Scalar product according to given `core` matrix.
@@ -605,12 +633,12 @@ impl<'g> Matrix {
         self.approve_multi_vector_ops(rhs)?;
         Ok(
             round((0..self.dim().unwrap())
-            .map(|i| {
-                self.att(s, i) * (0..rhs.dim().unwrap())
-                    .map(|j| core.att(i, j) * rhs.att(r, j))
-                    .sum::<f64>()
-            })
-            .sum::<f64>())
+                .map(|i| {
+                    self.att(s, i) * (0..rhs.dim().unwrap())
+                        .map(|j| core.att(i, j) * rhs.att(r, j))
+                        .sum::<f64>()
+                })
+                .sum::<f64>())
         )
     }
 
@@ -644,7 +672,7 @@ impl<'g> Matrix {
     pub fn ag_linear_dependence(&self) -> ReRes<&Self> {
         if let Ok(det) = self.det() {
             if det == 0.0 {
-                return Err(MathErr(NullDeterminant))
+                return Err(MathErr(NullDeterminant));
             }
         }
         Ok(self)
@@ -660,7 +688,7 @@ impl Matrix {
     pub fn rotation(mut from: usize, mut to: usize, mut angle: f64, dim: usize) -> Self {
         let mut matr = Self::identity(dim);
         if from == to {
-            return Self::Failure(MathErr(RotationInOneAxis(from)))
+            return Self::Failure(MathErr(RotationInOneAxis(from)));
         } else if from > to {
             (from, to) = (to, from);
             angle = -angle;

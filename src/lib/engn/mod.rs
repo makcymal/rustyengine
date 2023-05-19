@@ -1,17 +1,27 @@
 //! Core engine things
 
-mod ray;
+mod camera;
+mod canvas;
 mod entity;
 mod game;
+mod geometrical;
+mod ray;
 
 #[cfg(test)]
 mod test;
 
 // re-exports in scope of namespace `engine`
 pub use {
-    ray::Ray,
+    camera::Camera,
+    canvas::Canvas,
     entity::{
-        IdPool, EntityCore, Entity, Prop, EntityList, GameObject, Camera,
+        Entity, Property, IdPool, EntityCore, Prop, GameObject,
+    },
+    geometrical::{
+        Intersected, EntityList, HypePlane,
     },
     game::Game,
+    ray::{
+        Ray, InceptedRays,
+    },
 };

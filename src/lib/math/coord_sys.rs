@@ -5,7 +5,6 @@
 use {
     super::{
         matrix::Matrix,
-        get_biform,
         precision::{round, aeq},
     },
     crate::{
@@ -37,8 +36,8 @@ impl VectorSpace {
         }
         let ortho =
             aeq(&basis.scalar_prod_at(0, &basis, 1).unwrap(), &0.0) &&
-            aeq(&basis.scalar_prod_at(0, &basis, 2).unwrap(), &0.0) &&
-            aeq(&basis.scalar_prod_at(1, &basis, 2).unwrap(), &0.0);
+                aeq(&basis.scalar_prod_at(0, &basis, 2).unwrap(), &0.0) &&
+                aeq(&basis.scalar_prod_at(1, &basis, 2).unwrap(), &0.0);
 
         Ok(Self {
             basis,
@@ -72,8 +71,8 @@ impl VectorSpace {
         Ok(self.scalar_prod(vec, vec)?.sqrt())
     }
 
-     /// Length of vector in the given index `i` in `Row`, `MultiRow`, `Col` or `MultiCol` in basis
-     /// according to `self.gram` matrix
+    /// Length of vector in the given index `i` in `Row`, `MultiRow`, `Col` or `MultiCol` in basis
+    /// according to `self.gram` matrix
     pub fn len_at(&self, vec: &Matrix, i: usize) -> ReRes<f64> {
         Ok(self.scalar_prod_at(vec, i, vec, i)?.sqrt())
     }
@@ -146,6 +145,17 @@ impl VectorSpace {
     pub fn decompose_pt(&self, pt: &Point) -> Matrix {
         pt.radvec.mul_left(&self.basis.inv().expect("matrix of basis vector haven't inversed"))
     }
+
+    /// Dimension of vector space
+    pub fn dim(&self) -> usize {
+        self.basis.dim().unwrap()
+    }
+}
+
+impl Default for VectorSpace {
+    fn default() -> Self {
+        Self::new(Matrix::identity(3).to_multicol()).unwrap()
+    }
 }
 
 
@@ -157,12 +167,8 @@ pub struct Point {
 
 impl Point {
     /// Constructs point validating given radius vector
-    pub fn new(mut radvec: Matrix) -> ReRes<Self> {
-        radvec.ag_failed()?.ag_not_row_or_col()?;
-        if let Repr::Row = radvec.repr() {
-            radvec = radvec.transpose();
-        }
-        Ok(Self { radvec })
+    pub fn new(coord: Vec<f64>) -> Self {
+        Self { radvec: Matrix::col(coord) }
     }
 
     /// Moves point on the given vector taking point by value and returning it
@@ -182,11 +188,32 @@ impl Point {
         };
         Ok(())
     }
+
+    /// Vector that can be applied to move `other` to get into `self`
+    pub fn sub(&self, other: &Self) -> ReRes<Matrix> {
+        let df =  self.radvec.clone().sub(&other.radvec);
+        if let Matrix::Failure(err) = df {
+            Err(err)
+        } else {
+            Ok(df)
+        }
+    }
+
+    /// Dimension of vector space where radius vector of point lays
+    pub fn dim(&self) -> usize {
+        self.radvec.dim().unwrap()
+    }
+}
+
+impl Default for Point {
+    fn default() -> Self {
+        Self::new(vec![0.0; 3])
+    }
 }
 
 
 /// Coordinate system as combination of initial point and basis of given vector space
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct CoordSys {
     initpt: Point,
     space: VectorSpace,
@@ -194,8 +221,11 @@ pub struct CoordSys {
 
 impl CoordSys {
     /// Constructs `CoordSys` taking initial point and vector space
-    pub fn new(initpt: Point, space: VectorSpace) -> Self {
-        Self { initpt, space }
+    pub fn new(initpt: Point, space: VectorSpace) -> ReRes<Self> {
+        if initpt.dim() != space.dim() {
+            return Err(MathErr(PtVecDimMismatch { pt_dim: initpt.dim(), vec_dim: space.dim() }));
+        }
+        Ok(Self { initpt, space })
     }
 
     /// Access to `initpt` field
@@ -212,4 +242,9 @@ impl CoordSys {
     pub fn gram(&self) -> &Matrix {
         self.space.gram()
     }
+
+    pub fn dim(&self) -> usize {
+        self.initpt.dim()
+    }
 }
+

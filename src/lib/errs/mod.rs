@@ -2,12 +2,14 @@
 
 mod grid_errs;
 mod math_errs;
-mod engn_errs;
+mod game_errs;
+mod none_opts;
 
 pub use {
     grid_errs::GridErr,
     math_errs::MathErr,
-    engn_errs::EngnErr,
+    game_errs::GameErr,
+    none_opts::NoneOpt,
 };
 use strum_macros::Display;
 
@@ -19,7 +21,8 @@ pub type ReRes<T> = Result<T, ReErr>;
 /// `ReErr` stands for RustyEngineError
 #[derive(Debug, Display, Clone, Copy, PartialEq)]
 pub enum ReErr {
-    EngnErr(EngnErr),
+    GameErr(GameErr),
     GridErr(GridErr),
     MathErr(MathErr),
+    NoneOpt(NoneOpt),
 }

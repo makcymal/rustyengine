@@ -1,41 +1,36 @@
 use {
-    super::super::{
-        entity::{
-            IdPool, Prop, Property, EntityCore
-        },
-    },
-    crate::math::{
-        Matrix, VectorSpace, Point, CoordSys,
-        set_biform_identity,
+    super::super::*,
+    crate::{
+        conf::*,
+        engn::*,
+        math::*,
     },
     std::{
         any::Any,
         rc::Rc,
-
-    }
+    },
 };
-use crate::engn::{Entity, GameObject};
 
 
 #[test]
 fn id_generate() {
     let mut id_pool = IdPool::new();
-    let id = id_pool.generate();
+    id_pool.generate();
     assert_eq!(id_pool.len(), 1);
 }
 
 #[test]
 fn prop_feed() {
     let prop = Prop::VFov;
-    assert_eq!(prop.feed(), (Prop::VFov.type_id(), 3));
+    assert_eq!(prop.feed(), (Prop::VFov.type_id(), 4));
 }
 
 #[test]
 fn entity_core_first_prop() {
     set_biform_identity();
     let vs = VectorSpace::new(Matrix::identity(3).to_multicol()).unwrap();
-    let ip = Point::new(Matrix::zero(3, 1).to_col()).unwrap();
-    let cs = CoordSys::new(ip, vs);
+    let ip = Point::new(vec![0.0; 3]);
+    let cs = CoordSys::new(ip, vs).unwrap();
 
     let mut id_pool = IdPool::new();
     let id = id_pool.generate();
@@ -48,8 +43,8 @@ fn entity_core_first_prop() {
 fn entity_core_second_prop() {
     set_biform_identity();
     let vs = VectorSpace::new(Matrix::identity(3).to_multicol()).unwrap();
-    let ip = Point::new(Matrix::zero(3, 1).to_col()).unwrap();
-    let cs = CoordSys::new(ip, vs);
+    let ip = Point::new(vec![0.0; 3]);
+    let cs = CoordSys::new(ip, vs).unwrap();
 
     let mut id_pool = IdPool::new();
     let id = id_pool.generate();
@@ -63,17 +58,17 @@ fn entity_core_second_prop() {
 fn game_object_pos() {
     set_biform_identity();
     let vs = VectorSpace::new(Matrix::identity(3).to_multicol()).unwrap();
-    let ip = Point::new(Matrix::zero(3, 1).to_col()).unwrap();
-    let cs = CoordSys::new(ip, vs);
+    let ip = Point::new(vec![0.0; 3]);
+    let cs = CoordSys::new(ip, vs).unwrap();
 
     let mut id_pool = IdPool::new();
     let id = id_pool.generate();
     let mut ec = EntityCore::new(&Rc::new(cs), &id);
 
-    let pos = Point::new(Matrix::from_single(vec![1.0, 1.0, 1.0]).raw_transpose().to_col()).unwrap();
+    let pos = Point::new(vec![1.0, 1.0, 1.0]);
     let dir = Matrix::from_single(vec![1.0, 1.0, 1.0]).raw_transpose().to_col();
     let mut go = GameObject::new(ec, pos, dir);
-    let pos = Point::new(Matrix::from_single(vec![1.0, 1.0, 1.0]).raw_transpose().to_col()).unwrap();
+    let pos = Point::new(vec![1.0, 1.0, 1.0]);
     assert_eq!(go.core().get_prop(Prop::Pos).unwrap().downcast_ref::<Point>().unwrap(), &pos);
 }
 
@@ -81,19 +76,19 @@ fn game_object_pos() {
 fn game_object_mv_pos() {
     set_biform_identity();
     let vs = VectorSpace::new(Matrix::identity(3).to_multicol()).unwrap();
-    let ip = Point::new(Matrix::zero(3, 1).to_col()).unwrap();
-    let cs = CoordSys::new(ip, vs);
+    let ip = Point::new(vec![1.0, 1.0, 1.0]);
+    let cs = CoordSys::new(ip, vs).unwrap();
 
     let mut id_pool = IdPool::new();
     let id = id_pool.generate();
     let mut ec = EntityCore::new(&Rc::new(cs), &id);
 
-    let pos = Point::new(Matrix::from_single(vec![1.0, 1.0, 1.0]).raw_transpose().to_col()).unwrap();
+    let pos = Point::new(vec![1.0, 1.0, 1.0]);
     let dir = Matrix::from_single(vec![1.0, 1.0, 1.0]).raw_transpose().to_col();
     let mut go = GameObject::new(ec, pos, dir);
     let mv = Matrix::from_single(vec![2.0, 2.0, 2.0]).raw_transpose().to_col();
     go.mv(&mv).unwrap();
 
-    let pos = Point::new(Matrix::from_single(vec![3.0, 3.0, 3.0]).raw_transpose().to_col()).unwrap();
+    let pos = Point::new(vec![3.0, 3.0, 3.0]);
     assert_eq!(go.core().get_prop(Prop::Pos).unwrap().downcast_ref::<Point>().unwrap(), &pos);
 }

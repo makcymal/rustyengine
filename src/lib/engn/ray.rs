@@ -1,3 +1,4 @@
+use std::os::windows::io::InvalidHandleError;
 use {
     crate::{
         errs::{
@@ -20,9 +21,9 @@ use {
 /// Ray as pinned to `inc` point vector directed as `dir`
 #[derive(Debug, Clone, PartialEq)]
 pub struct Ray {
-    cs: Rc<CoordSys>,
-    inc: Point,
-    dir: Matrix,
+    pub(in super) cs: Rc<CoordSys>,
+    pub(in super) inc: Point,
+    pub(in super) dir: Matrix,
 }
 
 impl Ray {
@@ -39,11 +40,30 @@ impl Ray {
     }
 }
 
+impl Default for Ray {
+    fn default() -> Self {
+        Self {
+            cs: Rc::new(CoordSys::default()),
+            inc: Point::default(),
+            dir: Matrix::col(vec![1.0, 0.0, 0.0]),
+        }
+    }
+}
 
-/// Bunch of rays pinned to signle point
-#[derive(Debug, Clone)]
+
+/// Bunch of rays pinned to single point
+#[derive(Debug, Clone, PartialEq)]
 pub struct InceptedRays {
-    cs: Rc<CoordSys>,
-    inc: Point,
-    directions: Grid<Matrix>,
+    pub(in super) cs: Rc<CoordSys>,
+    pub(in super) inc: Point,
+    pub(in super) directions: Grid<Matrix>,
+    pub(in super) lens: Matrix,
+}
+
+impl InceptedRays {
+    pub fn dir_att(&self, r: usize, c: usize) -> &Matrix {
+        self.directions.att(r, c)
+    }
+
+    pub fn len_att(&self, r: usize, c: usize) -> f64 { *self.lens.att(r, c) }
 }
