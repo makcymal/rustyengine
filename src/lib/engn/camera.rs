@@ -94,17 +94,6 @@ impl Camera {
         Ok(self.go.core().get_prop(Prop::LookAt)?.downcast_ref::<Point>().unwrap())
     }
 
-    /// Setting property `Roll`
-    pub fn set_roll(mut self, roll: f64) -> ReRes<Self> {
-        self.go.core_mut().set_prop(Prop::Roll, Box::new(roll));
-        Ok(self)
-    }
-
-    /// Getting value of property `Roll` if it set or meaningful error
-    pub fn get_roll(&self) -> ReRes<f64> {
-        Ok(*self.go.core().get_prop(Prop::Roll)?.downcast_ref::<f64>().unwrap())
-    }
-
     /// Constructor for bunch of rays having one inception, does not depend on `Prop::Roll` angle
     pub fn incepted_rays(&self, mut h: usize, mut w: usize) -> ReRes<InceptedRays> {
         if h % 2 == 1 {

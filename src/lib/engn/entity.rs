@@ -73,8 +73,6 @@ pub enum Prop {
     Pos,
     /// Direction of view, `Matrix`
     Dir,
-    /// Roll of entity, `Matrix`
-    Roll,
     /// Field-of-view, `f64`
     Fov,
     /// Vertical field-of-view, `f64`

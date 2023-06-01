@@ -88,8 +88,7 @@ impl From<Conf> for Game {
             GameObject::new(
                 EntityCore::new(&cs, &id_pool.generate()), conf.initpt, conf.camera_dir))
             .set_fov(conf.camera_fov).unwrap()
-            .set_draw_dist(conf.draw_dist).unwrap()
-            .set_roll(conf.camera_roll).unwrap();
+            .set_draw_dist(conf.draw_dist).unwrap();
 
         Self {
             cs,

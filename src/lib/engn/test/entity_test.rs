@@ -22,7 +22,7 @@ fn id_generate() {
 #[test]
 fn prop_feed() {
     let prop = Prop::VFov;
-    assert_eq!(prop.feed(), (Prop::VFov.type_id(), 4));
+    assert_eq!(prop.feed(), (Prop::VFov.type_id(), 3));
 }
 
 #[test]

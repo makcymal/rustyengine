@@ -15,4 +15,13 @@ pub enum GameErr {
         key: Prop,
         val: f64,
     },
+
+    #[error("failed to read file {0}")]
+    InvalidConfFilePath(&'static str),
+
+    #[error("failed to parse TOML from {0}")]
+    InvalidConfFileContent(&'static str),
+
+    #[error("failed to parse value with key {0}")]
+    InvalidConfValue(&'static str),
 }

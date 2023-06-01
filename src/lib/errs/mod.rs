@@ -1,17 +1,19 @@
 //! All that relates to error handling
 
+mod game_errs;
 mod grid_errs;
 mod math_errs;
-mod game_errs;
 mod none_opts;
 
 pub use {
+    game_errs::GameErr,
     grid_errs::GridErr,
     math_errs::MathErr,
-    game_errs::GameErr,
     none_opts::NoneOpt,
 };
-use strum_macros::Display;
+use {
+    strum_macros::Display,
+};
 
 
 /// `Result` with `ReErr` as `Err` variant
