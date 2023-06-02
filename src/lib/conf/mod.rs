@@ -33,7 +33,7 @@ pub struct Conf {
     pub biform: Matrix,
     pub basis: Matrix,
     pub initpt: Point,
-    pub camera_dir: Matrix,
+    pub camera_dir: Vector,
     pub camera_lookat: Option<Point>,
     pub camera_fov: f64,
     pub draw_dist: f64,
@@ -109,7 +109,7 @@ impl Conf {
             Some(value) => value,
             None => return Ok(self),
         };
-        self.camera_dir = Matrix::col(parse_single(value, key)?);
+        self.camera_dir = Vector::col(parse_single(value, key)?);
         Ok(self)
     }
 
@@ -220,7 +220,7 @@ fn parse_double(value: Value, key: &'static str) -> ReRes<Vec<Vec<f64>>> {
 
 impl Default for Conf {
     fn default() -> Self {
-        let mut camera_dir = Matrix::col(vec![0.0; 3]);
+        let mut camera_dir = Vector::col(vec![0.0; 3]);
         *camera_dir.at_mut(0) = 1.0;
         Self {
             biform: Matrix::identity(3),

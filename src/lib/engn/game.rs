@@ -44,8 +44,8 @@ impl Game {
     }
 
     /// `Ray` in current basis, takes inception `Point` and direction `Vector`
-    pub fn game_ray(&self, inc: Point, dir: Matrix) -> ReRes<Ray> {
-        Ray::new(&self.cs, inc, dir)
+    pub fn game_ray(&self, inc: Point, dir: Vector) -> ReRes<Ray> {
+        Ray::new(inc, dir)
     }
 
     /// `EntityCore` in current basis with appending it's `Uuid` into `IdPool`
@@ -54,7 +54,7 @@ impl Game {
     }
 
     /// `GameObject` in current game, uses `self.entity_core()`
-    pub fn game_object(&mut self, pos: Point, dir: Matrix) -> GameObject {
+    pub fn game_object(&mut self, pos: Point, dir: Vector) -> GameObject {
         GameObject::new(self.entity_core(), pos, dir)
     }
 

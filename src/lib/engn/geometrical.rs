@@ -114,7 +114,7 @@ impl HypePlane {
     }
 
     /// Move `initpt` on the given vector
-    pub fn mv(&mut self, vec: &Matrix) -> ReRes<()> {
+    pub fn mv(&mut self, vec: &Vector) -> ReRes<()> {
         self.initpt.mv_assign(vec)
     }
 }

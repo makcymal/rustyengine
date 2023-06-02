@@ -437,6 +437,51 @@ impl Neg for Matrix {
     }
 }
 
+/// Rotations
+impl Matrix {
+    /// Rotation matrix in n-dim space on the given angle
+    pub fn rotation(mut from: usize, mut to: usize, mut angle: f64, dim: usize) -> Self {
+        let mut matr = Self::identity(dim);
+        if from == to {
+            return Self::Failure(MathErr(RotationInOneAxis(from)));
+        } else if from > to {
+            (from, to) = (to, from);
+            angle = -angle;
+        }
+        let (sin, cos) = (angle.sin(), angle.cos());
+        *matr.att_mut(from, from) = cos;
+        *matr.att_mut(from, to) = -sin;
+        *matr.att_mut(to, from) = sin;
+        *matr.att_mut(to, to) = cos;
+        matr
+    }
+
+    /// Suppose it's needed to rotate vector on `from` axis and then extend it so theq would compose
+    /// right triangle. This function constructs such rotation matrix
+    pub fn triag_rotation(mut from: usize, mut to: usize, mut angle: f64, dim: usize) -> Self {
+        let mut matr = Self::identity(dim);
+        if from == to {
+            return Self::Failure(MathErr(RotationInOneAxis(from)));
+        } else if from > to {
+            (from, to) = (to, from);
+            angle = -angle;
+        }
+        let (sin, cos) = (angle.sin(), angle.cos());
+        *matr.att_mut(from, from) = cos.signum();
+        *matr.att_mut(from, to) = -sin / cos;
+        *matr.att_mut(to, from) = sin.signum();
+        *matr.att_mut(to, to) = cos / sin;
+        matr
+    }
+
+    /// Rotation matrix in 3-dim space on the 3 given angles around cardinal axes
+    pub fn teit_bryan_rotation(x: f64, y: f64, z: f64) -> Self {
+        Self::rotation(1, 2, x, 3)
+            .mul(&Self::rotation(0, 2, -y, 3))
+            .mul(&Self::rotation(0, 1, z, 3))
+    }
+}
+
 
 static mut BIFORM: OnceCell<Matrix> = OnceCell::new();
 
@@ -471,10 +516,11 @@ fn biform() -> &'static Matrix {
 /// All methods related to representation `Row`, `Col`, `MultiRow` or `MultiCol`
 impl<'g> Matrix {
     /// `Vector` instance pointing to the `Row` or `Col` at the given idx
-    pub fn vector(&'g self, idx: usize) -> Vector<'g> {
-        Vector::new(self, idx)
+    pub fn vector(&'g self, idx: usize) -> VectorAt<'g> {
+        VectorAt::new(self, idx)
     }
 
+    /// Constructor for column
     pub fn col(comp: Vec<f64>) -> Self {
         Self::from_single(comp).raw_transpose().to_col()
     }
@@ -679,48 +725,65 @@ impl<'g> Matrix {
     }
 }
 
-pub type Vector<'g> = Line<'g, f64>;
 
+/// `Matrix::Row` or `Matrix::Col`
+#[derive(Debug, Clone, PartialEq)]
+pub struct Vector {
+    coord: Matrix,
+}
 
-/// Rotations
-impl Matrix {
-    /// Rotation matrix in n-dim space on the given angle
-    pub fn rotation(mut from: usize, mut to: usize, mut angle: f64, dim: usize) -> Self {
-        let mut matr = Self::identity(dim);
-        if from == to {
-            return Self::Failure(MathErr(RotationInOneAxis(from)));
-        } else if from > to {
-            (from, to) = (to, from);
-            angle = -angle;
+impl Vector {
+    /// Vector as row with the given coordinates
+    pub fn row(coord: Vec<f64>) -> Self {
+        Self {
+            coord: Matrix::from_single(coord).to_row()
         }
-        let (sin, cos) = (angle.sin(), angle.cos());
-        *matr.att_mut(from, from) = cos;
-        *matr.att_mut(from, to) = -sin;
-        *matr.att_mut(to, from) = sin;
-        *matr.att_mut(to, to) = cos;
-        matr
     }
 
-    pub fn triag_rotation(mut from: usize, mut to: usize, mut angle: f64, dim: usize) -> Self {
-        let mut matr = Self::identity(dim);
-        if from == to {
-            return Self::Failure(MathErr(RotationInOneAxis(from)));
-        } else if from > to {
-            (from, to) = (to, from);
-            angle = -angle;
+    /// Vector as column with the given coordinates
+    pub fn col(coord: Vec<f64>) -> Self {
+        Self {
+            coord: Matrix::from_single(coord).raw_transpose().to_col()
         }
-        let (sin, cos) = (angle.sin(), angle.cos());
-        *matr.att_mut(from, from) = cos.signum();
-        *matr.att_mut(from, to) = -sin / cos;
-        *matr.att_mut(to, from) = sin.signum();
-        *matr.att_mut(to, to) = cos / sin;
-        matr
     }
 
-    /// Rotation matrix in 3-dim space on the 3 given angles around cardinal axes
-    pub fn teit_bryan_rotation(x: f64, y: f64, z: f64) -> Self {
-        Self::rotation(1, 2, x, 3)
-            .mul(&Self::rotation(0, 2, -y, 3))
-            .mul(&Self::rotation(0, 1, z, 3))
+    /// Ref to `Matrix` represents coordinates
+    pub fn coord(&self) -> &Matrix {
+        &self.coord
+    }
+
+    /// Element in `i` position
+    pub fn at(&self, i: usize) -> f64 {
+        *self.coord.at(i)
+    }
+
+    /// Mut ref to element in `i` position
+    pub fn at_mut(&mut self, i: usize) -> &mut f64 {
+        self.coord.at_mut(i)
+    }
+
+    /// Switches representation to row keeping the same coordinates
+    pub fn to_row(mut self) -> Self {
+        if self.coord.is_col() {
+            Self {
+                coord: self.coord.raw_transpose().to_row()
+            }
+        } else {
+            self
+        }
+    }
+
+    /// Switches representation to column keeping the same coordinates
+    pub fn to_col(self) -> Self {
+        if self.coord.is_row() {
+            Self {
+                coord: self.coord.raw_transpose().to_col()
+            }
+        } else {
+            self
+        }
     }
 }
+
+
+pub type VectorAt<'g> = Line<'g, f64>;

@@ -7,9 +7,7 @@ use {
             GridErr::{self, *},
             MathErr::{self, *},
         },
-        math::{
-            Matrix, Point, CoordSys,
-        },
+        math::*,
     },
     std::{
         collections::hash_map::{
@@ -171,14 +169,14 @@ pub struct GameObject {
 impl GameObject {
     /// Constructor that takes `EntityCore`, position, direction, and then glob
     /// such properties to the given core
-    pub(in super) fn new(mut core: EntityCore, pos: Point, dir: Matrix) -> Self {
+    pub(in super) fn new(mut core: EntityCore, pos: Point, dir: Vector) -> Self {
         core.set_prop(Prop::Pos, Box::new(pos));
         core.set_prop(Prop::Dir, Box::new(dir));
         Self { core }
     }
 
     /// Moves game object on the given vector
-    pub fn mv(&mut self, vec: &Matrix) -> ReRes<()> {
+    pub fn mv(&mut self, vec: &Vector) -> ReRes<()> {
         match self.core.props.get_mut(&Prop::Pos.feed()) {
             Some(val) => val.downcast_mut::<Point>().unwrap().mv_assign(vec),
             None => unreachable!(),

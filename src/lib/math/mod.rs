@@ -14,7 +14,7 @@ mod test;
 
 pub use {
     matrix::{
-        Matrix,
+        Matrix, Vector,
         set_biform, set_biform_vec, set_biform_identity
     },
     coord_sys::{

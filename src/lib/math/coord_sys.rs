@@ -18,6 +18,7 @@ use {
     },
     once_cell::sync::OnceCell,
 };
+use crate::math::Vector;
 
 
 /// Vector space that defined by basis that is `Matrix::MultiCol`, square, linear independence
@@ -143,7 +144,7 @@ impl VectorSpace {
 
     /// Decompose point in current basis
     pub fn decompose_pt(&self, pt: &Point) -> Matrix {
-        pt.radvec.mul_left(&self.basis.inv().expect("matrix of basis vector haven't inversed"))
+        pt.coord.mul_left(&self.basis.inv().expect("matrix of basis vector haven't inversed"))
     }
 
     /// Dimension of vector space
@@ -162,28 +163,27 @@ impl Default for VectorSpace {
 /// Point that defined by `Matrix::Col` as radius vector
 #[derive(Debug, Clone, PartialEq)]
 pub struct Point {
-    radvec: Matrix,
+    coord: Matrix,
 }
 
 impl Point {
     /// Constructs point validating given radius vector
     pub fn new(coord: Vec<f64>) -> Self {
-        Self { radvec: Matrix::col(coord) }
+        Self { coord: Matrix::col(coord) }
     }
 
     /// Moves point on the given vector taking point by value and returning it
-    pub fn mv(mut self, vec: &Matrix) -> ReRes<Self> {
+    pub fn mv(mut self, vec: &Vector) -> ReRes<Self> {
         self.mv_assign(vec)?;
         Ok(self)
     }
 
     /// Moves point on the given vector on place
-    pub fn mv_assign(&mut self, vec: &Matrix) -> ReRes<()> {
-        vec.ag_failed()?.ag_not_row_or_col()?;
-        self.radvec.approve_single_vector_ops(vec)?;
-        self.radvec = match vec.repr() {
-            Repr::Col => self.radvec.add(vec),
-            Repr::Row => self.radvec.add_t(vec),
+    pub fn mv_assign(&mut self, vec: &Vector) -> ReRes<()> {
+        self.coord.approve_single_vector_ops(vec.coord())?;
+        self.coord = match vec.coord().repr() {
+            Repr::Col => self.coord.add(vec.coord()),
+            Repr::Row => self.coord.add_t(vec.coord()),
             _ => unreachable!(),
         };
         Ok(())
@@ -191,7 +191,7 @@ impl Point {
 
     /// Vector that can be applied to move `other` to get into `self`
     pub fn sub(&self, other: &Self) -> ReRes<Matrix> {
-        let df =  self.radvec.clone().sub(&other.radvec);
+        let df =  self.coord.clone().sub(&other.coord);
         if let Matrix::Failure(err) = df {
             Err(err)
         } else {
@@ -201,7 +201,7 @@ impl Point {
 
     /// Dimension of vector space where radius vector of point lays
     pub fn dim(&self) -> usize {
-        self.radvec.dim().unwrap()
+        self.coord.dim().unwrap()
     }
 }
 
