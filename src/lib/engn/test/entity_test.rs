@@ -66,7 +66,7 @@ fn game_object_pos() {
     let mut ec = EntityCore::new(&Rc::new(cs), &id);
 
     let pos = Point::new(vec![1.0, 1.0, 1.0]);
-    let dir = Matrix::from_single(vec![1.0, 1.0, 1.0]).raw_transpose().to_col();
+    let dir = Vector::col(vec![1.0, 1.0, 1.0]);
     let mut go = GameObject::new(ec, pos, dir);
     let pos = Point::new(vec![1.0, 1.0, 1.0]);
     assert_eq!(go.core().get_prop(Prop::Pos).unwrap().downcast_ref::<Point>().unwrap(), &pos);
@@ -84,9 +84,9 @@ fn game_object_mv_pos() {
     let mut ec = EntityCore::new(&Rc::new(cs), &id);
 
     let pos = Point::new(vec![1.0, 1.0, 1.0]);
-    let dir = Matrix::from_single(vec![1.0, 1.0, 1.0]).raw_transpose().to_col();
+    let dir = Vector::col(vec![1.0, 1.0, 1.0]);
     let mut go = GameObject::new(ec, pos, dir);
-    let mv = Matrix::from_single(vec![2.0, 2.0, 2.0]).raw_transpose().to_col();
+    let mv = Vector::col(vec![2.0, 2.0, 2.0]);
     go.mv(&mv).unwrap();
 
     let pos = Point::new(vec![3.0, 3.0, 3.0]);

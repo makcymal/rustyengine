@@ -22,6 +22,6 @@ pub use {
     },
     game::Game,
     ray::{
-        Ray, InceptedRays,
+        Ray, InceptedRays, RectRaysIter
     },
 };

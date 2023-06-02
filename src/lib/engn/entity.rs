@@ -189,8 +189,8 @@ impl GameObject {
     }
 
     /// Set property `Dir` of game object
-    pub fn set_dir(&mut self, dir: Matrix) {
-        self.core.set_prop(Prop::Dir, Box::new(dir));
+    pub fn set_dir(&mut self, mut dir: Vector) {
+        self.core.set_prop(Prop::Dir, Box::new(dir.normalize()));
     }
 }
 

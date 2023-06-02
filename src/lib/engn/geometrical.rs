@@ -136,7 +136,7 @@ impl Intersected for HypePlane {
         if aeq(&denom, &0.0) {
             return Err(NoneOpt(NoIntersection));
         }
-        let numer = cs.space().scalar_prod(&self.initpt.sub(inc)?, &self.normal)?;
+        let numer = cs.space().scalar_prod(&self.initpt.sub(inc)?.coord(), &self.normal)?;
         let dist = numer / denom;
         if dist < 0.0 {
             return Err(NoneOpt(NoIntersection));

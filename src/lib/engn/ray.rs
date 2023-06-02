@@ -47,11 +47,11 @@ impl Default for Ray {
 pub struct InceptedRays {
     pub(in super) cs: Rc<CoordSys>,
     pub(in super) inc: Point,
-    pub(in super) directions: Grid<Matrix>,
+    pub(in super) directions: Grid<Vector>,
 }
 
 impl InceptedRays {
-    pub fn dir_att(&self, r: usize, c: usize) -> &Matrix {
+    pub fn dir_att(&self, r: usize, c: usize) -> &Vector {
         self.directions.att(r, c)
     }
 }
@@ -60,8 +60,10 @@ impl InceptedRays {
 /// Iterator that yields rays with common inception whose ends compose rectangular with uniform step by two sides
 #[derive(Debug, Clone, PartialEq)]
 pub struct RectRaysIter {
-    inc: Point,
-    end: Point,
-    hstep: Vector,
-    vstep: Vector,
+    pub(in super) ldir: Vector,
+    pub(in super) dir: Vector,
+    pub(in super) vstep: Vector,
+    pub(in super) hstep: Vector,
+    pub(in super) h: usize,
+    pub(in super) w: usize,
 }

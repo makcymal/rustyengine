@@ -1,4 +1,3 @@
-use std::ffi::c_short;
 use {
     super::*,
     crate::{
@@ -10,9 +9,7 @@ use {
             MathErr::{self, *},
         },
         grid::*,
-        math::{
-            Matrix, Point, CoordSys,
-        },
+        math::*,
     },
     std::{
         rc::Rc,
@@ -95,8 +92,8 @@ impl Camera {
     }
 
     /// Constructor for bunch of rays having one inception
-    pub fn incepted_rays(&self, mut h: usize, mut w: usize) -> ReRes<InceptedRays> {
-        let mut directions = Grid::new(h, w, Matrix::col(vec![0.0; 3]));
+    pub fn incepted_rays(&self, h: usize, w: usize) -> ReRes<InceptedRays> {
+        let mut directions = Grid::new(h, w, Vector::col(vec![0.0; 3]));
 
         let cs = Rc::clone(&self.go.core.cs);
         let fov = self.get_fov()?;
@@ -109,7 +106,7 @@ impl Camera {
         let dir = if let Ok(lookat) = self.get_lookat() {
             lookat.sub(&pos)?
         } else {
-            self.go.core.get_prop(Prop::Dir).unwrap().downcast_ref::<Matrix>().unwrap().clone()
+            self.go.core.get_prop(Prop::Dir).unwrap().downcast_ref::<Vector>().unwrap().clone()
         };
 
         let (alpha, beta) = (fov / (w - 1) as f64, vfov / (h - 1) as f64);
@@ -117,7 +114,7 @@ impl Camera {
 
         for y in 0..w {
             let yaw_ray = if yaw != 0.0 {
-                Matrix::triag_rotation(0, 1, yaw, 3).mul(&dir).to_col()
+                Vector { coord: Matrix::triag_rotation(0, 1, yaw, 3).mul(dir.coord()).to_col() }
             } else {
                 dir.clone()
             };
@@ -125,7 +122,7 @@ impl Camera {
 
             for z in 0..h {
                 *directions.att_mut(z, y) = if pitch != 0.0 {
-                    Matrix::triag_rotation(0, 2, pitch, 3).mul(&yaw_ray).to_col()
+                    Vector { coord: Matrix::triag_rotation(0, 2, pitch, 3).mul(yaw_ray.coord()).to_col() }
                 } else {
                     yaw_ray.clone()
                 };

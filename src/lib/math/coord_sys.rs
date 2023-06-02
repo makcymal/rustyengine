@@ -3,12 +3,9 @@
 //! `Col` and `MultiCol` is preferrable representation for vectors
 
 use {
-    super::{
-        matrix::Matrix,
-        precision::{round, aeq},
-    },
+    super::*,
     crate::{
-        grid::Repr,
+        grid::Repr::{self, *},
         errs::{
             ReRes,
             ReErr::{self, *},
@@ -18,7 +15,6 @@ use {
     },
     once_cell::sync::OnceCell,
 };
-use crate::math::Vector;
 
 
 /// Vector space that defined by basis that is `Matrix::MultiCol`, square, linear independence
@@ -190,12 +186,10 @@ impl Point {
     }
 
     /// Vector that can be applied to move `other` to get into `self`
-    pub fn sub(&self, other: &Self) -> ReRes<Matrix> {
-        let df =  self.coord.clone().sub(&other.coord);
-        if let Matrix::Failure(err) = df {
-            Err(err)
-        } else {
-            Ok(df)
+    pub fn sub(&self, other: &Self) -> ReRes<Vector> {
+        match self.coord.clone().sub(&other.coord) {
+            Matrix::Failure(err) => Err(err),
+            col => Ok(Vector { coord: col }),
         }
     }
 

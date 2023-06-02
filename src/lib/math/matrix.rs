@@ -611,7 +611,7 @@ impl<'g> Matrix {
     }
 
     /// Resizing each vector to length 1 using scalar product without basis
-    pub fn normalize(&mut self) {
+    pub fn normalize(mut self) -> Self {
         match self.repr() {
             Repr::Row | Repr::MultiRow => {
                 for r in 0..self.rows() {
@@ -633,6 +633,7 @@ impl<'g> Matrix {
             }
             _ => {}
         }
+        self
     }
 
     /// Orthonorm scalar product without basis according only to `BIFORM` matrix.
@@ -729,7 +730,7 @@ impl<'g> Matrix {
 /// `Matrix::Row` or `Matrix::Col`
 #[derive(Debug, Clone, PartialEq)]
 pub struct Vector {
-    coord: Matrix,
+    pub coord: Matrix,
 }
 
 impl Vector {
@@ -782,6 +783,25 @@ impl Vector {
         } else {
             self
         }
+    }
+
+    pub fn add_assign(mut self, rhs: &Vector) -> Self {
+        Self { coord: self.coord.add_assign(rhs.coord()) }
+    }
+
+    pub fn vector_prod(&self, rhs: &Vector) -> ReRes<Self> {
+        Ok(Self { coord: self.coord.vector_prod(rhs.coord())? })
+    }
+
+    pub fn normalize(mut self) -> Self {
+        Self { coord: self.coord.normalize() }
+    }
+
+    pub fn resize(mut self, coef: f64) -> Self {
+        for i in 0..self.coord.dim().unwrap() {
+            *self.coord.at_mut(i) *= coef;
+        }
+        self
     }
 }
 
