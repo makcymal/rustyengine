@@ -701,6 +701,22 @@ impl Matrix {
         matr
     }
 
+    pub fn triag_rotation(mut from: usize, mut to: usize, mut angle: f64, dim: usize) -> Self {
+        let mut matr = Self::identity(dim);
+        if from == to {
+            return Self::Failure(MathErr(RotationInOneAxis(from)));
+        } else if from > to {
+            (from, to) = (to, from);
+            angle = -angle;
+        }
+        let (sin, cos) = (angle.sin(), angle.cos());
+        *matr.att_mut(from, from) = cos.signum();
+        *matr.att_mut(from, to) = -sin / cos;
+        *matr.att_mut(to, from) = sin.signum();
+        *matr.att_mut(to, to) = cos / sin;
+        matr
+    }
+
     /// Rotation matrix in 3-dim space on the 3 given angles around cardinal axes
     pub fn teit_bryan_rotation(x: f64, y: f64, z: f64) -> Self {
         Self::rotation(1, 2, x, 3)

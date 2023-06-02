@@ -1,3 +1,7 @@
+//! Module defines struct packages configuration information - `Conf`.
+//! Constructor `Conf::read` reads provided configuration parameters from
+//! the given TOML files, counting from the same level as `src` folder
+
 #[cfg(test)]
 mod test;
 
@@ -22,12 +26,15 @@ use {
 };
 
 
+/// Struct that packages configuration parameters,
+/// it further is used for `Game` object instanciating
 #[derive(Debug, Clone, PartialEq)]
 pub struct Conf {
     pub biform: Matrix,
     pub basis: Matrix,
     pub initpt: Point,
     pub camera_dir: Matrix,
+    pub camera_lookat: Option<Point>,
     pub camera_fov: f64,
     pub draw_dist: f64,
     pub scr_height: usize,
@@ -35,6 +42,8 @@ pub struct Conf {
 }
 
 impl Conf {
+    /// Reads parameters from the given TOML files.
+    /// Each encountered in TOML parameter will bew reassigned if it has been already encountered
     pub fn read(filepaths: Vec<&'static str>) -> ReRes<Self> {
         let mut conf = Self::default();
         for path in filepaths {
@@ -51,6 +60,7 @@ impl Conf {
                 .parse_basis(&mut table)?
                 .parse_initpt(&mut table)?
                 .parse_camera_dir(&mut table)?
+                .parse_camera_lookat(&mut table)?
                 .parse_camera_fov(&mut table)?
                 .parse_draw_dist(&mut table)?
                 .parse_scr_height(&mut table)?
@@ -59,6 +69,7 @@ impl Conf {
         Ok(conf)
     }
 
+    /// Parses `BILINEAR_FORM` parameter from the `Table` parsed from TOML
     pub fn parse_biform(mut self, table: &mut Table) -> ReRes<Self> {
         let key = "BILINEAR_FORM";
         let value = match table.remove(key) {
@@ -69,6 +80,7 @@ impl Conf {
         Ok(self)
     }
 
+    /// Parses `BASIS` parameter from the `Table` parsed from TOML
     pub fn parse_basis(mut self, table: &mut Table) -> ReRes<Self> {
         let key = "BASIS";
         let value = match table.remove(key) {
@@ -79,6 +91,7 @@ impl Conf {
         Ok(self)
     }
 
+    /// Parses `INITIAL_POINT` parameter from the `Table` parsed from TOML
     pub fn parse_initpt(mut self, table: &mut Table) -> ReRes<Self> {
         let key = "INITIAL_POINT";
         let value = match table.remove(key) {
@@ -89,6 +102,7 @@ impl Conf {
         Ok(self)
     }
 
+    /// Parses `CAMERA_DIRECTION` parameter from the `Table` parsed from TOML
     pub fn parse_camera_dir(mut self, table: &mut Table) -> ReRes<Self> {
         let key = "CAMERA_DIRECTION";
         let value = match table.remove(key) {
@@ -99,6 +113,18 @@ impl Conf {
         Ok(self)
     }
 
+    /// Parses `CAMERA_LOOKS_AT` parameter from the `Table` parsed from TOML
+    pub fn parse_camera_lookat(mut self, table: &mut Table) -> ReRes<Self> {
+        let key = "CAMERA_LOOKS_AT";
+        let value = match table.remove(key) {
+            Some(value) => value,
+            None => return Ok(self),
+        };
+        self.camera_lookat = Some(Point::new(parse_single(value, key)?));
+        Ok(self)
+    }
+
+    /// Parses `FIELD_OF_VIEW` parameter from the `Table` parsed from TOML
     pub fn parse_camera_fov(mut self, table: &mut Table) -> ReRes<Self> {
         let value = match table.remove("FIELD_OF_VIEW") {
             Some(value) => value,
@@ -112,6 +138,7 @@ impl Conf {
         Ok(self)
     }
 
+    /// Parses `DRAW_DISTANCE` parameter from the `Table` parsed from TOML
     pub fn parse_draw_dist(mut self, table: &mut Table) -> ReRes<Self> {
         let value = match table.remove("DRAW_DISTANCE") {
             Some(value) => value,
@@ -125,6 +152,7 @@ impl Conf {
         Ok(self)
     }
 
+    /// Parses `SCREEN_HEIGHT` parameter from the `Table` parsed from TOML
     pub fn parse_scr_height(mut self, table: &mut Table) -> ReRes<Self> {
         let value = match table.remove("SCREEN_HEIGHT") {
             Some(value) => value,
@@ -137,6 +165,7 @@ impl Conf {
         Ok(self)
     }
 
+    /// Parses `SCREEN_WIDTH` parameter from the `Table` parsed from TOML
     pub fn parse_scr_width(mut self, table: &mut Table) -> ReRes<Self> {
         let value = match table.remove("SCREEN_WIDTH") {
             Some(value) => value,
@@ -150,6 +179,8 @@ impl Conf {
     }
 }
 
+/// Parses `Vec<f64>` parameter from the `toml::Value::Array(toml::Array)`.
+/// `key` that is the name of parameter is used for error messages
 fn parse_single(value: Value, key: &'static str) -> ReRes<Vec<f64>> {
     let array = match value {
         Value::Array(array) => array,
@@ -169,6 +200,8 @@ fn parse_single(value: Value, key: &'static str) -> ReRes<Vec<f64>> {
     Ok(single)
 }
 
+/// Parses `Vec<Vec<f64>>` parameter from the `toml::Value::Array(toml::Array)`.
+/// `key` that is the name of parameter is used for error messages
 fn parse_double(value: Value, key: &'static str) -> ReRes<Vec<Vec<f64>>> {
     let array = match value {
         Value::Array(array) => array,
@@ -194,10 +227,11 @@ impl Default for Conf {
             basis: Matrix::identity(3).to_multicol(),
             initpt: Point::new(vec![0.0; 3]),
             camera_dir,
+            camera_lookat: None,
             camera_fov: PI / 2.0,
             draw_dist: 100.0,
-            scr_height: 200,
-            scr_width: 200,
+            scr_height: 3,
+            scr_width: 3,
         }
     }
 }

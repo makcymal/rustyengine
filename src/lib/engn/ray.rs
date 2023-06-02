@@ -57,13 +57,10 @@ pub struct InceptedRays {
     pub(in super) cs: Rc<CoordSys>,
     pub(in super) inc: Point,
     pub(in super) directions: Grid<Matrix>,
-    pub(in super) lens: Matrix,
 }
 
 impl InceptedRays {
     pub fn dir_att(&self, r: usize, c: usize) -> &Matrix {
         self.directions.att(r, c)
     }
-
-    pub fn len_att(&self, r: usize, c: usize) -> f64 { *self.lens.att(r, c) }
 }

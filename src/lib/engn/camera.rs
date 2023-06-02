@@ -94,16 +94,9 @@ impl Camera {
         Ok(self.go.core().get_prop(Prop::LookAt)?.downcast_ref::<Point>().unwrap())
     }
 
-    /// Constructor for bunch of rays having one inception, does not depend on `Prop::Roll` angle
+    /// Constructor for bunch of rays having one inception
     pub fn incepted_rays(&self, mut h: usize, mut w: usize) -> ReRes<InceptedRays> {
-        if h % 2 == 1 {
-            h += 1
-        }
-        if w % 2 == 1 {
-            w += 1
-        }
-        let mut directions = Grid::new(h + 1, w + 1, Matrix::col(vec![0.0; 3]));
-        let mut lens = Matrix::zero(h + 1, w + 1);
+        let mut directions = Grid::new(h, w, Matrix::col(vec![0.0; 3]));
 
         let cs = Rc::clone(&self.go.core.cs);
         let fov = self.get_fov()?;
@@ -118,24 +111,24 @@ impl Camera {
         } else {
             self.go.core.get_prop(Prop::Dir).unwrap().downcast_ref::<Matrix>().unwrap().clone()
         };
-        let dir_sqlen = cs.space().scalar_prod(&dir, &dir)?;
 
-        let (alpha, beta) = (fov / w as f64, vfov / h as f64);
+        let (alpha, beta) = (fov / (w - 1) as f64, vfov / (h - 1) as f64);
         let (mut yaw, pitch_top) = (-alpha * (w / 2) as f64, beta * (h / 2) as f64);
 
-        for y in 0..(w + 1) {
-            let yaw_ray = &Matrix::rotation(0, 1, yaw, 3).mul(&dir).to_col();
-            let yaw_len = dir_sqlen / cs.space().scalar_prod(&dir, &yaw_ray)?;
-            yaw_ray.num_mul(yaw_len);
-
+        for y in 0..w {
+            let yaw_ray = if yaw != 0.0 {
+                Matrix::triag_rotation(0, 1, yaw, 3).mul(&dir).to_col()
+            } else {
+                dir.clone()
+            };
             let mut pitch = pitch_top;
-            for z in 0..(h + 1) {
-                let mut ray: Matrix = Matrix::rotation(0, 2, pitch, 3).mul(&yaw_ray).to_col();
-                let len = yaw_len * dir_sqlen / cs.space().scalar_prod(&yaw_ray, &ray)?;
-                ray = ray.num_mul_assign(len);
-                *directions.att_mut(z, y) = ray;
-                *lens.att_mut(z, y) = len;
 
+            for z in 0..h {
+                *directions.att_mut(z, y) = if pitch != 0.0 {
+                    Matrix::triag_rotation(0, 2, pitch, 3).mul(&yaw_ray).to_col()
+                } else {
+                    yaw_ray.clone()
+                };
                 pitch -= beta;
             }
             yaw += alpha;
@@ -146,7 +139,6 @@ impl Camera {
             cs,
             inc: pos,
             directions,
-            lens
         })
     }
 }
