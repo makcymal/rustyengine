@@ -14,7 +14,6 @@ use {
         rc::Rc,
     },
 };
-use crate::math::matrix::VectorAt;
 
 
 /// Ray as pinned to `inc` point vector directed as `dir`
@@ -36,7 +35,7 @@ impl Default for Ray {
     fn default() -> Self {
         Self {
             inc: Point::default(),
-            dir: Vector::col(vec![1.0, 0.0, 0.0]),
+            dir: Vector::new(vec![1.0, 0.0, 0.0]),
         }
     }
 }
@@ -45,7 +44,6 @@ impl Default for Ray {
 /// Bunch of rays pinned to single point
 #[derive(Debug, Clone, PartialEq)]
 pub struct InceptedRays {
-    pub(in super) cs: Rc<CoordSys>,
     pub(in super) inc: Point,
     pub(in super) directions: Grid<Vector>,
 }
@@ -60,10 +58,10 @@ impl InceptedRays {
 /// Iterator that yields rays with common inception whose ends compose rectangular with uniform step by two sides
 #[derive(Debug, Clone, PartialEq)]
 pub struct RectRaysIter {
-    pub(in super) ldir: Vector,
-    pub(in super) dir: Vector,
-    pub(in super) vstep: Vector,
-    pub(in super) hstep: Vector,
-    pub(in super) h: usize,
-    pub(in super) w: usize,
+    pub ldir: Vector,
+    pub dir: Vector,
+    pub vstep: Vector,
+    pub hstep: Vector,
+    pub h: usize,
+    pub w: usize,
 }

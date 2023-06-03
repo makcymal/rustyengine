@@ -1,6 +1,5 @@
 use {
     thiserror::Error,
-    crate::engn::Prop,
 };
 
 
@@ -12,7 +11,7 @@ pub enum GameErr {
 
     #[error("trying to set property {key:?} to value {val:?}")]
     InvalidPropF64 {
-        key: Prop,
+        key: &'static str,
         val: f64,
     },
 

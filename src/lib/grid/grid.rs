@@ -8,7 +8,6 @@ use {
             ReErr::{self, *},
             GridErr::{self, *},
         },
-        util::Idx,
     },
     std::ops::{Index, IndexMut},
     strum_macros::Display,
@@ -492,49 +491,6 @@ impl<E> Grid<E> {
         match self.rows() == self.cols() {
             true => Ok(self),
             false => Err(GridErr(NotSquare((self.rows(), self.cols()))))
-        }
-    }
-}
-
-
-impl<E> Index<Idx> for Grid<E> {
-    type Output = E;
-
-    fn index(&self, idx: Idx) -> &Self::Output {
-        match self {
-            Self::Failure(err) => panic!("indexing into Grid::Failure({:?})", err),
-            Self::Row(_) | Self::Col(_) => {
-                match idx {
-                    Idx::Single(idx) => self.at(idx),
-                    Idx::Double(_) => panic!("rectangular indexing into {:?}", self.repr()),
-                }
-            }
-            Self::Arbitrary(_) | Self::Square(_) | Self::MultiRow(_) | Self::MultiCol(_) => {
-                match idx {
-                    Idx::Double(idx) => self.att(idx.0, idx.1),
-                    Idx::Single(_) => panic!("linear indexing into {:?}", self.repr()),
-                }
-            }
-        }
-    }
-}
-
-impl<E> IndexMut<Idx> for Grid<E> {
-    fn index_mut(&mut self, idx: Idx) -> &mut Self::Output {
-        match self {
-            Self::Failure(err) => panic!("indexing into Grid::Failure({:?})", err),
-            Self::Row(_) | Self::Col(_) => {
-                match idx {
-                    Idx::Single(idx) => self.at_mut(idx),
-                    Idx::Double(_) => panic!("rectangular indexing into {:?}", self.repr()),
-                }
-            }
-            Self::Arbitrary(_) | Self::Square(_) | Self::MultiRow(_) | Self::MultiCol(_) => {
-                match idx {
-                    Idx::Double(idx) => self.att_mut(idx.0, idx.1),
-                    Idx::Single(_) => panic!("linear indexing into {:?}", self.repr()),
-                }
-            }
         }
     }
 }

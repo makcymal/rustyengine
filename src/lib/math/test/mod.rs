@@ -8,4 +8,4 @@ mod matrix_test;
 mod vector_test;
 
 #[cfg(test)]
-mod coord_sys_test;
+mod space_test;

@@ -40,7 +40,7 @@ impl IdPool {
     }
 
     /// Method scoped in `engine` namespace, generates `Uuid` of v4
-    pub(in super) fn generate(&mut self) -> Rc<Uuid> {
+    pub fn generate(&mut self) -> Rc<Uuid> {
         self.ids.push(Rc::new(Uuid::new_v4()));
         Rc::clone(self.ids.last().unwrap())
     }
@@ -57,61 +57,27 @@ impl Index<usize> for IdPool {
 }
 
 
-/// Trait that shoul implement custom property in purpose of having possibilty being saved in `EntityCore.props`
-pub trait Property {
-    /// 'Feed' property as key for `EntityCore.props` that is `HashMap`
-    /// Serializes property to `(TypeId, isize)` that is `Hash`
-    fn feed(&self) -> (TypeId, isize);
-}
-
-/// Properties that are available to be set within `EntityCore.props`
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum Prop {
-    /// Position, `Point`
-    Pos,
-    /// Direction of view, `Matrix`
-    Dir,
-    /// Field-of-view, `f64`
-    Fov,
-    /// Vertical field-of-view, `f64`
-    VFov,
-    /// `Point` of view for `GameCamera`
-    LookAt,
-    /// Drawing distance of `GameCamera`, 'f64'
-    DrawDist,
-}
-
-impl Property for Prop {
-    fn feed(&self) -> (TypeId, isize) {
-        (self.type_id(), *self as isize)
-    }
-}
-
-
 /// Struct responsible for operations that are typical for entities
 #[derive(Debug)]
 pub struct EntityCore {
-    /// Cloned `Rc` from actual `Game` instance
-    pub(in super) cs: Rc<CoordSys>,
     /// Cloned `Rc` from `IdPool` within actual `Game` instance
     pub(in super) id: Rc<Uuid>,
     /// Dictionary with `(TypeId, isize)` as key and `Any` trait object wrapped into `Box` as value
-    pub(in super) props: HashMap<(TypeId, isize), Box<dyn Any>>,
+    pub(in super) props: HashMap<&'static str, Box<dyn Any>>,
 }
 
 impl EntityCore {
     /// Basic constructor that intended to be called from `Game` instance
-    pub fn new(cs: &Rc<CoordSys>, id: &Rc<Uuid>) -> Self {
+    pub fn new(id: &Rc<Uuid>) -> Self {
         Self {
-            cs: Rc::clone(cs),
             id: Rc::clone(id),
             props: HashMap::new(),
         }
     }
 
     /// Inserts new pair `key`: `val` into `props` field or replaces already existing
-    pub fn set_prop(&mut self, key: Prop, val: Box<dyn Any>) {
-        match self.props.entry(key.feed()) {
+    pub fn set_prop(&mut self, key: &'static str, val: Box<dyn Any>) {
+        match self.props.entry(key) {
             Entry::Occupied(o) => *o.into_mut() = val,
             Entry::Vacant(v) => {
                 let _ = v.insert(val);
@@ -120,8 +86,8 @@ impl EntityCore {
     }
 
     /// Returns `ReRes` with ref to requested `Box<dyn Any>` instance or meaningful error  if key doesn't exist
-    pub fn get_prop(&self, key: Prop) -> ReRes<&Box<dyn Any>> {
-        if let Some(prop) = self.props.get(&key.feed()) {
+    pub fn get_prop(&self, key: &'static str) -> ReRes<&Box<dyn Any>> {
+        if let Some(prop) = self.props.get(key) {
             Ok(prop)
         } else {
             Err(GameErr(NotInitializedProp))
@@ -129,16 +95,16 @@ impl EntityCore {
     }
 
     /// Performs deleting value by the given `Prop` key
-    pub fn del_prop(&mut self, key: Prop) {
-        self.props.remove(&key.feed());
+    pub fn del_prop(&mut self, key: &'static str) {
+        self.props.remove(key);
     }
 }
 
-impl Index<Prop> for EntityCore {
+impl Index<&'static str> for EntityCore {
     type Output = Box<dyn Any>;
 
-    fn index(&self, key: Prop) -> &Self::Output {
-        &self.props[&key.feed()]
+    fn index(&self, key: &'static str) -> &Self::Output {
+        &self.props[key]
     }
 }
 
@@ -163,34 +129,21 @@ impl std::fmt::Debug for dyn Entity {
 /// Basic game object
 #[derive(Debug)]
 pub struct GameObject {
-    pub(in super) core: EntityCore,
+    pub core: EntityCore,
+    pub pos: Point,
+    pub dir: Vector,
 }
 
 impl GameObject {
     /// Constructor that takes `EntityCore`, position, direction, and then glob
     /// such properties to the given core
     pub(in super) fn new(mut core: EntityCore, pos: Point, dir: Vector) -> Self {
-        core.set_prop(Prop::Pos, Box::new(pos));
-        core.set_prop(Prop::Dir, Box::new(dir));
-        Self { core }
+        Self { core, pos, dir }
     }
 
     /// Moves game object on the given vector
     pub fn mv(&mut self, vec: &Vector) -> ReRes<()> {
-        match self.core.props.get_mut(&Prop::Pos.feed()) {
-            Some(val) => val.downcast_mut::<Point>().unwrap().mv_assign(vec),
-            None => unreachable!(),
-        }
-    }
-
-    /// Set property `Pos` of game object
-    pub fn set_pos(&mut self, pos: Point) {
-        self.core.set_prop(Prop::Pos, Box::new(pos));
-    }
-
-    /// Set property `Dir` of game object
-    pub fn set_dir(&mut self, mut dir: Vector) {
-        self.core.set_prop(Prop::Dir, Box::new(dir.normalize()));
+        Ok(self.pos.mv_assign(vec)?)
     }
 }
 

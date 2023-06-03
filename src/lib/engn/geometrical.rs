@@ -23,7 +23,7 @@ use {
 /// Trait for `GameObject`'s that can be intersected with `Ray`'s, i.e. that are visible on the screen
 pub trait Intersected: Entity {
     /// Compute intersection `Point` and distance to it from `inc`
-    fn intersect(&self, inc: &Point, dir: &Matrix, len: f64) -> ReRes<f64>;
+    fn intersect(&self, cs: &CoordSys, inc: &Point, dir: &Matrix, len: f64) -> ReRes<f64>;
 }
 
 impl std::fmt::Debug for dyn Intersected {
@@ -36,7 +36,7 @@ impl std::fmt::Debug for dyn Intersected {
 /// List of entities implementing shared interior mutability
 #[derive(Debug)]
 pub struct EntityList {
-    pub(in super) entities: Vec<Rc<RefCell<dyn Intersected>>>,
+    pub(in super) entities: Vec<Box<dyn Intersected>>,
 }
 
 impl EntityList {
@@ -47,25 +47,25 @@ impl EntityList {
 
     /// Appends new entity that must implement Entity
     pub fn append(&mut self, entity: impl Intersected + 'static) {
-        self.entities.push(Rc::new(RefCell::new(entity)));
+        self.entities.push(Box::new(entity));
     }
 
     /// Removes entity from the list with the given `Uuid`
     pub fn remove(&mut self, id: &Rc<Uuid>) {
-        self.entities.retain(|entity| Rc::ptr_eq(&entity.borrow().core().id, id));
+        self.entities.retain(|entity| Rc::ptr_eq(&entity.core().id, id));
     }
 
     /// Returns shared interior mutable ref to entity if exists
-    pub fn get(&self, id: &Rc<Uuid>) -> Option<Rc<RefCell<dyn Intersected>>> {
-        if let Some(rc) = self.entities.iter().find(|entity| Rc::ptr_eq(&entity.borrow().core().id, id)) {
-            Some(Rc::clone(rc))
+    pub fn get(&self, id: &Rc<Uuid>) -> Option<&Box<dyn Intersected>> {
+        if let Some(bx) = self.entities.iter().find(|entity| Rc::ptr_eq(&entity.core().id, id)) {
+            Some(bx)
         } else {
             None
         }
     }
 
     /// Permorms closure that may be immutable due to interior mutability
-    pub fn exec(&self, f: fn(&RefCell<dyn Intersected>)) {
+    pub fn exec(&self, f: fn(&Box<dyn Intersected>)) {
         for entity in self.entities.iter() {
             f(entity);
         }
@@ -130,13 +130,12 @@ impl Entity for HypePlane {
 }
 
 impl Intersected for HypePlane {
-    fn intersect(&self, inc: &Point, dir: &Matrix, len: f64) -> ReRes<f64> {
-        let cs = Rc::clone(&self.go.core.cs);
-        let denom = cs.space().scalar_prod(dir, &self.normal)?;
+    fn intersect(&self, cs: &CoordSys, inc: &Point, dir: &Matrix, len: f64) -> ReRes<f64> {
+        let denom = cs.scalar_prod(dir, &self.normal)?;
         if aeq(&denom, &0.0) {
             return Err(NoneOpt(NoIntersection));
         }
-        let numer = cs.space().scalar_prod(&self.initpt.sub(inc)?.coord(), &self.normal)?;
+        let numer = cs.scalar_prod(&self.initpt.df(inc)?.coord(), &self.normal)?;
         let dist = numer / denom;
         if dist < 0.0 {
             return Err(NoneOpt(NoIntersection));

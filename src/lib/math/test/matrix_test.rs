@@ -482,7 +482,6 @@ fn div_square_matr() {
         vec![-1.0, 2.0, 5.0],
         vec![-8.0, 31.0, 35.0]
     ]);
-    dbg!(prod.div(&rhs));
     assert!(prod.div(&rhs).aeq(&lhs));
 }
 

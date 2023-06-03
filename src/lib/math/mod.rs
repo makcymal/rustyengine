@@ -6,7 +6,8 @@
 
 pub mod matrix;
 mod precision;
-mod coord_sys;
+// mod coord_sys;
+mod space;
 
 #[cfg(test)]
 mod test;
@@ -14,11 +15,11 @@ mod test;
 
 pub use {
     matrix::{
-        Matrix, Vector,
-        set_biform, set_biform_vec, set_biform_identity
+        Matrix,
+        set_biform, set_biform_identity, set_biform_vec,
     },
-    coord_sys::{
-        VectorSpace, Point, CoordSys
+    space::{
+        Vector, Point, Basis, CoordSys
     },
     precision::{
         round, aeq,

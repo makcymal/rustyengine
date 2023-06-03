@@ -19,10 +19,3 @@ pub fn pow_minus(x: usize) -> f64 {
         _ => unreachable!(),
     }
 }
-
-
-#[derive(Debug, Display, Clone, PartialEq)]
-pub enum Idx {
-    Single(usize),
-    Double((usize, usize)),
-}

@@ -36,9 +36,11 @@ pub struct Conf {
     pub camera_dir: Vector,
     pub camera_lookat: Option<Point>,
     pub camera_fov: f64,
+    pub camera_vfov: f64,
     pub draw_dist: f64,
     pub scr_height: usize,
     pub scr_width: usize,
+    pub precision: u8,
 }
 
 impl Conf {
@@ -62,9 +64,11 @@ impl Conf {
                 .parse_camera_dir(&mut table)?
                 .parse_camera_lookat(&mut table)?
                 .parse_camera_fov(&mut table)?
+                .parse_camera_vfov(&mut table)?
                 .parse_draw_dist(&mut table)?
                 .parse_scr_height(&mut table)?
-                .parse_scr_width(&mut table)?;
+                .parse_scr_width(&mut table)?
+                .parse_precision(&mut table)?;
         }
         Ok(conf)
     }
@@ -109,7 +113,7 @@ impl Conf {
             Some(value) => value,
             None => return Ok(self),
         };
-        self.camera_dir = Vector::col(parse_single(value, key)?);
+        self.camera_dir = Vector::new(parse_single(value, key)?);
         Ok(self)
     }
 
@@ -134,6 +138,20 @@ impl Conf {
             Value::Integer(fov) => self.camera_fov = fov as f64,
             Value::Float(fov) => self.camera_fov = fov,
             _ => return Err(GameErr(InvalidConfValue("FIELD_OF_VIEW"))),
+        }
+        Ok(self)
+    }
+
+    /// Parses `VERTICAL_FIELD_OF_VIEW` parameter from the `Table` parsed from TOML
+    pub fn parse_camera_vfov(mut self, table: &mut Table) -> ReRes<Self> {
+        let value = match table.remove("VERTICAL_FIELD_OF_VIEW") {
+            Some(value) => value,
+            None => return Ok(self),
+        };
+        match value {
+            Value::Integer(vfov) => self.camera_vfov = vfov as f64,
+            Value::Float(vfov) => self.camera_vfov = vfov,
+            _ => return Err(GameErr(InvalidConfValue("VERTICAL_FIELD_OF_VIEW"))),
         }
         Ok(self)
     }
@@ -174,6 +192,19 @@ impl Conf {
         match value {
             Value::Integer(scr_width) => self.scr_width = scr_width as usize,
             _ => return Err(GameErr(InvalidConfValue("SCREEN_WIDTH"))),
+        }
+        Ok(self)
+    }
+
+    /// Parses `PRECISION` parameter from the `Table` parsed from TOML
+    pub fn parse_precision(mut self, table: &mut Table) -> ReRes<Self> {
+        let value = match table.remove("PRECISION") {
+            Some(value) => value,
+            None => return Ok(self),
+        };
+        match value {
+            Value::Integer(precision) => self.precision = (precision % 256) as u8,
+            _ => return Err(GameErr(InvalidConfValue("PRECISION"))),
         }
         Ok(self)
     }
@@ -220,7 +251,7 @@ fn parse_double(value: Value, key: &'static str) -> ReRes<Vec<Vec<f64>>> {
 
 impl Default for Conf {
     fn default() -> Self {
-        let mut camera_dir = Vector::col(vec![0.0; 3]);
+        let mut camera_dir = Vector::new(vec![0.0; 3]);
         *camera_dir.at_mut(0) = 1.0;
         Self {
             biform: Matrix::identity(3),
@@ -229,9 +260,11 @@ impl Default for Conf {
             camera_dir,
             camera_lookat: None,
             camera_fov: PI / 2.0,
+            camera_vfov: PI / 2.0,
             draw_dist: 100.0,
             scr_height: 3,
             scr_width: 3,
+            precision: 100,
         }
     }
 }

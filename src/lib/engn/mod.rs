@@ -15,7 +15,7 @@ pub use {
     camera::Camera,
     canvas::Canvas,
     entity::{
-        Entity, Property, IdPool, EntityCore, Prop, GameObject,
+        Entity, IdPool, EntityCore, GameObject,
     },
     geometrical::{
         Intersected, EntityList, HypePlane,

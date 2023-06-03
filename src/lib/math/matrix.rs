@@ -483,43 +483,8 @@ impl Matrix {
 }
 
 
-static mut BIFORM: OnceCell<Matrix> = OnceCell::new();
-
-pub fn set_biform(biform: Matrix) {
-    unsafe {
-        BIFORM.take();
-        BIFORM.set(biform).expect("BIFORM init failed");
-    }
-}
-
-pub fn set_biform_vec(double: Vec<Vec<f64>>) {
-    unsafe {
-        BIFORM.take();
-        BIFORM.set(Matrix::from_double(double)).expect("BIFORM init failed");
-    }
-}
-
-pub fn set_biform_identity() {
-    unsafe {
-        BIFORM.take();
-        BIFORM.set(Matrix::identity(3)).expect("BIFORM init failed");
-    }
-}
-
-fn biform() -> &'static Matrix {
-    unsafe {
-        BIFORM.get().expect("BIFORM isn't initialized")
-    }
-}
-
-
 /// All methods related to representation `Row`, `Col`, `MultiRow` or `MultiCol`
-impl<'g> Matrix {
-    /// `Vector` instance pointing to the `Row` or `Col` at the given idx
-    pub fn vector(&'g self, idx: usize) -> VectorAt<'g> {
-        VectorAt::new(self, idx)
-    }
-
+impl Matrix {
     /// Constructor for column
     pub fn col(comp: Vec<f64>) -> Self {
         Self::from_single(comp).raw_transpose().to_col()
@@ -727,83 +692,31 @@ impl<'g> Matrix {
 }
 
 
-/// `Matrix::Row` or `Matrix::Col`
-#[derive(Debug, Clone, PartialEq)]
-pub struct Vector {
-    pub coord: Matrix,
-}
+static mut BIFORM: OnceCell<Matrix> = OnceCell::new();
 
-impl Vector {
-    /// Vector as row with the given coordinates
-    pub fn row(coord: Vec<f64>) -> Self {
-        Self {
-            coord: Matrix::from_single(coord).to_row()
-        }
-    }
-
-    /// Vector as column with the given coordinates
-    pub fn col(coord: Vec<f64>) -> Self {
-        Self {
-            coord: Matrix::from_single(coord).raw_transpose().to_col()
-        }
-    }
-
-    /// Ref to `Matrix` represents coordinates
-    pub fn coord(&self) -> &Matrix {
-        &self.coord
-    }
-
-    /// Element in `i` position
-    pub fn at(&self, i: usize) -> f64 {
-        *self.coord.at(i)
-    }
-
-    /// Mut ref to element in `i` position
-    pub fn at_mut(&mut self, i: usize) -> &mut f64 {
-        self.coord.at_mut(i)
-    }
-
-    /// Switches representation to row keeping the same coordinates
-    pub fn to_row(mut self) -> Self {
-        if self.coord.is_col() {
-            Self {
-                coord: self.coord.raw_transpose().to_row()
-            }
-        } else {
-            self
-        }
-    }
-
-    /// Switches representation to column keeping the same coordinates
-    pub fn to_col(self) -> Self {
-        if self.coord.is_row() {
-            Self {
-                coord: self.coord.raw_transpose().to_col()
-            }
-        } else {
-            self
-        }
-    }
-
-    pub fn add_assign(mut self, rhs: &Vector) -> Self {
-        Self { coord: self.coord.add_assign(rhs.coord()) }
-    }
-
-    pub fn vector_prod(&self, rhs: &Vector) -> ReRes<Self> {
-        Ok(Self { coord: self.coord.vector_prod(rhs.coord())? })
-    }
-
-    pub fn normalize(mut self) -> Self {
-        Self { coord: self.coord.normalize() }
-    }
-
-    pub fn resize(mut self, coef: f64) -> Self {
-        for i in 0..self.coord.dim().unwrap() {
-            *self.coord.at_mut(i) *= coef;
-        }
-        self
+pub fn set_biform(biform: Matrix) {
+    unsafe {
+        BIFORM.take();
+        BIFORM.set(biform).expect("BIFORM init failed");
     }
 }
 
+pub fn set_biform_vec(double: Vec<Vec<f64>>) {
+    unsafe {
+        BIFORM.take();
+        BIFORM.set(Matrix::from_double(double)).expect("BIFORM init failed");
+    }
+}
 
-pub type VectorAt<'g> = Line<'g, f64>;
+pub fn set_biform_identity() {
+    unsafe {
+        BIFORM.take();
+        BIFORM.set(Matrix::identity(3)).expect("BIFORM init failed");
+    }
+}
+
+fn biform() -> &'static Matrix {
+    unsafe {
+        BIFORM.get().expect("BIFORM isn't initialized")
+    }
+}
