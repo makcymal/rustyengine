@@ -13,18 +13,18 @@ use {
 #[derive(Debug)]
 pub struct Canvas {
     go: GameObject,
-    pub height: usize,
-    pub width: usize,
+    pub scr_y: usize,
+    pub scr_x: usize,
     dist: Matrix,
 }
 
 impl Canvas {
-    pub fn new(go: GameObject, scr_height: usize, scr_width: usize) -> Self {
+    pub fn new(go: GameObject, scr_y: usize, scr_x: usize) -> Self {
         Self {
             go,
-            height: scr_height,
-            width: scr_width,
-            dist: Matrix::zero(scr_height, scr_width),
+            scr_y,
+            scr_x,
+            dist: Matrix::zero(scr_y, scr_x),
         }
     }
 

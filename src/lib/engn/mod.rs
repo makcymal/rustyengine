@@ -5,7 +5,6 @@ mod canvas;
 mod entity;
 mod game;
 mod geometrical;
-mod ray;
 
 #[cfg(test)]
 mod test;
@@ -21,7 +20,4 @@ pub use {
         Intersected, EntityList, HypePlane,
     },
     game::Game,
-    ray::{
-        Ray, InceptedRays, RectRaysIter
-    },
 };

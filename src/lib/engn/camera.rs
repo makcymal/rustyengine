@@ -1,26 +1,10 @@
 use {
     super::*,
     crate::{
-        errs::{
-            ReRes,
-            ReErr::{self, *},
-            GameErr::{self, *},
-            GridErr::{self, *},
-            MathErr::{self, *},
-        },
         grid::*,
         math::*,
     },
     std::{
-        rc::Rc,
-        cell::RefCell,
-        ops::{
-            Index, IndexMut,
-        },
-        any::{
-            Any,
-            TypeId,
-        },
         f64::consts::PI,
     },
 };
@@ -29,22 +13,20 @@ use {
 /// Game camera that contains `GameObject`
 #[derive(Debug)]
 pub struct Camera {
-    pub go: GameObject,
-    pub fov: f64,
-    pub vfov: f64,
-    pub draw_dist: f64,
-    pub lookat: Option<Point>,
+    pub(crate) go: GameObject,
+    pub(crate) draw_dist: f64,
+    pub(crate) lookat: Option<Point>,
+    pub(crate) rays: Grid<Vector>,
 }
 
 impl Camera {
     /// Constructs new camera from the given game object
-    pub fn new(mut game_object: GameObject, fov: f64, vfov: f64, draw_dist: f64) -> Self {
+    pub fn new(mut game_object: GameObject, draw_dist: f64, yfov: f64, zfov: f64, y: usize, z: usize) -> Self {
         Self {
             go: game_object,
-            fov,
-            vfov,
             draw_dist,
             lookat: None,
+            rays: rays(yfov, zfov, y, z),
         }
     }
 
@@ -53,55 +35,64 @@ impl Camera {
         self.lookat = Some(lookat);
         self
     }
-
-    /// Constructor for bunch of rays having one inception
-    pub fn incepted_rays(&self, h: usize, w: usize) -> ReRes<InceptedRays> {
-        let mut directions = Grid::new(h, w, Vector::new(vec![0.0; 3]));
-
-        let pos = self.go.pos.clone();
-        let dir = if let Some(lookat) = &self.lookat {
-            lookat.df(&pos)?
-        } else {
-            self.go.dir.clone()
-        };
-
-        let (alpha, beta) = (self.fov / (w - 1) as f64, self.vfov / (h - 1) as f64);
-        let (mut yaw, pitch_top) = (-alpha * (w / 2) as f64, beta * (h / 2) as f64);
-
-        for y in 0..w {
-            let yaw_ray = if yaw != 0.0 {
-                Vector {
-                    coord: Matrix::triag_rotation(0, 1, yaw, 3)
-                        .mul(dir.coord())
-                        .to_col()
-                }
-            } else {
-                dir.clone()
-            };
-            let mut pitch = pitch_top;
-
-            for z in 0..h {
-                *directions.att_mut(z, y) = if pitch != 0.0 {
-                    Vector {
-                        coord: Matrix::triag_rotation(0, 2, pitch, 3)
-                            .mul(yaw_ray.coord())
-                            .to_col()
-                    }
-                } else {
-                    yaw_ray.clone()
-                };
-                pitch -= beta;
-            }
-            yaw += alpha;
-        }
-
-
-        Ok(InceptedRays {
-            inc: pos,
-            directions,
-        })
-    }
 }
+
+/// Computes bunch of directions of rays when camera stands at `INITIAL_POINT` and looks in the
+/// direction [1, 0, 0]. `yfov` and `zfov` are the horizontal and vertical fields of view respectively.
+/// `y` and `z` are the screen width and height respectively.
+/// All the vectors will be rotated with the camera rotation as well
+pub(crate) fn rays(yfov: f64, zfov: f64, y: usize, z: usize) -> Grid<Vector> {
+    let mut rays = Grid::new(z, y, Vector::new(vec![1.0, 0.0, 0.0]));
+
+    let y_rays_df = rays_df(1, yfov, y);
+    for c in 0..(y / 2) {
+        let df = y_rays_df[c];
+        for r in 0..z {
+            *rays.att_mut(r, c).at_mut(1) += df;
+        }
+    }
+    for c in ((y + 1) / 2)..y {
+        let df = y_rays_df[y - 1 - c];
+        for r in 0..z {
+            *rays.att_mut(r, c).at_mut(1) -= df;
+        }
+    }
+
+    let z_rays_df = rays_df(2, zfov, z);
+    for r in 0..(z / 2) {
+        let df = z_rays_df[r];
+        for c in 0..y {
+            *rays.att_mut(r, c).at_mut(2) += df;
+        }
+    }
+    for r in ((z + 1) / 2)..z {
+        let df = z_rays_df[z - 1 - r];
+        for c in 0..y {
+            *rays.att_mut(r, c).at_mut(2) -= df;
+        }
+    }
+    rays
+}
+
+/// Computes differences between ray lays on given `axis` and the direction [1, 0, 0].
+pub(crate) fn rays_df(axis: usize, fov: f64, discr: usize) -> Vec<f64> {
+    let dir = Matrix::col(vec![1.0, 0.0, 0.0]);
+    let mut angle = fov / 2.0;
+    let angle_step = -fov / ((discr - 1) as f64);
+    let mut rays_df = vec![];
+
+    for _ in 0..(discr / 2) {
+        rays_df.push(
+            Matrix::rotation(0, axis, angle, 3)
+                .mul(&dir)
+                .att(axis, 0) / angle.cos()
+        );
+        angle += angle_step;
+    }
+
+    rays_df
+}
+
 
 impl Entity for Camera {
     fn core(&self) -> &EntityCore {

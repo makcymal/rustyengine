@@ -24,7 +24,7 @@ pub struct Game {
 impl Game {
     /// Constructor for `Game` taking `Conf` and `ReRes` if something fails
     pub fn new(conf: Conf) -> ReRes<Self> {
-        set_biform(conf.biform);
+        set_biform(Matrix::identity(3));
 
         set_exact_mode();
         set_precision(conf.precision);
@@ -34,21 +34,31 @@ impl Game {
 
         let cs = CoordSys::new(
             conf.initpt.clone(),
-            Basis::new(conf.basis)?)?;
+            Basis::new(Matrix::identity(3))?)?;
 
         let canvas = Canvas::new(
             GameObject::new(
                 EntityCore::new(&id_pool.generate()),
                 conf.initpt.clone(),
-                conf.camera_dir.clone()),
-            conf.scr_height,
-            conf.scr_width);
+                Vector::new(vec![1.0, 0.0, 0.0])),
+            conf.hscr,
+            conf.wscr);
+
+        let yfov = match conf.hfov {
+            Some(val) => val,
+            None => conf.wfov * (conf.hscr as f64) / (conf.wscr as f64)
+        };
 
         let camera = Camera::new(
-            GameObject::new(EntityCore::new(&id_pool.generate()), conf.initpt, conf.camera_dir),
-            conf.camera_fov,
-            conf.camera_vfov,
-            conf.draw_dist);
+            GameObject::new(
+                EntityCore::new(&id_pool.generate()),
+                conf.initpt,
+                Vector::new(vec![1.0, 0.0, 0.0])),
+            yfov,
+            conf.wfov,
+            conf.draw_dist,
+            conf.hscr,
+            conf.wscr);
 
         Ok(Self {
             cs,
