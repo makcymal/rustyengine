@@ -9,15 +9,13 @@
 //! `RawGrid` is easy-transposable `VecWrapper`, furthermore it can take additional transpose flag,
 //! that provides possibility of treating `Grid` as once more transposed without mutating it.
 
-mod raw_grid;
 mod grid;
+mod raw_grid;
 
 #[cfg(test)]
 mod test;
 
 pub use {
+    grid::{Elem, Grid, Line, Repr},
     raw_grid::RawGrid,
-    grid::{
-        Repr, Grid, Line, Elem,
-    },
 };

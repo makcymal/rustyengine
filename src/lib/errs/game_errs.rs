@@ -1,7 +1,4 @@
-use {
-    thiserror::Error,
-};
-
+use thiserror::Error;
 
 /// Errors that can be obtained within `Result::Err::EngnErr`
 #[derive(Error, Debug, Clone, Copy, PartialEq)]
@@ -10,10 +7,7 @@ pub enum GameErr {
     NotInitializedProp,
 
     #[error("trying to set property {key:?} to value {val:?}")]
-    InvalidPropF64 {
-        key: &'static str,
-        val: f64,
-    },
+    InvalidPropF64 { key: &'static str, val: f64 },
 
     #[error("failed to read file {0}")]
     InvalidConfFilePath(&'static str),

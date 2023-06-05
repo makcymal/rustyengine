@@ -1,18 +1,13 @@
 use {
-    super::raw_grid::{
-        VecWrapper, RawGrid,
-    },
-    crate::{
-        errs::{
-            ReRes,
-            ReErr::{self, *},
-            GridErr::{self, *},
-        },
+    super::raw_grid::{RawGrid, VecWrapper},
+    crate::errs::{
+        GridErr::{self, *},
+        ReErr::{self, *},
+        ReRes,
     },
     std::ops::{Index, IndexMut},
     strum_macros::Display,
 };
-
 
 /// How `RawGrid` can be treaten
 #[derive(Debug, Display, Clone, Copy, PartialEq)]
@@ -41,7 +36,6 @@ pub enum Repr {
     /// `RawGrid` can be replaced with error message
     Failure,
 }
-
 
 /// `Grid` holds collection of elements of type `E`, structured in rectangular table.
 /// The same variants of treating `RawGrid` as the `Repr`.
@@ -92,8 +86,12 @@ impl<'g, E> Grid<E> {
     /// `RawGrid` moved out from `self`
     pub fn rawgrid(self) -> RawGrid<E> {
         match self {
-            Self::Arbitrary(rg) | Self::Square(rg) | Self::Row(rg) | Self::Col(rg) |
-            Self::MultiRow(rg) | Self::MultiCol(rg) => rg,
+            Self::Arbitrary(rg)
+            | Self::Square(rg)
+            | Self::Row(rg)
+            | Self::Col(rg)
+            | Self::MultiRow(rg)
+            | Self::MultiCol(rg) => rg,
             _ => unreachable!(),
         }
     }
@@ -101,8 +99,12 @@ impl<'g, E> Grid<E> {
     /// Ref to `RawGrid` wrapped in any representation except `Self::Failure`
     pub fn rawgrid_ref(&self) -> &RawGrid<E> {
         match self {
-            Self::Arbitrary(rg) | Self::Square(rg) | Self::Row(rg) | Self::Col(rg) |
-            Self::MultiRow(rg) | Self::MultiCol(rg) => rg,
+            Self::Arbitrary(rg)
+            | Self::Square(rg)
+            | Self::Row(rg)
+            | Self::Col(rg)
+            | Self::MultiRow(rg)
+            | Self::MultiCol(rg) => rg,
             _ => unreachable!(),
         }
     }
@@ -110,8 +112,12 @@ impl<'g, E> Grid<E> {
     /// Mut ref to `RawGrid` wrapped in any representation except `Self::Failure`
     pub fn rawgrid_mut(&mut self) -> &mut RawGrid<E> {
         match self {
-            Self::Arbitrary(rg) | Self::Square(rg) | Self::Row(rg) | Self::Col(rg) |
-            Self::MultiRow(rg) | Self::MultiCol(rg) => rg,
+            Self::Arbitrary(rg)
+            | Self::Square(rg)
+            | Self::Row(rg)
+            | Self::Col(rg)
+            | Self::MultiRow(rg)
+            | Self::MultiCol(rg) => rg,
             _ => unreachable!(),
         }
     }
@@ -221,9 +227,12 @@ impl<'g, E> Grid<E> {
     pub fn to_arbitrary(self) -> Self {
         match self {
             Self::Failure(_) => Self::Failure(GridErr(UnhandledFailure)),
-            Self::Arbitrary(rg) | Self::Square(rg) |
-            Self::Row(rg) | Self::Col(rg) |
-            Self::MultiRow(rg) | Self::MultiCol(rg) => Self::Arbitrary(rg),
+            Self::Arbitrary(rg)
+            | Self::Square(rg)
+            | Self::Row(rg)
+            | Self::Col(rg)
+            | Self::MultiRow(rg)
+            | Self::MultiCol(rg) => Self::Arbitrary(rg),
         }
     }
 
@@ -231,9 +240,12 @@ impl<'g, E> Grid<E> {
     pub fn to_square(self) -> Self {
         if self.rows() == self.cols() {
             match self {
-                Self::Arbitrary(rg) | Self::Square(rg) |
-                Self::Row(rg) | Self::Col(rg) |
-                Self::MultiRow(rg) | Self::MultiCol(rg) => Self::Square(rg),
+                Self::Arbitrary(rg)
+                | Self::Square(rg)
+                | Self::Row(rg)
+                | Self::Col(rg)
+                | Self::MultiRow(rg)
+                | Self::MultiCol(rg) => Self::Square(rg),
                 _ => Self::Failure(GridErr(UnhandledFailure)),
             }
         } else {
@@ -245,14 +257,15 @@ impl<'g, E> Grid<E> {
     pub fn to_row(self) -> Self {
         match self {
             Self::Failure(_) => Self::Failure(GridErr(UnhandledFailure)),
-            Self::Arbitrary(rg) | Self::Square(rg) |
-            Self::Row(rg) | Self::Col(rg) |
-            Self::MultiRow(rg) | Self::MultiCol(rg) => {
-                match rg.rows(false) {
-                    1 => Self::Row(rg),
-                    r => Self::Failure(GridErr(TooManyRows(r))),
-                }
-            }
+            Self::Arbitrary(rg)
+            | Self::Square(rg)
+            | Self::Row(rg)
+            | Self::Col(rg)
+            | Self::MultiRow(rg)
+            | Self::MultiCol(rg) => match rg.rows(false) {
+                1 => Self::Row(rg),
+                r => Self::Failure(GridErr(TooManyRows(r))),
+            },
         }
     }
 
@@ -260,14 +273,15 @@ impl<'g, E> Grid<E> {
     pub fn to_col(self) -> Self {
         match self {
             Self::Failure(_) => Self::Failure(GridErr(UnhandledFailure)),
-            Self::Arbitrary(rg) | Self::Square(rg) |
-            Self::Row(rg) | Self::Col(rg) |
-            Self::MultiRow(rg) | Self::MultiCol(rg) => {
-                match rg.cols(false) {
-                    1 => Self::Col(rg),
-                    c => Self::Failure(GridErr(TooManyCols(c))),
-                }
-            }
+            Self::Arbitrary(rg)
+            | Self::Square(rg)
+            | Self::Row(rg)
+            | Self::Col(rg)
+            | Self::MultiRow(rg)
+            | Self::MultiCol(rg) => match rg.cols(false) {
+                1 => Self::Col(rg),
+                c => Self::Failure(GridErr(TooManyCols(c))),
+            },
         }
     }
 
@@ -275,9 +289,12 @@ impl<'g, E> Grid<E> {
     pub fn to_multirow(self) -> Self {
         match self {
             Self::Failure(_) => Self::Failure(GridErr(UnhandledFailure)),
-            Self::Arbitrary(rg) | Self::Square(rg) |
-            Self::Row(rg) | Self::Col(rg) |
-            Self::MultiRow(rg) | Self::MultiCol(rg) => Self::MultiRow(rg),
+            Self::Arbitrary(rg)
+            | Self::Square(rg)
+            | Self::Row(rg)
+            | Self::Col(rg)
+            | Self::MultiRow(rg)
+            | Self::MultiCol(rg) => Self::MultiRow(rg),
         }
     }
 
@@ -285,9 +302,12 @@ impl<'g, E> Grid<E> {
     pub fn to_multicol(self) -> Self {
         match self {
             Self::Failure(_) => Self::Failure(GridErr(UnhandledFailure)),
-            Self::Arbitrary(rg) | Self::Square(rg) |
-            Self::Row(rg) | Self::Col(rg) |
-            Self::MultiRow(rg) | Self::MultiCol(rg) => Self::MultiCol(rg),
+            Self::Arbitrary(rg)
+            | Self::Square(rg)
+            | Self::Row(rg)
+            | Self::Col(rg)
+            | Self::MultiRow(rg)
+            | Self::MultiCol(rg) => Self::MultiCol(rg),
         }
     }
 
@@ -369,7 +389,7 @@ impl<'g, E> Grid<E> {
                 grid: self,
                 curr: 0,
             }),
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 
@@ -418,7 +438,7 @@ impl<E> Grid<E> {
     pub fn ag_single_indexed(&self) -> ReRes<&Self> {
         match self.repr() {
             Repr::Row | Repr::Col => Err(GridErr(SingleIndexed(self.repr()))),
-            _ => Ok(self)
+            _ => Ok(self),
         }
     }
 
@@ -458,7 +478,7 @@ impl<E> Grid<E> {
     pub fn ag_too_many_rows(&self) -> ReRes<&Self> {
         match self.rows() {
             1 => Ok(self),
-            r => Err(GridErr(TooManyRows(r)))
+            r => Err(GridErr(TooManyRows(r))),
         }
     }
 
@@ -466,7 +486,7 @@ impl<E> Grid<E> {
     pub fn ag_too_many_cols(&self) -> ReRes<&Self> {
         match self.cols() {
             1 => Ok(self),
-            c => Err(GridErr(TooManyCols(c)))
+            c => Err(GridErr(TooManyCols(c))),
         }
     }
 
@@ -474,7 +494,7 @@ impl<E> Grid<E> {
     pub fn ag_not_multi_row_or_col(&self) -> ReRes<&Self> {
         match self.repr() {
             Repr::MultiRow | Repr::MultiCol => Ok(self),
-            _ => Err(GridErr(NotMultiRowOrCol))
+            _ => Err(GridErr(NotMultiRowOrCol)),
         }
     }
 
@@ -482,7 +502,7 @@ impl<E> Grid<E> {
     pub fn ag_not_stratified(&self) -> ReRes<&Self> {
         match self.repr() {
             Repr::Row | Repr::MultiRow | Repr::Col | Repr::MultiCol => Ok(self),
-            _ => Err(GridErr(NotMultiRowOrCol))
+            _ => Err(GridErr(NotMultiRowOrCol)),
         }
     }
 
@@ -490,11 +510,10 @@ impl<E> Grid<E> {
     pub fn ag_not_square(&self) -> ReRes<&Self> {
         match self.rows() == self.cols() {
             true => Ok(self),
-            false => Err(GridErr(NotSquare((self.rows(), self.cols()))))
+            false => Err(GridErr(NotSquare((self.rows(), self.cols())))),
         }
     }
 }
-
 
 // <<< Iterators
 
@@ -522,28 +541,27 @@ impl<'g, E> Iterator for Line<'g, E> {
     type Item = Elem<'g, E>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let item =
-            if self.grid.repr() == Repr::Row || self.grid.repr() == Repr::MultiRow {
-                match self.curr < self.grid.rows() {
-                    true => Some(Elem {
-                        grid: self.grid,
-                        row: self.curr,
-                        col: 0,
-                    }),
-                    false => None,
-                }
-            } else if self.grid.repr() == Repr::Col || self.grid.repr() == Repr::MultiCol {
-                match self.curr < self.grid.cols() {
-                    true => Some(Elem {
-                        grid: self.grid,
-                        row: 0,
-                        col: self.curr,
-                    }),
-                    false => None,
-                }
-            } else {
-                None
-            };
+        let item = if self.grid.repr() == Repr::Row || self.grid.repr() == Repr::MultiRow {
+            match self.curr < self.grid.rows() {
+                true => Some(Elem {
+                    grid: self.grid,
+                    row: self.curr,
+                    col: 0,
+                }),
+                false => None,
+            }
+        } else if self.grid.repr() == Repr::Col || self.grid.repr() == Repr::MultiCol {
+            match self.curr < self.grid.cols() {
+                true => Some(Elem {
+                    grid: self.grid,
+                    row: 0,
+                    col: self.curr,
+                }),
+                false => None,
+            }
+        } else {
+            None
+        };
         self.curr += 1;
         item
     }
@@ -556,7 +574,6 @@ impl<'g, E> Index<usize> for Line<'g, E> {
         self.grid.att(self.curr, idx)
     }
 }
-
 
 /// Wrapper on particular element of `Grid`
 #[derive(Debug, Clone)]
@@ -579,28 +596,27 @@ impl<'g, E> Iterator for Elem<'g, E> {
     type Item = &'g E;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let item =
-            if self.grid.repr() == Repr::Row || self.grid.repr() == Repr::MultiRow {
-                self.col += 1;
-                match self.col - 1 < self.grid.cols() {
-                    true => Some(self.grid.att(self.row, self.col - 1)),
-                    false => None
-                }
-            } else if self.grid.repr() == Repr::Col {
-                self.row += 1;
-                match self.row - 1 < self.grid.rows() {
-                    true => Some(self.grid.at(self.row - 1)),
-                    false => None
-                }
-            } else if self.grid.repr() == Repr::MultiCol {
-                self.row += 1;
-                match self.row - 1 < self.grid.rows() {
-                    true => Some(self.grid.att(self.col, self.row - 1)),
-                    false => None
-                }
-            } else {
-                None
-            };
+        let item = if self.grid.repr() == Repr::Row || self.grid.repr() == Repr::MultiRow {
+            self.col += 1;
+            match self.col - 1 < self.grid.cols() {
+                true => Some(self.grid.att(self.row, self.col - 1)),
+                false => None,
+            }
+        } else if self.grid.repr() == Repr::Col {
+            self.row += 1;
+            match self.row - 1 < self.grid.rows() {
+                true => Some(self.grid.at(self.row - 1)),
+                false => None,
+            }
+        } else if self.grid.repr() == Repr::MultiCol {
+            self.row += 1;
+            match self.row - 1 < self.grid.rows() {
+                true => Some(self.grid.att(self.col, self.row - 1)),
+                false => None,
+            }
+        } else {
+            None
+        };
         item
     }
 }

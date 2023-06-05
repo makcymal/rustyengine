@@ -1,15 +1,11 @@
 use {
     super::*,
-    crate::{
-        conf::Conf,
-        math::*,
-    },
     crate::errs::{
-        ReRes,
         ReErr::{self, *},
+        ReRes,
     },
+    crate::{conf::Conf, math::*},
 };
-
 
 /// Struct responsible for storing current CoordSys and EntityList and running related scripts
 #[derive(Debug)]
@@ -34,31 +30,26 @@ impl Game {
 
         let cs = CoordSys::new(
             conf.initpt.clone(),
-            Basis::new(Matrix::identity(3))?)?;
+            Basis::new(Matrix::identity(3).to_multicol())?,
+        )?;
 
-        let canvas = Canvas::new(
-            GameObject::new(
-                EntityCore::new(&id_pool.generate()),
-                conf.initpt.clone(),
-                Vector::new(vec![1.0, 0.0, 0.0])),
-            conf.hscr,
-            conf.wscr);
+        let canvas = Canvas::new(conf.hscr, conf.wscr);
 
-        let yfov = match conf.hfov {
+        let hfov = match conf.hfov {
             Some(val) => val,
-            None => conf.wfov * (conf.hscr as f64) / (conf.wscr as f64)
+            None => conf.wfov * (conf.hscr as f64) / (conf.wscr as f64),
         };
 
         let camera = Camera::new(
-            GameObject::new(
-                EntityCore::new(&id_pool.generate()),
-                conf.initpt,
-                Vector::new(vec![1.0, 0.0, 0.0])),
-            yfov,
-            conf.wfov,
+            Core::new(&id_pool.generate()),
+            conf.initpt,
+            Vector::new(vec![1.0, 0.0, 0.0]),
             conf.draw_dist,
+            conf.wfov,
+            hfov,
             conf.hscr,
-            conf.wscr);
+            conf.wscr,
+        );
 
         Ok(Self {
             cs,
@@ -81,14 +72,9 @@ impl Game {
         todo!()
     }
 
-    /// `EntityCore` in current basis with appending it's `Uuid` into `IdPool`
-    pub fn entity_core(&mut self) -> EntityCore {
-        EntityCore::new(&self.id_pool.generate())
-    }
-
-    /// `GameObject` in current game, uses `self.entity_core()`
-    pub fn game_object(&mut self, pos: Point, dir: Vector) -> GameObject {
-        GameObject::new(self.entity_core(), pos, dir)
+    /// `Core` in current basis with appending it's `Uuid` into `IdPool`
+    pub fn core(&mut self) -> Core {
+        Core::new(&self.id_pool.generate())
     }
 
     /// `Canvas` in current game

@@ -1,12 +1,4 @@
-use {
-    super::super::{
-        precision::round_mode::{
-            float_exponent,
-            round_prec,
-        },
-    },
-};
-
+use super::super::precision::round_mode::{float_exponent, round_prec};
 
 #[test]
 fn float_exponent_of_1() {

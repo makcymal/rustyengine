@@ -1,20 +1,15 @@
 use {
-    super::super::{
-        grid::{
-            Repr,
-            Grid::{self, *},
-            Elem,
-        },
+    super::super::grid::{
+        Elem,
+        Grid::{self, *},
+        Repr,
     },
-    crate::{
-        errs::{
-            ReRes,
-            ReErr::{self, *},
-            GridErr::{self, *},
-        },
+    crate::errs::{
+        GridErr::{self, *},
+        ReErr::{self, *},
+        ReRes,
     },
 };
-
 
 #[test]
 fn fill_grid_with() {
@@ -66,7 +61,9 @@ fn many_cols_to_col() {
 
 #[test]
 fn raw_transpose_many_cols_to_col() {
-    let grid = Grid::from_double(vec![vec![1, 2], vec![4, 5], vec![4, 5]]).raw_transpose().to_col();
+    let grid = Grid::from_double(vec![vec![1, 2], vec![4, 5], vec![4, 5]])
+        .raw_transpose()
+        .to_col();
     assert_eq!(grid, Failure(GridErr(TooManyCols(3))));
 }
 
@@ -96,7 +93,10 @@ fn raw_transpose_matrix() {
 
 #[test]
 fn transposed_grid_col_is_row() {
-    let grid = Grid::from_single(vec![0, 1, 2, 3, 4]).raw_transpose().to_col().transpose();
+    let grid = Grid::from_single(vec![0, 1, 2, 3, 4])
+        .raw_transpose()
+        .to_col()
+        .transpose();
     assert!(grid.is_row());
 }
 
@@ -108,18 +108,18 @@ fn transposed_grid_row_is_transposed() {
 
 #[test]
 fn transposed_grid_rowlist_is_collist() {
-    let grid = Grid::from_double(vec![vec![1, 2], vec![4, 5], vec![4, 5]]).to_multirow().transpose();
+    let grid = Grid::from_double(vec![vec![1, 2], vec![4, 5], vec![4, 5]])
+        .to_multirow()
+        .transpose();
     assert!(grid.is_multicol());
 }
 
 #[test]
 fn transposed_grid_rowlist_col_sum() {
-    let grid = Grid::from_double(vec![vec![1, 2], vec![4, 5], vec![4, 5]]).to_multirow().transpose();
-    assert_eq!(
-        grid.iter().unwrap()
-            .next().unwrap().sum::<i32>(),
-        3
-    );
+    let grid = Grid::from_double(vec![vec![1, 2], vec![4, 5], vec![4, 5]])
+        .to_multirow()
+        .transpose();
+    assert_eq!(grid.iter().unwrap().next().unwrap().sum::<i32>(), 3);
 }
 
 #[test]
@@ -142,7 +142,9 @@ fn at_single_row_grid() {
 
 #[test]
 fn at_double_row_grid() {
-    let grid = Grid::from_double(vec![vec![0], vec![1], vec![2], vec![3]]).raw_transpose().to_row();
+    let grid = Grid::from_double(vec![vec![0], vec![1], vec![2], vec![3]])
+        .raw_transpose()
+        .to_row();
     assert_eq!(*grid.at(2), 2);
 }
 
@@ -185,72 +187,57 @@ fn att_single_collist_grid() {
 #[test]
 fn equal_grid() {
     let lhs = Grid::from_double(vec![vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9]]).to_multicol();
-    let rhs = Grid::from_double(vec![vec![1, 4, 7], vec![2, 5, 8], vec![3, 6, 9]]).to_multicol().raw_transpose();
+    let rhs = Grid::from_double(vec![vec![1, 4, 7], vec![2, 5, 8], vec![3, 6, 9]])
+        .to_multicol()
+        .raw_transpose();
     assert_eq!(lhs, rhs);
 }
 
 #[test]
 fn inequal_grid() {
     let lhs = Grid::from_double(vec![vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9]]).to_multicol();
-    let rhs = Grid::from_double(vec![vec![1, 4, 7], vec![2, 5, 8], vec![3, 6, 9]]).to_multicol().transpose();
+    let rhs = Grid::from_double(vec![vec![1, 4, 7], vec![2, 5, 8], vec![3, 6, 9]])
+        .to_multicol()
+        .transpose();
     assert_ne!(lhs, rhs);
 }
 
-
 #[test]
 fn double_grid_row_iter() {
-    let grid = Grid::from_double(vec![vec![0, 1, 2, 3], vec![4, 5, 6, 7], vec![8, 9, 10, 11]]).to_multirow();
-    assert_eq!(
-        *grid.iter().unwrap()
-            .next().unwrap()
-            .next().unwrap(),
-        0
-    );
+    let grid = Grid::from_double(vec![vec![0, 1, 2, 3], vec![4, 5, 6, 7], vec![8, 9, 10, 11]])
+        .to_multirow();
+    assert_eq!(*grid.iter().unwrap().next().unwrap().next().unwrap(), 0);
 }
-
 
 #[test]
 fn double_grid_col_iter() {
-    let grid = Grid::from_double(vec![vec![0, 1, 2, 3], vec![4, 5, 6, 7], vec![8, 9, 10, 11]]).to_multicol();
-    assert_eq!(
-        *grid.iter().unwrap()
-            .next().unwrap()
-            .next().unwrap(),
-        0
-    );
+    let grid = Grid::from_double(vec![vec![0, 1, 2, 3], vec![4, 5, 6, 7], vec![8, 9, 10, 11]])
+        .to_multicol();
+    assert_eq!(*grid.iter().unwrap().next().unwrap().next().unwrap(), 0);
 }
-
 
 #[test]
 fn double_grid_next_row_iter() {
-    let grid = Grid::from_double(vec![vec![0, 1, 2, 3], vec![4, 5, 6, 7], vec![8, 9, 10, 11]]).to_multirow();
+    let grid = Grid::from_double(vec![vec![0, 1, 2, 3], vec![4, 5, 6, 7], vec![8, 9, 10, 11]])
+        .to_multirow();
     let mut iter = grid.iter().unwrap();
     iter.next();
-    assert_eq!(
-        *iter
-            .next().unwrap()
-            .next().unwrap(),
-        4
-    );
+    assert_eq!(*iter.next().unwrap().next().unwrap(), 4);
 }
-
 
 #[test]
 fn double_grid_next_col_iter() {
-    let grid = Grid::from_double(vec![vec![0, 1, 2, 3], vec![4, 5, 6, 7], vec![8, 9, 10, 11]]).to_multicol();
+    let grid = Grid::from_double(vec![vec![0, 1, 2, 3], vec![4, 5, 6, 7], vec![8, 9, 10, 11]])
+        .to_multicol();
     let mut iter = grid.iter().unwrap();
     iter.next();
-    assert_eq!(
-        *iter
-            .next().unwrap()
-            .next().unwrap(),
-        1
-    );
+    assert_eq!(*iter.next().unwrap().next().unwrap(), 1);
 }
 
 #[test]
 fn double_grid_col_iter_sum() {
-    let grid = Grid::from_double(vec![vec![0, 1, 2, 3], vec![4, 5, 6, 7], vec![8, 9, 10, 11]]).to_multicol();
+    let grid = Grid::from_double(vec![vec![0, 1, 2, 3], vec![4, 5, 6, 7], vec![8, 9, 10, 11]])
+        .to_multicol();
     let mut col_iter = grid.iter().unwrap();
     // dbg!(&col_iter);
     let item_iter = col_iter.next().unwrap();
@@ -260,7 +247,8 @@ fn double_grid_col_iter_sum() {
 
 #[test]
 fn double_grid_next_col_iter_sum() {
-    let grid = Grid::from_double(vec![vec![0, 1, 2, 3], vec![4, 5, 6, 7], vec![8, 9, 10, 11]]).to_multicol();
+    let grid = Grid::from_double(vec![vec![0, 1, 2, 3], vec![4, 5, 6, 7], vec![8, 9, 10, 11]])
+        .to_multicol();
     let mut col_iter = grid.iter().unwrap();
     col_iter.next();
     assert_eq!(col_iter.next().unwrap().sum::<i32>(), 15);

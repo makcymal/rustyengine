@@ -6,30 +6,22 @@
 
 use {
     super::{
-        precision::{
-            round, aeq,
-            round_mode::round_prec,
-        },
+        pow_minus,
+        precision::{aeq, round, round_mode::round_prec},
+        Sign::{self, *},
     },
     crate::{
         errs::{
-            ReRes,
-            ReErr::{self, *},
             GridErr::{self, *},
             MathErr::{self, *},
+            ReErr::{self, *},
+            ReRes,
         },
         grid::*,
-        util::{
-            pow_minus,
-            Sign::{self, *},
-        },
-    },
-    std::ops::{
-        Add, Sub, Mul, Div, Neg,
     },
     once_cell::sync::OnceCell,
+    std::ops::{Add, Div, Mul, Neg, Sub},
 };
-
 
 /// Grid with `f64` numbers
 pub type Matrix = Grid<f64>;
@@ -183,10 +175,14 @@ impl Matrix {
             for c in 0..self.cols() {
                 let lhs = *self.rawgrid_mut().att(r, c, false);
                 match sign {
-                    Plus => *self.rawgrid_mut().att_mut(r, c, false) =
-                        round(lhs + rhs.rawgrid_ref().att(r, c, t)),
-                    Minus => *self.rawgrid_mut().att_mut(r, c, false) =
-                        round(lhs - rhs.rawgrid_ref().att(r, c, t))
+                    Plus => {
+                        *self.rawgrid_mut().att_mut(r, c, false) =
+                            round(lhs + rhs.rawgrid_ref().att(r, c, t))
+                    }
+                    Minus => {
+                        *self.rawgrid_mut().att_mut(r, c, false) =
+                            round(lhs - rhs.rawgrid_ref().att(r, c, t))
+                    }
                 }
             }
         }
@@ -241,10 +237,13 @@ impl Matrix {
 
         for r in 0..rows {
             for c in 0..cols {
-                *prod.rawgrid_mut().att_mut(r, c, false) =
-                    round((0..self.cols())
-                        .map(|i| self.rawgrid_ref().att(r, i, false) * rhs.rawgrid_ref().att(i, c, t))
-                        .sum())
+                *prod.rawgrid_mut().att_mut(r, c, false) = round(
+                    (0..self.cols())
+                        .map(|i| {
+                            self.rawgrid_ref().att(r, i, false) * rhs.rawgrid_ref().att(i, c, t)
+                        })
+                        .sum(),
+                )
             }
         }
         prod
@@ -262,10 +261,13 @@ impl Matrix {
 
         for r in 0..rows {
             for c in 0..cols {
-                *prod.rawgrid_mut().att_mut(r, c, false) =
-                    round((0..lhs.rawgrid_ref().cols(t))
-                        .map(|i| lhs.rawgrid_ref().att(r, i, t) * self.rawgrid_ref().att(i, c, false))
-                        .sum())
+                *prod.rawgrid_mut().att_mut(r, c, false) = round(
+                    (0..lhs.rawgrid_ref().cols(t))
+                        .map(|i| {
+                            lhs.rawgrid_ref().att(r, i, t) * self.rawgrid_ref().att(i, c, false)
+                        })
+                        .sum(),
+                )
             }
         }
         prod
@@ -356,33 +358,32 @@ impl Matrix {
     pub fn norm(&self) -> ReRes<f64> {
         self.ag_failed()?;
         match self {
-            Self::Arbitrary(grid) | Self::Square(grid) | Self::MultiRow(grid) | Self::MultiCol(grid) => {
-                Ok(
-                    round((0..grid.rows(false))
-                        .map(|r| (0..grid.cols(false))
+            Self::Arbitrary(grid)
+            | Self::Square(grid)
+            | Self::MultiRow(grid)
+            | Self::MultiCol(grid) => Ok(round(
+                (0..grid.rows(false))
+                    .map(|r| {
+                        (0..grid.cols(false))
                             .map(|c| grid.att(r, c, false).powi(2))
-                            .sum::<f64>())
-                        .sum::<f64>()
-                        .sqrt())
-                )
-            }
-            Self::Row(grid) => {
-                Ok(
-                    round((0..grid.cols(false))
-                        .map(|c| grid.att(0, c, false).powi(2))
-                        .sum::<f64>()
-                        .sqrt())
-                )
-            }
-            Self::Col(grid) => {
-                Ok(
-                    round((0..grid.rows(false))
-                        .map(|r| grid.att(r, 0, false).powi(2))
-                        .sum::<f64>()
-                        .sqrt())
-                )
-            }
-            _ => unreachable!()
+                            .sum::<f64>()
+                    })
+                    .sum::<f64>()
+                    .sqrt(),
+            )),
+            Self::Row(grid) => Ok(round(
+                (0..grid.cols(false))
+                    .map(|c| grid.att(0, c, false).powi(2))
+                    .sum::<f64>()
+                    .sqrt(),
+            )),
+            Self::Col(grid) => Ok(round(
+                (0..grid.rows(false))
+                    .map(|r| grid.att(r, 0, false).powi(2))
+                    .sum::<f64>()
+                    .sqrt(),
+            )),
+            _ => unreachable!(),
         }
     }
 
@@ -482,7 +483,6 @@ impl Matrix {
     }
 }
 
-
 /// All methods related to representation `Row`, `Col`, `MultiRow` or `MultiCol`
 impl Matrix {
     /// Constructor for column
@@ -534,7 +534,10 @@ impl Matrix {
         self.approve_single_vector()?;
         rhs.approve_single_vector()?;
         if self.dim() != rhs.dim() {
-            return Err(MathErr(DimMismatch { lhs: self.dim().unwrap(), rhs: rhs.dim().unwrap() }));
+            return Err(MathErr(DimMismatch {
+                lhs: self.dim().unwrap(),
+                rhs: rhs.dim().unwrap(),
+            }));
         }
         Ok(())
     }
@@ -545,7 +548,10 @@ impl Matrix {
         self.ag_not_stratified()?;
         rhs.ag_not_stratified()?;
         if self.dim() != rhs.dim() {
-            return Err(MathErr(DimMismatch { lhs: self.dim().unwrap(), rhs: rhs.dim().unwrap() }));
+            return Err(MathErr(DimMismatch {
+                lhs: self.dim().unwrap(),
+                rhs: rhs.dim().unwrap(),
+            }));
         }
         Ok(())
     }
@@ -554,13 +560,9 @@ impl Matrix {
     pub fn dim(&self) -> ReRes<usize> {
         self.ag_failed()?.ag_not_stratified()?;
         match self {
-            Self::Row(_) | Self::MultiRow(_) => {
-                Ok(self.cols())
-            }
-            Self::Col(_) | Self::MultiCol(_) => {
-                Ok(self.rows())
-            }
-            _ => unreachable!()
+            Self::Row(_) | Self::MultiRow(_) => Ok(self.cols()),
+            Self::Col(_) | Self::MultiCol(_) => Ok(self.rows()),
+            _ => unreachable!(),
         }
     }
 
@@ -624,34 +626,41 @@ impl Matrix {
     /// Scalar product according to given `core` matrix.
     /// Operands must have `Row` or `Col` of the same dim.
     /// Produces `Arbitrary` matrix of `f64`, that is pair-wise scalar products
-    pub(in super) fn raw_scalar_prod(&self, rhs: &Self, core: &Self) -> ReRes<Self> {
+    pub(super) fn raw_scalar_prod(&self, rhs: &Self, core: &Self) -> ReRes<Self> {
         self.approve_multi_vector_ops(rhs)?;
         let lhs = match self.repr() {
             Repr::Row | Repr::MultiRow => self.mul(core),
             Repr::Col | Repr::MultiCol => self.mul_left_t(core).transpose(),
-            _ => unreachable!()
+            _ => unreachable!(),
         };
         Ok(match rhs.repr() {
             Repr::Col | Repr::MultiCol => lhs.mul(rhs),
             Repr::Row | Repr::MultiRow => lhs.mul_t(rhs),
-            _ => unreachable!()
+            _ => unreachable!(),
         })
     }
 
     /// Scalar product according to given `core` matrix.
     /// Operands at the given indices must have the same dim.
     /// Between `Row`'s or `Col`'s produces `f64`
-    pub(in super) fn raw_scalar_prod_at(&self, s: usize, rhs: &Self, r: usize, core: &Self) -> ReRes<f64> {
+    pub(super) fn raw_scalar_prod_at(
+        &self,
+        s: usize,
+        rhs: &Self,
+        r: usize,
+        core: &Self,
+    ) -> ReRes<f64> {
         self.approve_multi_vector_ops(rhs)?;
-        Ok(
-            round((0..self.dim().unwrap())
+        Ok(round(
+            (0..self.dim().unwrap())
                 .map(|i| {
-                    self.att(s, i) * (0..rhs.dim().unwrap())
-                        .map(|j| core.att(i, j) * rhs.att(r, j))
-                        .sum::<f64>()
+                    self.att(s, i)
+                        * (0..rhs.dim().unwrap())
+                            .map(|j| core.att(i, j) * rhs.att(r, j))
+                            .sum::<f64>()
                 })
-                .sum::<f64>())
-        )
+                .sum::<f64>(),
+        ))
     }
 
     /// Orthonorm vector product
@@ -668,7 +677,9 @@ impl Matrix {
             round(self.att(s, 1) * rhs.att(r, 2) - self.att(s, 2) * rhs.att(r, 1)),
             round(self.att(s, 2) * rhs.att(r, 0) - self.att(s, 0) * rhs.att(r, 2)),
             round(self.att(s, 0) * rhs.att(r, 1) - self.att(s, 1) * rhs.att(r, 0)),
-        ]).raw_transpose().to_col())
+        ])
+        .raw_transpose()
+        .to_col())
     }
 
     /// Doesn't pass any matrix that are not `Row`, `Col`, `MultiRow` or `MultiCol` or have dimension inequal to 3
@@ -676,7 +687,7 @@ impl Matrix {
         match self.dim() {
             Ok(3) => Ok(self),
             Err(err) => Err(err),
-            _ => Err(MathErr(NotIn3Dim))
+            _ => Err(MathErr(NotIn3Dim)),
         }
     }
 
@@ -691,7 +702,6 @@ impl Matrix {
     }
 }
 
-
 static mut BIFORM: OnceCell<Matrix> = OnceCell::new();
 
 pub fn set_biform(biform: Matrix) {
@@ -704,7 +714,9 @@ pub fn set_biform(biform: Matrix) {
 pub fn set_biform_vec(double: Vec<Vec<f64>>) {
     unsafe {
         BIFORM.take();
-        BIFORM.set(Matrix::from_double(double)).expect("BIFORM init failed");
+        BIFORM
+            .set(Matrix::from_double(double))
+            .expect("BIFORM init failed");
     }
 }
 
@@ -716,7 +728,5 @@ pub fn set_biform_identity() {
 }
 
 fn biform() -> &'static Matrix {
-    unsafe {
-        BIFORM.get().expect("BIFORM isn't initialized")
-    }
+    unsafe { BIFORM.get().expect("BIFORM isn't initialized") }
 }

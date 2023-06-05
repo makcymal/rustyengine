@@ -1,19 +1,17 @@
 use {
     super::*,
-    crate::{
-        grid::*,
-        math::*,
-    },
-    std::{
-        f64::consts::PI,
-    },
+    crate::{grid::*, math::*},
+    std::{any::Any, collections::HashMap, f64::consts::PI, rc::Rc},
+    uuid::Uuid,
 };
 
-
-/// Game camera that contains `GameObject`
 #[derive(Debug)]
 pub struct Camera {
-    pub(crate) go: GameObject,
+    pub(crate) core: Core,
+    pub(crate) pos: Point,
+    pub(crate) dir: Vector,
+    pub(crate) wfov: f64,
+    pub(crate) hfov: f64,
     pub(crate) draw_dist: f64,
     pub(crate) lookat: Option<Point>,
     pub(crate) rays: Grid<Vector>,
@@ -21,9 +19,22 @@ pub struct Camera {
 
 impl Camera {
     /// Constructs new camera from the given game object
-    pub fn new(mut game_object: GameObject, draw_dist: f64, yfov: f64, zfov: f64, y: usize, z: usize) -> Self {
+    pub fn new(
+        core: Core,
+        pos: Point,
+        dir: Vector,
+        draw_dist: f64,
+        yfov: f64,
+        zfov: f64,
+        y: usize,
+        z: usize,
+    ) -> Self {
         Self {
-            go: game_object,
+            core,
+            pos,
+            dir,
+            wfov: yfov,
+            hfov: zfov,
             draw_dist,
             lookat: None,
             rays: rays(yfov, zfov, y, z),
@@ -82,24 +93,28 @@ pub(crate) fn rays_df(axis: usize, fov: f64, discr: usize) -> Vec<f64> {
     let mut rays_df = vec![];
 
     for _ in 0..(discr / 2) {
-        rays_df.push(
-            Matrix::rotation(0, axis, angle, 3)
-                .mul(&dir)
-                .att(axis, 0) / angle.cos()
-        );
+        rays_df.push(Matrix::rotation(0, axis, angle, 3).mul(&dir).att(axis, 0) / angle.cos());
         angle += angle_step;
     }
 
     rays_df
 }
 
-
 impl Entity for Camera {
-    fn core(&self) -> &EntityCore {
-        self.go.core()
+    fn id(&self) -> &Rc<Uuid> {
+        self.core.id()
     }
 
-    fn core_mut(&mut self) -> &mut EntityCore {
-        self.go.core_mut()
+    fn props(&self) -> &HashMap<&'static str, Box<dyn Any>> {
+        self.core.props()
     }
+
+    fn props_mut(&mut self) -> &mut HashMap<&'static str, Box<dyn Any>> {
+        self.core.props_mut()
+    }
+}
+
+pub struct Ray {
+    pub(crate) inc: Point,
+    pub(crate) dir: Vector,
 }

@@ -2,34 +2,31 @@ use {
     super::*,
     crate::{
         errs::{
-            ReRes,
             ReErr::{self, *},
+            ReRes,
         },
-        math::*,
         grid::*,
+        math::*,
     },
 };
 
 #[derive(Debug)]
 pub struct Canvas {
-    go: GameObject,
-    pub scr_y: usize,
-    pub scr_x: usize,
+    pub wscr: usize,
+    pub hscr: usize,
     dist: Matrix,
 }
 
 impl Canvas {
-    pub fn new(go: GameObject, scr_y: usize, scr_x: usize) -> Self {
+    pub fn new(wscr: usize, hscr: usize) -> Self {
         Self {
-            go,
-            scr_y,
-            scr_x,
-            dist: Matrix::zero(scr_y, scr_x),
+            wscr,
+            hscr,
+            dist: Matrix::zero(wscr, hscr),
         }
     }
 
     pub fn update(&mut self, camera: &Camera, entities: &EntityList) -> ReRes<()> {
-
         Ok(())
     }
 }

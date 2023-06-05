@@ -2,25 +2,23 @@
 //! 1. `Exact` when there are no roundations and `f64` are compared as absolute difference against some epsilon
 //! 2. `Round` when all operations are performed with following roundation, so `f64` are compared as they are
 
-
 /// Precision modes
-enum PrecMode { Exact, Round }
+enum PrecMode {
+    Exact,
+    Round,
+}
 
 /// Current precision mode
 static mut PRECMODE: PrecMode = PrecMode::Exact;
 
 /// Select `Exact` precision mode
 pub fn set_exact_mode() {
-    unsafe {
-        PRECMODE = PrecMode::Exact
-    }
+    unsafe { PRECMODE = PrecMode::Exact }
 }
 
 /// Select `Round` precision mode
 pub fn set_round_mode() {
-    unsafe {
-        PRECMODE = PrecMode::Round
-    }
+    unsafe { PRECMODE = PrecMode::Round }
 }
 
 /// Set precision with coefficient `p` within [0, 255] where greater the `p` means higher precision
@@ -36,7 +34,7 @@ pub fn round(f: f64) -> f64 {
     unsafe {
         match PRECMODE {
             PrecMode::Exact => f,
-            PrecMode::Round => round_mode::round(f)
+            PrecMode::Round => round_mode::round(f),
         }
     }
 }
@@ -47,11 +45,10 @@ pub fn aeq(lhs: &f64, rhs: &f64) -> bool {
         // dbg!(lhs, rhs);
         match PRECMODE {
             PrecMode::Exact => exact_mode::eq(lhs, rhs),
-            PrecMode::Round => lhs == rhs
+            PrecMode::Round => lhs == rhs,
         }
     }
 }
-
 
 /// Roundation in `Round` mode
 pub(in crate::math) mod round_mode {
@@ -69,19 +66,22 @@ pub(in crate::math) mod round_mode {
 
     /// Sets all the digits after `PRECISION`'th to zero in binary notation
     pub fn round(f: f64) -> f64 {
-        if f == 0.0 || f.is_nan() || f.is_infinite() { return f; };
+        if f == 0.0 || f.is_nan() || f.is_infinite() {
+            return f;
+        };
 
         let exp = float_exponent(f);
-        let extra_signs = unsafe {
-            (MANTISSA_BYTES + EXPONENT_SHIFT).saturating_sub(exp + PRECISION)
-        };
+        let extra_signs =
+            unsafe { (MANTISSA_BYTES + EXPONENT_SHIFT).saturating_sub(exp + PRECISION) };
         let mask = (u64::MAX >> extra_signs) << extra_signs;
         f64::from_bits(f.to_bits() & mask)
     }
 
     /// Sets all the digits after prec'th to zero in binary notation
     pub fn round_prec(f: f64, prec: u16) -> f64 {
-        if f == 0.0 || f.is_nan() || f.is_infinite() { return f; };
+        if f == 0.0 || f.is_nan() || f.is_infinite() {
+            return f;
+        };
 
         let exp = float_exponent(f);
         let extra_signs = (MANTISSA_BYTES + EXPONENT_SHIFT).saturating_sub(exp + prec);
@@ -95,8 +95,6 @@ pub(in crate::math) mod exact_mode {
     pub static mut EPSILON: f64 = f64::EPSILON * 10.0;
 
     pub fn eq(lhs: &f64, rhs: &f64) -> bool {
-        unsafe {
-            (lhs - rhs).abs() < EPSILON
-        }
+        unsafe { (lhs - rhs).abs() < EPSILON }
     }
 }

@@ -1,7 +1,4 @@
-use {
-    thiserror::Error,
-};
-
+use thiserror::Error;
 
 /// Errors that can replace `Matrix` or be obtained within `ReRes::ReErr::MatrixErr`
 #[derive(Error, Debug, Clone, Copy, PartialEq)]
@@ -19,10 +16,7 @@ pub enum MathErr {
     },
 
     #[error("scalar product between vectors with dim {lhs:?} and {rhs:?}")]
-    DimMismatch {
-        lhs: usize,
-        rhs: usize,
-    },
+    DimMismatch { lhs: usize, rhs: usize },
 
     #[error("inverse of matrix with null determinant")]
     NullDeterminant,
@@ -40,8 +34,5 @@ pub enum MathErr {
     ZeroDimSpace,
 
     #[error("point and vector has different dimensions: {pt_dim:?} and {vec_dim:?}")]
-    PtVecDimMismatch {
-        pt_dim: usize,
-        vec_dim: usize,
-    },
+    PtVecDimMismatch { pt_dim: usize, vec_dim: usize },
 }

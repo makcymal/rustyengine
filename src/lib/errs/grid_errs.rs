@@ -1,7 +1,4 @@
-use {
-    crate::grid::Repr,
-    thiserror::Error,
-};
+use {crate::grid::Repr, thiserror::Error};
 
 /// Errors that can replace `Grid` or be obtained within `Result::Err::GridErr`
 #[derive(Error, Debug, Clone, Copy, PartialEq)]
@@ -48,14 +45,8 @@ pub enum GridErr {
     NotSquare((usize, usize)),
 
     #[error("appending rows of len {tail:?} to rows of len {dest:?}")]
-    RowsAppendMismatch {
-        dest: usize,
-        tail: usize,
-    },
+    RowsAppendMismatch { dest: usize, tail: usize },
 
     #[error("appending cols of len {tail:?} to cols of len {dest:?}")]
-    ColsAppendMismatch {
-        dest: usize,
-        tail: usize,
-    }
+    ColsAppendMismatch { dest: usize, tail: usize },
 }

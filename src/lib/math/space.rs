@@ -1,16 +1,15 @@
 use {
     super::*,
     crate::{
-        grid::Repr::{self, *},
         errs::{
-            ReRes,
-            ReErr::{self, *},
             GridErr::{self, *},
             MathErr::{self, *},
+            ReErr::{self, *},
+            ReRes,
         },
+        grid::Repr::{self, *},
     },
 };
-
 
 /// Vector that is `Matrix::Col`
 #[derive(Debug, Clone, PartialEq)]
@@ -22,7 +21,7 @@ impl Vector {
     /// Vector as column with the given coordinates
     pub fn new(coord: Vec<f64>) -> Self {
         Self {
-            coord: Matrix::from_single(coord).raw_transpose().to_col()
+            coord: Matrix::from_single(coord).raw_transpose().to_col(),
         }
     }
 
@@ -45,7 +44,7 @@ impl Vector {
     pub fn to_row(mut self) -> Self {
         if self.coord.is_col() {
             Self {
-                coord: self.coord.raw_transpose().to_row()
+                coord: self.coord.raw_transpose().to_row(),
             }
         } else {
             self
@@ -56,25 +55,33 @@ impl Vector {
     pub fn to_col(self) -> Self {
         if self.coord.is_row() {
             Self {
-                coord: self.coord.raw_transpose().to_col()
+                coord: self.coord.raw_transpose().to_col(),
             }
         } else {
             self
         }
     }
 
+    /// Scalar product without basis
     pub fn scalar_prod(&self, rhs: &Vector) -> ReRes<f64> {
         self.coord.scalar_prod(&rhs.coord)
     }
 
+    /// Vector product without basis
     pub fn vector_prod(&self, rhs: &Vector) -> ReRes<Self> {
-        Ok(Self { coord: self.coord.vector_prod(rhs.coord())? })
+        Ok(Self {
+            coord: self.coord.vector_prod(rhs.coord())?,
+        })
     }
 
+    /// Resizes vector to length of 1 without basis according only to `BIFORM` matrix
     pub fn normalize(mut self) -> Self {
-        Self { coord: self.coord.normalize() }
+        Self {
+            coord: self.coord.normalize(),
+        }
     }
 
+    /// Multiplies each component to the given `coef`
     pub fn resize(mut self, coef: f64) -> Self {
         for i in 0..self.coord.dim().unwrap() {
             *self.coord.at_mut(i) *= coef;
@@ -87,7 +94,6 @@ impl Vector {
         self.coord.dim().unwrap()
     }
 }
-
 
 /// Point that defined by `Matrix::Col` as radius vector
 pub type Point = Vector;
@@ -125,7 +131,6 @@ impl Default for Point {
     }
 }
 
-
 /// Basis that is `Matrix::MultiCol`, square, linear independence
 #[derive(Debug, Clone, PartialEq)]
 pub struct Basis {
@@ -135,7 +140,11 @@ pub struct Basis {
 impl Basis {
     /// Constructor for basis, validates it and makes it `Multicol`
     pub fn new(mut basis: Matrix) -> ReRes<Self> {
-        basis.ag_failed()?.ag_not_stratified()?.ag_not_square()?.ag_linear_dependence()?;
+        basis
+            .ag_failed()?
+            .ag_not_stratified()?
+            .ag_not_square()?
+            .ag_linear_dependence()?;
         if basis.is_multirow() {
             basis = basis.transpose();
         }
@@ -150,7 +159,6 @@ impl Default for Basis {
         }
     }
 }
-
 
 /// Coordinate system as combination of initial point, basis of given vector space
 #[derive(Debug, Clone, PartialEq)]
@@ -171,10 +179,23 @@ impl CoordSys {
         space.basis.ag_not_3_dim()?;
         let gram = space.basis.multi_scalar_prod(&space.basis).unwrap();
         let dual = None;
-        let is_ortho = aeq(&space.basis.scalar_prod_at(0, &space.basis, 1).unwrap(), &0.0) &&
-            aeq(&space.basis.scalar_prod_at(0, &space.basis, 2).unwrap(), &0.0) &&
-            aeq(&space.basis.scalar_prod_at(1, &space.basis, 2).unwrap(), &0.0);
-        Ok(Self { initpt, space, gram, dual, is_ortho })
+        let is_ortho = aeq(
+            &space.basis.scalar_prod_at(0, &space.basis, 1).unwrap(),
+            &0.0,
+        ) && aeq(
+            &space.basis.scalar_prod_at(0, &space.basis, 2).unwrap(),
+            &0.0,
+        ) && aeq(
+            &space.basis.scalar_prod_at(1, &space.basis, 2).unwrap(),
+            &0.0,
+        );
+        Ok(Self {
+            initpt,
+            space,
+            gram,
+            dual,
+            is_ortho,
+        })
     }
 
     /// Public access to field `initpt`, returns `&Point`
@@ -226,7 +247,6 @@ impl CoordSys {
                 }
             }
             Col | MultiCol => {
-
                 for c in 0..vec.cols() {
                     let len = self.len_at(vec, c).unwrap();
                     for r in 0..vec.rows() {
@@ -278,11 +298,20 @@ impl CoordSys {
         self.dual.as_ref().unwrap().combine(coef)
     }
 
-
-
     /// Decompose point in current basis
-    pub fn decompose_pt(&self, pt: &Point) -> Matrix {
-        pt.coord.mul_left(&self.space.basis.inv().expect("matrix of basis vector haven't inversed"))
+    pub fn decompose_pt(&self, pt: &Point) -> Vector {
+        Vector {
+            coord: pt
+                .coord
+                .mul_left(
+                    &self
+                        .space
+                        .basis
+                        .inv()
+                        .expect("matrix of basis vector haven't inversed"),
+                )
+                .to_col(),
+        }
     }
 }
 

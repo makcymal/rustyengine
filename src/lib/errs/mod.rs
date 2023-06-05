@@ -3,18 +3,9 @@
 mod game_errs;
 mod grid_errs;
 mod math_errs;
-mod none_opts;
 
-pub use {
-    game_errs::GameErr,
-    grid_errs::GridErr,
-    math_errs::MathErr,
-    none_opts::NoneOpt,
-};
-use {
-    strum_macros::Display,
-};
-
+use strum_macros::Display;
+pub use {game_errs::GameErr, grid_errs::GridErr, math_errs::MathErr};
 
 /// `Result` with `ReErr` as `Err` variant
 pub type ReRes<T> = Result<T, ReErr>;
@@ -26,5 +17,4 @@ pub enum ReErr {
     GameErr(GameErr),
     GridErr(GridErr),
     MathErr(MathErr),
-    NoneOpt(NoneOpt),
 }

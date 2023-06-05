@@ -7,24 +7,17 @@ mod test;
 
 use {
     crate::{
-        errs::{
-            ReRes,
-            ReErr::{self, *},
-            GameErr::{self, *},
-        },
         engn::*,
+        errs::{
+            GameErr::{self, *},
+            ReErr::{self, *},
+            ReRes,
+        },
         math::*,
     },
-    std::{
-        f64::consts::PI,
-        fs::read_to_string,
-    },
-    toml::{
-        Table,
-        Value,
-    },
+    std::{f64::consts::PI, fs::read_to_string},
+    toml::{Table, Value},
 };
-
 
 /// Struct that packages configuration parameters,
 /// it further is used for `Game` object instanciating
@@ -163,9 +156,9 @@ impl Conf {
 fn parse_single(value: Value, key: &'static str) -> ReRes<Vec<f64>> {
     let array = match value {
         Value::Array(array) => array,
-        _ => return Err(GameErr(InvalidConfValue(key)))
+        _ => return Err(GameErr(InvalidConfValue(key))),
     };
-    let mut single: Vec<f64> = vec!();
+    let mut single: Vec<f64> = vec![];
     for val in array {
         if single.len() == 3 {
             return Err(GameErr(InvalidConfValue(key)));
@@ -173,12 +166,11 @@ fn parse_single(value: Value, key: &'static str) -> ReRes<Vec<f64>> {
         match val {
             Value::Integer(c) => single.push(c as f64),
             Value::Float(c) => single.push(c),
-            _ => return Err(GameErr(InvalidConfValue(key)))
+            _ => return Err(GameErr(InvalidConfValue(key))),
         }
     }
     Ok(single)
 }
-
 
 impl Default for Conf {
     fn default() -> Self {

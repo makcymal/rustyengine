@@ -4,20 +4,16 @@ mod camera;
 mod canvas;
 mod entity;
 mod game;
-mod geometrical;
+mod hype;
 
 #[cfg(test)]
 mod test;
 
-// re-exports in scope of namespace `engine`
+// re-exports in scope of namespace `engn`
 pub use {
-    camera::Camera,
+    camera::{Camera, Ray},
     canvas::Canvas,
-    entity::{
-        Entity, IdPool, EntityCore, GameObject,
-    },
-    geometrical::{
-        Intersected, EntityList, HypePlane,
-    },
+    entity::{Core, Entity, EntityList, GameObject, IdPool},
     game::Game,
+    hype::HypePlane,
 };

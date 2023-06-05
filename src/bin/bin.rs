@@ -2,6 +2,4 @@
 
 use rustyengineer::conf::Conf;
 
-fn main() {
-
-}
+fn main() {}

@@ -1,14 +1,6 @@
 use {
-    super::super:: {
-        *,
-        camera::rays_df,
-        camera::rays,
-    },
-    crate::{
-        conf::*,
-        math::*,
-        grid::*,
-    },
+    super::super::{camera::rays, camera::rays_df, *},
+    crate::{conf::*, grid::*, math::*},
     std::f64::consts::PI,
 };
 
@@ -46,7 +38,10 @@ fn rays_discr_3_3_att_0_2() {
 #[test]
 fn rays_discr_4_3_att_1_1() {
     let rays = rays(PI / 2.0, PI / 2.0, 4, 3);
-    assert!(rays.att(1, 1).coord.aeq(&Vector::new(vec![1.0, (PI / 12.0).tan(), 0.0]).coord));
+    assert!(rays
+        .att(1, 1)
+        .coord
+        .aeq(&Vector::new(vec![1.0, (PI / 12.0).tan(), 0.0]).coord));
 }
 
 #[test]

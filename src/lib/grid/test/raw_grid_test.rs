@@ -1,19 +1,14 @@
 use {
-    super::super::{
-        raw_grid::{
-            VecWrapper::{self, *},
-            RawGrid,
-        },
+    super::super::raw_grid::{
+        RawGrid,
+        VecWrapper::{self, *},
     },
-    crate::{
-        errs::{
-            ReRes,
-            ReErr::{self, *},
-            GridErr::{self, *},
-        },
+    crate::errs::{
+        GridErr::{self, *},
+        ReErr::{self, *},
+        ReRes,
     },
 };
-
 
 // <<< RawGrid tests
 #[test]
@@ -27,7 +22,6 @@ fn is_not_single_vec_wrapper() {
     let vw: VecWrapper<f64> = Double(vec![]);
     assert_eq!(vw.is_single(), false);
 }
-
 
 #[test]
 fn empty_single_vec_wrapper() {
@@ -79,7 +73,9 @@ fn rows_raw_grid() {
 
 #[test]
 fn trans_cols_raw_grid() {
-    let rg = RawGrid::from_double(vec![vec![1, 2, 3], vec![4, 5, 6]]).unwrap().transpose();
+    let rg = RawGrid::from_double(vec![vec![1, 2, 3], vec![4, 5, 6]])
+        .unwrap()
+        .transpose();
     assert_eq!(rg.cols(false), 2);
 }
 
@@ -91,13 +87,17 @@ fn raw_grid_is_not_transposed() {
 
 #[test]
 fn raw_grid_is_transposed() {
-    let rg = RawGrid::from_double(vec![vec![1, 2, 3], vec![4, 5, 6]]).unwrap().transpose();
+    let rg = RawGrid::from_double(vec![vec![1, 2, 3], vec![4, 5, 6]])
+        .unwrap()
+        .transpose();
     assert_eq!(rg.is_transposed(), true);
 }
 
 #[test]
 fn t_trans_cols_raw_grid() {
-    let rg = RawGrid::from_double(vec![vec![1, 2, 3], vec![4, 5, 6]]).unwrap().transpose();
+    let rg = RawGrid::from_double(vec![vec![1, 2, 3], vec![4, 5, 6]])
+        .unwrap()
+        .transpose();
     assert_eq!(rg.cols(true), 3);
 }
 
@@ -109,21 +109,29 @@ fn att_raw_grid() {
 
 #[test]
 fn att_trans_raw_grid() {
-    let rg = RawGrid::from_double(vec![vec![1, 2, 3], vec![4, 5, 6]]).unwrap().transpose();
+    let rg = RawGrid::from_double(vec![vec![1, 2, 3], vec![4, 5, 6]])
+        .unwrap()
+        .transpose();
     assert_eq!(*rg.att(0, 1, false), 4);
 }
 
 #[test]
 fn att_t_trans_raw_grid() {
-    let rg = RawGrid::from_double(vec![vec![1, 2, 3], vec![4, 5, 6]]).unwrap().transpose();
+    let rg = RawGrid::from_double(vec![vec![1, 2, 3], vec![4, 5, 6]])
+        .unwrap()
+        .transpose();
     assert_eq!(*rg.att(0, 1, true), 2);
 }
 
 #[test]
 fn pred_equality_raw_grids() {
     let p = |lhs: &i32, rhs: &i32| lhs == rhs;
-    let lhs = RawGrid::from_double(vec![vec![1, 2, 3], vec![4, 5, 6]]).unwrap().transpose();
-    let rhs = RawGrid::from_double(vec![vec![1, 2, 3], vec![4, 5, 6]]).unwrap().transpose();
+    let lhs = RawGrid::from_double(vec![vec![1, 2, 3], vec![4, 5, 6]])
+        .unwrap()
+        .transpose();
+    let rhs = RawGrid::from_double(vec![vec![1, 2, 3], vec![4, 5, 6]])
+        .unwrap()
+        .transpose();
     assert!(lhs.eqp(&rhs, p));
 }
 
