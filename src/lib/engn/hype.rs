@@ -95,3 +95,46 @@ impl GameObject for HypePlane {
         dist
     }
 }
+
+#[derive(Debug)]
+pub struct HypeEllipse {
+    pub(crate) core: Core,
+    pub(crate) cen: Point,
+    pub(crate) dir: Vector,
+}
+
+impl Entity for HypeEllipse {
+    fn id(&self) -> &Rc<Uuid> {
+        self.core.id()
+    }
+
+    fn props(&self) -> &HashMap<&'static str, Box<dyn Any>> {
+        self.core.props()
+    }
+
+    fn props_mut(&mut self) -> &mut HashMap<&'static str, Box<dyn Any>> {
+        self.core.props_mut()
+    }
+}
+
+impl GameObject for HypeEllipse {
+    fn pos(&self) -> &Point {
+        &self.cen
+    }
+
+    fn pos_mut(&mut self) -> &mut Point {
+        &mut self.cen
+    }
+
+    fn dir(&self) -> &Vector {
+        &self.dir
+    }
+
+    fn dir_mut(&mut self) -> &mut Vector {
+        &mut self.dir
+    }
+
+    fn intersect(&self, cs: &CoordSys, ray: &Ray) -> f64 {
+        todo!()
+    }
+}

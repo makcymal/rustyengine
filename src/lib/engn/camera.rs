@@ -115,6 +115,6 @@ impl Entity for Camera {
 }
 
 pub struct Ray {
-    pub(crate) inc: Point,
-    pub(crate) dir: Vector,
+    pub inc: Point,
+    pub dir: Vector,
 }
