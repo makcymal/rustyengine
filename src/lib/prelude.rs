@@ -1,6 +1,1 @@
-pub use {
-    crate::{
-        conf::Conf,
-        engn::Game,
-    }
-};
+pub use crate::{conf::Conf, engn::Game};

@@ -1,16 +1,12 @@
 use {
+    super::activity::*,
     anyhow::Result,
     crossterm::{
-        event, cursor,
-        ExecutableCommand,
+        cursor, event,
         terminal::{enable_raw_mode, size},
+        ExecutableCommand,
     },
-    super::activity::*,
-    std::{
-        thread,
-        time::Duration,
-        io::stdout,
-    },
+    std::{io::stdout, thread, time::Duration},
 };
 
 // (columns, rows)
@@ -36,17 +32,17 @@ pub fn show_message(msg: &str, rows: u16, cols: u16) -> Result<()> {
     move_cursor(row, col)?;
 
     clear();
-    println!("{}",  msg[..cols]);
-    thread::sleep(Duration::from_millis(timeout));
+    println!("{}", &msg[..(cols as usize)]);
+    thread::sleep(Duration::from_millis(500));
     clear();
     Ok(())
 }
 
-pub fn show_notification(ntf: &str) -> Result<()> {
-    let col = cols.saturating_sub(msg.len() as u16) / 2;
-    move_cursor(row, col)?;
+pub fn show_notification(ntf: &str, cols: u16) -> Result<()> {
+    let col = cols.saturating_sub(ntf.len() as u16) / 2;
+    move_cursor(1, col)?;
 
-    println!("{}",  ntf[..cols]);
+    println!("{}", &ntf[..(cols as usize)]);
     Ok(())
 }
 

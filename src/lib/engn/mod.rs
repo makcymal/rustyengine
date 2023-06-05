@@ -11,7 +11,7 @@ mod test;
 
 // re-exports in scope of namespace `engn`
 pub use {
-    camera::{Camera, Ray},
+    camera::Camera,
     canvas::Canvas,
     entity::{Core, Entity, EntityList, GameObject, IdPool},
     game::Game,

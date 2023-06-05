@@ -22,52 +22,86 @@ fn computed_vert_fov() {
 }
 
 #[test]
-fn hype_plane_straight_intersect() {
+fn plane_straight_intersect() {
     let mut game = Game::default();
-    let plane = HypePlane::new(game.game_object(
+    let plane = HypePlane::new(
+        game.core(),
         Point::new(vec![3.0, 0.0, 0.0]),
         Vector::new(vec![1.0, 0.0, 0.0]),
-    ))
+    )
     .unwrap();
     let dist = plane.intersect(
         &game.cs,
         &Point::default(),
         &Vector::new(vec![1.0, 0.0, 0.0]),
-        1.0,
     );
-    assert_eq!(dist.unwrap(), 3.0);
+    assert_eq!(dist, 3.0);
 }
 
 #[test]
-fn curve_hype_plane_straight_intersect() {
+fn curve_plane_straight_intersect() {
     let mut game = Game::default();
-    let plane = HypePlane::new(game.game_object(
+    let plane = HypePlane::new(
+        game.core(),
         Point::new(vec![3.0, 0.0, 0.0]),
-        Vector::new(vec![1.0, 0.0, -1.0]),
-    ))
+        Vector::new(vec![1.0, 1.0, 0.0]),
+    )
     .unwrap();
     let dist = plane.intersect(
         &game.cs,
-        &Point::new(vec![-1.0, 1.0, 0.0]),
+        &Point::default(),
         &Vector::new(vec![1.0, 0.0, 0.0]),
-        1.0,
     );
-    assert_eq!(dist.unwrap(), 4.0);
+    assert_eq!(dist, 3.0);
 }
 
 #[test]
-fn straight_hype_plane_curve_intersect() {
+fn straight_plane_curve_intersect() {
     let mut game = Game::default();
-    let plane = HypePlane::new(game.game_object(
+    let plane = HypePlane::new(
+        game.core(),
         Point::new(vec![3.0, 0.0, 0.0]),
         Vector::new(vec![1.0, 0.0, 0.0]),
-    ))
+    )
     .unwrap();
     let dist = plane.intersect(
         &game.cs,
         &Point::default(),
         &Vector::new(vec![1.0, 1.0, 0.0]),
-        1.0,
     );
-    assert_eq!(dist.unwrap(), 18.0_f64.sqrt());
+    assert_eq!(dist, 3.0);
+}
+
+#[test]
+fn horizontal_plane_curve_intersect() {
+    let mut game = Game::default();
+    let plane = HypePlane::new(
+        game.core(),
+        Point::default(),
+        Vector::new(vec![0.0, 0.0, 1.0]),
+    )
+    .unwrap();
+    let dist = plane.intersect(
+        &game.cs,
+        &Point::new(vec![0.0, 0.0, 1.0]),
+        &Vector::new(vec![3.0, -1.0, -2.0]),
+    );
+    assert_eq!(dist, 0.5);
+}
+
+#[test]
+fn horizontal_plane_no_intersect() {
+    let mut game = Game::default();
+    let plane = HypePlane::new(
+        game.core(),
+        Point::default(),
+        Vector::new(vec![0.0, 0.0, 1.0]),
+    )
+    .unwrap();
+    let dist = plane.intersect(
+        &game.cs,
+        &Point::new(vec![0.0, 0.0, 1.0]),
+        &Vector::new(vec![3.0, -1.0, 2.0]),
+    );
+    assert_eq!(dist, -1.0);
 }

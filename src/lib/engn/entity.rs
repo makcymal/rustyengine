@@ -139,7 +139,7 @@ pub trait GameObject: Entity {
 
     fn dir_mut(&mut self) -> &mut Vector;
 
-    fn intersect(&self, cs: &CoordSys, ray: &Ray) -> f64;
+    fn intersect(&self, cs: &CoordSys, inc: &Point, dir: &Vector) -> f64;
 
     fn mv(&mut self, vec: &Vector) -> ReRes<()> {
         self.pos_mut().mv_assign(vec)
@@ -156,7 +156,9 @@ pub trait GameObject: Entity {
     }
 
     fn planar_rotate(&mut self, from: usize, to: usize, angle: f64) -> ReRes<()> {
-        self.dir_mut().coord = self.dir().coord.mul(&Matrix::rotation(from, to, angle, 3));
+        self.dir_mut().coord = Matrix::rotation(from, to, angle, 3)
+            .mul(self.dir().coord())
+            .to_col();
         self.dir().coord.ag_failed()?;
         Ok(())
     }

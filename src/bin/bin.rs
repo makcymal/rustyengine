@@ -2,13 +2,7 @@
 
 mod labyrinth;
 
-use {
-    rustyengine::prelude::*,
-    labyrinth::{
-        console,
-    },
-    anyhow::Result,
-};
+use {anyhow::Result, labyrinth::console, rustyengine::prelude::*};
 
 fn main() -> Result<()> {
     let mut conf = Conf::read(vec!["src/bin/conf.toml"])?;

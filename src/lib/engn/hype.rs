@@ -80,13 +80,13 @@ impl GameObject for HypePlane {
         &mut self.normal
     }
 
-    fn intersect(&self, cs: &CoordSys, ray: &Ray) -> f64 {
-        let denom = cs.scalar_prod(&ray.dir.coord, &self.normal.coord).unwrap();
+    fn intersect(&self, cs: &CoordSys, inc: &Point, dir: &Vector) -> f64 {
+        let denom = cs.scalar_prod(&dir.coord, &self.normal.coord).unwrap();
         if aeq(&denom, &0.0) {
             return -1.0;
         }
         let numer = cs
-            .scalar_prod(&self.initpt.df(&ray.inc).unwrap().coord, &self.normal.coord)
+            .scalar_prod(&self.initpt.df(inc).unwrap().coord, &self.normal.coord)
             .unwrap();
         let dist = numer / denom;
         if dist < 0.0 {
@@ -134,7 +134,7 @@ impl GameObject for HypeEllipse {
         &mut self.dir
     }
 
-    fn intersect(&self, cs: &CoordSys, ray: &Ray) -> f64 {
+    fn intersect(&self, cs: &CoordSys, inc: &Point, dir: &Vector) -> f64 {
         todo!()
     }
 }

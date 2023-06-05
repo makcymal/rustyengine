@@ -1,3 +1,4 @@
+use crate::errs::ReRes;
 use {
     super::*,
     crate::{grid::*, math::*},
@@ -114,7 +115,39 @@ impl Entity for Camera {
     }
 }
 
-pub struct Ray {
-    pub inc: Point,
-    pub dir: Vector,
+impl GameObject for Camera {
+    fn pos(&self) -> &Point {
+        &self.pos
+    }
+
+    fn pos_mut(&mut self) -> &mut Point {
+        &mut self.pos
+    }
+
+    fn dir(&self) -> &Vector {
+        &self.dir
+    }
+
+    fn dir_mut(&mut self) -> &mut Vector {
+        &mut self.dir
+    }
+
+    fn intersect(&self, _cs: &CoordSys, _inc: &Point, _dir: &Vector) -> f64 {
+        -1.0
+    }
+
+    fn planar_rotate(&mut self, from: usize, to: usize, angle: f64) -> ReRes<()> {
+        let rot = Matrix::rotation(from, to, angle, 3);
+        self.dir.coord = rot.mul(self.dir.coord()).to_col();
+        self.dir.coord.ag_failed()?;
+
+        for r in 0..self.rays.rows() {
+            for c in 0..self.rays.cols() {
+                self.rays.att_mut(r, c).coord = rot.mul(self.rays.att(r, c).coord()).to_col();
+                self.rays.att(r, c).coord.ag_failed()?;
+            }
+        }
+
+        Ok(())
+    }
 }
