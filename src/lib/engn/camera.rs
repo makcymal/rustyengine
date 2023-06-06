@@ -8,7 +8,7 @@ use {
 
 #[derive(Debug)]
 pub struct Camera {
-    pub(crate) core: Core,
+    pub(crate) core: Entity,
     pub(crate) pos: Point,
     pub(crate) dir: Vector,
     pub(crate) wfov: f64,
@@ -21,7 +21,7 @@ pub struct Camera {
 impl Camera {
     /// Constructs new camera from the given game object
     pub fn new(
-        core: Core,
+        core: Entity,
         pos: Point,
         dir: Vector,
         draw_dist: f64,
@@ -97,11 +97,10 @@ pub(crate) fn rays_df(axis: usize, fov: f64, discr: usize) -> Vec<f64> {
         rays_df.push(Matrix::rotation(0, axis, angle, 3).mul(&dir).att(axis, 0) / angle.cos());
         angle += angle_step;
     }
-
     rays_df
 }
 
-impl Entity for Camera {
+impl AsEntity for Camera {
     fn id(&self) -> &Rc<Uuid> {
         self.core.id()
     }
@@ -115,7 +114,7 @@ impl Entity for Camera {
     }
 }
 
-impl GameObject for Camera {
+impl AsGameObject for Camera {
     fn pos(&self) -> &Point {
         &self.pos
     }
@@ -130,6 +129,12 @@ impl GameObject for Camera {
 
     fn dir_mut(&mut self) -> &mut Vector {
         &mut self.dir
+    }
+
+    fn change_visibility(&mut self) {}
+
+    fn is_visible(&self) -> bool {
+        false
     }
 
     fn intersect(&self, _cs: &CoordSys, _inc: &Point, _dir: &Vector) -> f64 {
@@ -147,7 +152,6 @@ impl GameObject for Camera {
                 self.rays.att(r, c).coord.ag_failed()?;
             }
         }
-
         Ok(())
     }
 }

@@ -9,15 +9,16 @@ use {
 
 /// Struct responsible for storing current CoordSys and EntityList and running related scripts
 #[derive(Debug)]
-pub struct Game {
+pub struct Game<ES: AsEventSys> {
     pub(crate) cs: CoordSys,
+    pub(crate) es: ES,
     pub(crate) id_pool: IdPool,
     pub(crate) entities: EntityList,
     pub(crate) canvas: Canvas,
     pub(crate) camera: Camera,
 }
 
-impl Game {
+impl<ES: AsEventSys> Game<ES> {
     /// Constructor for `Game` taking `Conf` and `ReRes` if something fails
     pub fn new(conf: Conf) -> ReRes<Self> {
         set_biform(Matrix::identity(3));
@@ -25,13 +26,15 @@ impl Game {
         set_exact_mode();
         set_precision(conf.precision);
 
-        let mut id_pool = IdPool::new();
-        let entities = EntityList::new();
-
         let cs = CoordSys::new(
             conf.initpt.clone(),
             Basis::new(Matrix::identity(3).to_multicol())?,
         )?;
+
+        let es = ES::new();
+
+        let mut id_pool = IdPool::new();
+        let entities = EntityList::new();
 
         let canvas = Canvas::new(conf.hscr, conf.wscr);
 
@@ -41,7 +44,7 @@ impl Game {
         };
 
         let camera = Camera::new(
-            Core::new(&id_pool.generate()),
+            Entity::new(&id_pool.generate()),
             conf.initpt,
             Vector::new(vec![1.0, 0.0, 0.0]),
             conf.draw_dist,
@@ -53,6 +56,7 @@ impl Game {
 
         Ok(Self {
             cs,
+            es,
             id_pool,
             entities,
             canvas,
@@ -73,8 +77,8 @@ impl Game {
     }
 
     /// `Core` in current basis with appending it's `Uuid` into `IdPool`
-    pub fn core(&mut self) -> Core {
-        Core::new(&self.id_pool.generate())
+    pub fn core(&mut self) -> Entity {
+        Entity::new(&self.id_pool.generate())
     }
 
     /// `Canvas` in current game
@@ -88,7 +92,7 @@ impl Game {
     }
 }
 
-impl Default for Game {
+impl<ES: AsEventSys> Default for Game<ES> {
     fn default() -> Self {
         let conf = Conf::default();
         Self::new(conf).unwrap()

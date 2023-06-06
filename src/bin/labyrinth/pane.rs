@@ -11,13 +11,13 @@ const H: f64 = 10.0;
 /// Points on it is defined as `(x, y0, z): x1 <= x < x2, 0 <= z <= H`
 #[derive(Debug)]
 pub struct XZPanes {
-    pub core: Core,
+    pub core: Entity,
     pub y0: f64,
     pub x_seg: Vec<Float>,
 }
 
 impl XZPanes {
-    pub fn new(core: Core, y0: f64, x_seg: Vec<f64>) -> Self {
+    pub fn new(core: Entity, y0: f64, x_seg: Vec<f64>) -> Self {
         Self {
             core,
             y0,
@@ -26,7 +26,7 @@ impl XZPanes {
     }
 }
 
-impl Entity for XZPanes {
+impl AsEntity for XZPanes {
     fn id(&self) -> &Rc<Uuid> {
         self.core.id()
     }
@@ -40,7 +40,7 @@ impl Entity for XZPanes {
     }
 }
 
-impl GameObject for XZPanes {
+impl AsGameObject for XZPanes {
     fn pos(&self) -> &Point {
         self.props()
             .get("pos")
@@ -71,6 +71,12 @@ impl GameObject for XZPanes {
             .unwrap()
             .downcast_mut::<Point>()
             .unwrap()
+    }
+
+    fn change_visibility(&mut self) {}
+
+    fn is_visible(&self) -> bool {
+        true
     }
 
     fn intersect(&self, _cs: &CoordSys, inc: &Point, dir: &Vector) -> f64 {
@@ -102,13 +108,13 @@ impl GameObject for XZPanes {
 /// Points on it is defined as `(x0, y, z): y1 <= y < y2, 0 <= z <= H`
 #[derive(Debug)]
 pub struct YZPanes {
-    pub core: Core,
+    pub core: Entity,
     pub x0: f64,
     pub y_seg: Vec<Float>,
 }
 
 impl YZPanes {
-    pub fn new(core: Core, x0: f64, y_seg: Vec<f64>) -> Self {
+    pub fn new(core: Entity, x0: f64, y_seg: Vec<f64>) -> Self {
         Self {
             core,
             x0,
@@ -117,7 +123,7 @@ impl YZPanes {
     }
 }
 
-impl Entity for YZPanes {
+impl AsEntity for YZPanes {
     fn id(&self) -> &Rc<Uuid> {
         self.core.id()
     }
@@ -131,7 +137,7 @@ impl Entity for YZPanes {
     }
 }
 
-impl GameObject for YZPanes {
+impl AsGameObject for YZPanes {
     fn pos(&self) -> &Point {
         self.props()
             .get("pos")
@@ -162,6 +168,12 @@ impl GameObject for YZPanes {
             .unwrap()
             .downcast_mut::<Point>()
             .unwrap()
+    }
+
+    fn change_visibility(&mut self) {}
+
+    fn is_visible(&self) -> bool {
+        true
     }
 
     fn intersect(&self, _cs: &CoordSys, inc: &Point, dir: &Vector) -> f64 {

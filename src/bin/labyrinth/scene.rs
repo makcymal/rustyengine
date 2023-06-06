@@ -1,0 +1,1 @@
+pub const STEP: f64 = 0.5;

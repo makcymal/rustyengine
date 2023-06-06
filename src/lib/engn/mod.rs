@@ -1,10 +1,13 @@
 //! Core engine things
 
-mod camera;
-mod canvas;
-mod entity;
-mod game;
-mod hype;
+pub mod camera;
+pub mod canvas;
+pub mod entity;
+pub mod event_sys;
+pub mod game;
+pub mod hype;
+pub mod material_traits;
+pub mod material;
 
 #[cfg(test)]
 mod test;
@@ -13,7 +16,8 @@ mod test;
 pub use {
     camera::Camera,
     canvas::Canvas,
-    entity::{Core, Entity, EntityList, GameObject, IdPool},
+    entity::{Entity, AsEntity, EntityList, AsGameObject, IdPool},
     game::Game,
     hype::HypePlane,
+    event_sys::{AsEvent, AsEventSys},
 };

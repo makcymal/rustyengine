@@ -1,12 +1,14 @@
 use {
-    super::activity::*,
+    super::action::*,
     anyhow::Result,
     crossterm::{
-        cursor, event,
+        cursor, event as crossterm_event,
         terminal::{enable_raw_mode, size},
         ExecutableCommand,
     },
-    std::{io::stdout, thread, time::Duration},
+    std::{
+        io::stdout, thread, time::Duration,
+    },
 };
 
 // (columns, rows)
@@ -21,9 +23,9 @@ pub fn clear() {
     print!("\x1b[2J");
 }
 
-pub fn listen() -> Result<Activity> {
-    let activity = event::read()?;
-    Ok(Activity::from(activity))
+pub fn listen() -> Result<EventDiscr> {
+    let event = crossterm_event::read()?;
+    Ok(EventDiscr::from(event))
 }
 
 pub fn show_message(msg: &str, rows: u16, cols: u16) -> Result<()> {

@@ -15,7 +15,7 @@ fn id_generate() {
 fn entity_core_first_prop() {
     let mut id_pool = IdPool::new();
     let id = id_pool.generate();
-    let mut core = Core::new(&id);
+    let mut core = Entity::new(&id);
     core.set_prop("drawdist", Box::new(10.0));
     assert_eq!(
         core.get_prop("drawdist")
@@ -30,7 +30,7 @@ fn entity_core_first_prop() {
 fn entity_core_second_prop() {
     let mut id_pool = IdPool::new();
     let id = id_pool.generate();
-    let mut core = Core::new(&id);
+    let mut core = Entity::new(&id);
     core.set_prop("drawdist", Box::new(10.0));
     core.set_prop("drawdist", Box::new(20.0));
     assert_eq!(
@@ -46,7 +46,7 @@ fn entity_core_second_prop() {
 fn hype_plane_pos() {
     let mut id_pool = IdPool::new();
     let id = id_pool.generate();
-    let mut core = Core::new(&id);
+    let mut core = Entity::new(&id);
 
     let pos = Point::new(vec![1.0, 1.0, 1.0]);
     let dir = Vector::new(vec![1.0, 1.0, 1.0]);
@@ -59,7 +59,7 @@ fn hype_plane_pos() {
 fn hype_plane_mv_pos() {
     let mut id_pool = IdPool::new();
     let id = id_pool.generate();
-    let mut core = Core::new(&id);
+    let mut core = Entity::new(&id);
 
     let pos = Point::new(vec![1.0, 1.0, 1.0]);
     let dir = Vector::new(vec![1.0, 1.0, 1.0]);

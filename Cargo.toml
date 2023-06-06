@@ -11,7 +11,7 @@ name = "rustyengine"
 path = "src/lib/lib.rs"
 
 [[bin]]
-name = "abeba"
+name = "labyrinth"
 path = "src/bin/bin.rs"
 
 [dependencies]
