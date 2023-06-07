@@ -87,14 +87,14 @@ impl From<ConsoleEvent> for Action {
     }
 }
 
-impl AsEvent<EntityList, Scene> for Action {}
+impl AsEvent<Scene> for Action {}
 
 
 pub struct DedupActions {
     actions: [Action; Action::COUNT - 1],
 }
 
-impl AsEventSys<Action, EntityList, Scene> for DedupActions {
+impl AsEventSys<Action, Scene> for DedupActions {
     fn new() -> Self {
         Self {
             actions: [
@@ -116,12 +116,11 @@ impl AsEventSys<Action, EntityList, Scene> for DedupActions {
         *self.actions[ActionDiscr::from(event) as usize].times_mut().unwrap() += 1;
     }
 
-    fn handle_all(&mut self, camera: &mut Camera,
-                  entities: &mut EntityList, collided: &mut Scene) -> ReRes<()>
+    fn handle_all(&mut self, camera: &mut Camera, entities: &mut Scene) -> ReRes<()>
     {
         match self.actions[0].times().cmp(&self.actions[1].times()) {
-            Ordering::Greater => collided.leave_clue(camera.pos()),
-            Ordering::Less => collided.take_clue(camera.pos()),
+            Ordering::Greater => entities.leave_clue(camera.pos()),
+            Ordering::Less => entities.take_clue(camera.pos()),
             _ => (),
         };
 

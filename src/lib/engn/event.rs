@@ -10,35 +10,33 @@ use {
 };
 
 
-pub trait AsEvent<EntLst, ColLst>: From<console::Event>
-where EntLst: AsEntityList, ColLst: AsCollidedList
+pub trait AsEvent<Lst>: From<console::Event>
+where Lst: AsMaterialList
 {
-    fn handle(&mut self, camera: &mut Camera,
-              entities: &mut EntLst, collided: &mut ColLst) -> ReRes<()> {
+    fn handle(&mut self, camera: &mut Camera, entities: &mut Lst) -> ReRes<()> {
         Ok(())
     }
 }
 
 
-pub trait AsEventSys<Evt, EntLst, ColLst>
-where Evt: AsEvent<EntLst, ColLst>, EntLst: AsEntityList, ColLst: AsCollidedList
+pub trait AsEventSys<Evt, Lst>
+where Evt: AsEvent<Lst>, Lst: AsMaterialList
 {
     fn new() -> Self;
     fn push(&mut self, event: Evt);
-    fn handle_all(&mut self, camera: &mut Camera,
-                  entities: &mut EntLst, collided: &mut ColLst) -> ReRes<()>;
+    fn handle_all(&mut self, camera: &mut Camera, entities: &mut Lst) -> ReRes<()>;
 }
 
 
-pub struct EventQueue<Evt, EntLst, ColLst>
-where Evt: AsEvent<EntLst, ColLst>, EntLst: AsEntityList, ColLst: AsCollidedList
+pub struct EventQueue<Evt, Lst>
+where Evt: AsEvent<Lst>, Lst: AsMaterialList
 {
-    phantom: PhantomData<(EntLst, ColLst)>,
+    phantom: PhantomData<Lst>,
     events: VecDeque<Evt>,
 }
 
-impl<Evt, EntLst, ColLst> AsEventSys<Evt, EntLst, ColLst> for EventQueue<Evt, EntLst, ColLst>
-where Evt: AsEvent<EntLst, ColLst>, EntLst: AsEntityList, ColLst: AsCollidedList
+impl<Evt, Lst> AsEventSys<Evt, Lst> for EventQueue<Evt, Lst>
+where Evt: AsEvent<Lst>, Lst: AsMaterialList
 {
     fn new() -> Self {
         Self {
@@ -51,10 +49,9 @@ where Evt: AsEvent<EntLst, ColLst>, EntLst: AsEntityList, ColLst: AsCollidedList
         self.events.push_back(event);
     }
 
-    fn handle_all(&mut self, camera: &mut Camera,
-                  entities: &mut EntLst, collided: &mut ColLst) -> ReRes<()> {
+    fn handle_all(&mut self, camera: &mut Camera, entities: &mut Lst) -> ReRes<()> {
         while let Some(mut event) = self.events.pop_front() {
-            event.handle(camera, entities, collided)?;
+            event.handle(camera, entities)?;
         }
         Ok(())
     }

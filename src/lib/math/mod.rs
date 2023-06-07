@@ -5,11 +5,14 @@
 
 pub mod matrix;
 mod precision;
-// mod coord_sys;
 mod space;
 
 #[cfg(test)]
 mod test;
+
+use {
+    std::cmp::Ordering
+};
 
 pub use {
     matrix::{set_biform, set_biform_identity, set_biform_vec, Matrix},
@@ -29,5 +32,23 @@ pub(crate) fn pow_minus(x: usize) -> f64 {
         0 => 1.0,
         1 => -1.0,
         _ => unreachable!(),
+    }
+}
+
+
+#[derive(Debug, PartialOrd, PartialEq, Clone, Copy)]
+pub struct Float(pub f64);
+
+impl Eq for Float {}
+
+impl Ord for Float {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.partial_cmp(other).unwrap()
+    }
+}
+
+impl Into<f64> for Float {
+    fn into(self) -> f64 {
+        self.0
     }
 }

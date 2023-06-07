@@ -15,8 +15,8 @@ use {
 };
 
 #[derive(Debug)]
-pub struct Canvas<ColLst: AsCollidedList> {
-    phantom: PhantomData<ColLst>,
+pub struct Canvas<Lst: AsMaterialList> {
+    phantom: PhantomData<Lst>,
     wscr: usize,
     hscr: usize,
     charmap: Vec<char>,
@@ -24,7 +24,7 @@ pub struct Canvas<ColLst: AsCollidedList> {
     picture: Vec<String>,
 }
 
-impl<ColLst: AsCollidedList> Canvas<ColLst> {
+impl<Lst: AsMaterialList> Canvas<Lst> {
     pub fn new(wscr: usize, hscr: usize, charmap: String) -> Self {
         Self {
             phantom: PhantomData,
@@ -36,11 +36,11 @@ impl<ColLst: AsCollidedList> Canvas<ColLst> {
         }
     }
 
-    pub fn update(&mut self, camera: &Camera, cs: &CoordSys, collided: &ColLst) -> ReRes<()> {
+    pub fn update(&mut self, camera: &Camera, cs: &CoordSys, entities: &Lst) -> ReRes<()> {
         for r in 0..self.hscr {
             self.picture[r] = (0..self.wscr)
                 .map(|c| {
-                    let mut dist = collided.collide(cs, camera.pos(), camera.rays.att(r, c));
+                    let mut dist = entities.collide(cs, camera.pos(), camera.rays.att(r, c));
                     if dist < 0.0 || camera.draw_dist < dist {
                         dist = camera.draw_dist;
                     }

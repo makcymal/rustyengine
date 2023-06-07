@@ -75,31 +75,6 @@ impl Index<PropKey> for dyn AsEntity {
 
 
 ///
-pub trait AsEntityList {
-    /// Wrapper around dyn AsEntity, eg Box<dyn AsEntity> or Rc<RefCell<dyn AsEntity>>
-    type Item;
-
-    fn new() -> Self;
-
-    fn append(&mut self, item: Self::Item);
-
-    fn remove(&mut self, id: &Rc<Uuid>);
-
-    fn iter(&self) -> Box<dyn Iterator<Item=&Self::Item> + '_>;
-
-    /// Returns shared interior mutable ref to entity if exists
-    fn get(&self, id: &Rc<Uuid>) -> Option<&Self::Item>;
-
-    /// Permorms closure that may be immutable due to interior mutability
-    fn exec(&self, f: fn(&Self::Item)) {
-        for rc in self.iter() {
-            f(&rc)
-        }
-    }
-}
-
-
-///
 pub trait AsCollided: AsEntity {
     fn collide(&self, cs: &CoordSys, inc: &Point, dir: &Vector) -> f64;
 }
@@ -108,12 +83,6 @@ impl std::fmt::Debug for dyn AsCollided {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "UUID {:?}", self.id())
     }
-}
-
-
-///
-pub trait AsCollidedList: AsEntityList {
-    fn collide(&self, cs: &CoordSys, inc: &Point, dir: &Vector) -> f64;
 }
 
 
@@ -165,4 +134,22 @@ impl std::fmt::Debug for dyn AsGameObject {
             self.dir()
         )
     }
+}
+
+
+pub trait AsMaterialList {
+    /// Wrapper around dyn AsCollided, eg Box<dyn AsCollided> or Rc<RefCell<dyn AsCollided>>
+    type Item;
+
+    fn append(&mut self, item: Self::Item);
+
+    fn remove(&mut self, id: &Rc<Uuid>);
+
+    /// Returns ref to `Self::Item` if requested material exists
+    fn get(&self, id: &Rc<Uuid>) -> Option<&Self::Item>;
+
+    /// Permorms closure to some subset of all the entities
+    fn exec(&self, f: fn(&Self::Item));
+
+    fn collide(&self, cs: &CoordSys, inc: &Point, dir: &Vector) -> f64;
 }

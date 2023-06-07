@@ -21,10 +21,9 @@ pub use {
     },
     material_traits::{
         AsEntity,
-        AsEntityList,
         AsCollided,
-        AsCollidedList,
         AsGameObject,
+        AsMaterialList,
         PropKey, PropVal,
     },
     material::{

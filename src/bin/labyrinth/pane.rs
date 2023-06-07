@@ -198,15 +198,3 @@ impl AsGameObject for YZPanes {
             .unwrap()
     }
 }
-
-
-#[derive(Debug, PartialOrd, PartialEq, Clone, Copy)]
-pub struct Float(f64);
-
-impl Eq for Float {}
-
-impl Ord for Float {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.partial_cmp(other).unwrap()
-    }
-}

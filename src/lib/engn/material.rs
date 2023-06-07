@@ -85,16 +85,11 @@ impl AsEntity for Entity {
 ///
 #[derive(Debug)]
 pub struct EntityList {
-    pub(crate) entities: Vec<Rc<RefCell<dyn AsEntity>>>,
+    pub(crate) entities: Vec<Rc<RefCell<dyn AsCollided>>>,
 }
 
-impl AsEntityList for EntityList {
-    type Item = Rc<RefCell<dyn AsEntity>>;
-
-    /// Instantiates empty list
-    fn new() -> Self {
-        Self { entities: vec![] }
-    }
+impl AsMaterialList for EntityList {
+    type Item = Rc<RefCell<dyn AsCollided>>;
 
     /// Appends new entity that must implement Entity
     fn append(&mut self, item: Self::Item) {
@@ -106,17 +101,34 @@ impl AsEntityList for EntityList {
         self.entities.retain(|entity| Rc::ptr_eq(entity.borrow().id(), id));
     }
 
-    fn iter(&self) -> Box<dyn Iterator<Item=&Self::Item> + '_> {
-        Box::new(self.entities.iter())
-    }
-
     fn get(&self, id: &Rc<Uuid>) -> Option<&Self::Item> {
         if let Some(item) =
-            self.iter().find(|entity| Rc::ptr_eq(entity.borrow().id(), id))
+            self.entities
+                .iter()
+                .find(|entity| Rc::ptr_eq(entity.borrow().id(), id))
         {
             Some(&item)
         } else {
             None
+        }
+    }
+
+    fn exec(&self, f: fn(&Self::Item)) {
+        for rc in &self.entities {
+            f(rc)
+        }
+    }
+
+    fn collide(&self, cs: &CoordSys, inc: &Point, dir: &Vector) -> f64 {
+        if let Some(dist) = self.entities
+            .iter()
+            .map(|ent| Float(ent.borrow().collide(cs, inc, dir)))
+            .filter(|dist| *dist >= Float(0.0))
+            .min()
+        {
+            dist.into()
+        } else {
+            -1.0
         }
     }
 }

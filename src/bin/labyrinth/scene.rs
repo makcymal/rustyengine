@@ -1,4 +1,3 @@
-use std::cmp::min;
 use {
     crate::labyrinth::{
         action::*,
@@ -33,7 +32,7 @@ pub struct Scene {
 }
 
 impl Scene {
-    pub fn new(game: &mut Game<Action, DedupActions, EntityList, Self>) -> Self {
+    pub fn new(game: &mut Game<Action, DedupActions, Self>) -> Self {
         Self {
             xz_panes: [
                 XZPanes::new(game.entity(), 0.0,
@@ -122,31 +121,17 @@ impl Scene {
     }
 }
 
-impl AsEntityList for Scene {
+impl AsMaterialList for Scene {
     type Item = ();
 
-    fn new() -> Self {
-        todo!()
-    }
+    fn append(&mut self, item: Self::Item) {}
 
-    fn append(&mut self, item: Self::Item) {
-        todo!()
-    }
+    fn remove(&mut self, id: &Rc<Uuid>) {}
 
-    fn remove(&mut self, id: &Rc<Uuid>) {
-        todo!()
-    }
+    fn get(&self, id: &Rc<Uuid>) -> Option<&Self::Item> { None }
 
-    fn iter(&self) -> Box<dyn Iterator<Item=&Self::Item> + '_> {
-        todo!()
-    }
+    fn exec(&self, f: fn(&Self::Item)) {}
 
-    fn get(&self, id: &Rc<Uuid>) -> Option<&Self::Item> {
-        todo!()
-    }
-}
-
-impl AsCollidedList for Scene {
     fn collide(&self, cs: &CoordSys, inc: &Point, dir: &Vector) -> f64 {
         let mut dist_opt: Option<f64> = None;
 

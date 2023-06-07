@@ -17,23 +17,22 @@ use {
 
 /// Struct responsible for storing current CoordSys and EntityList and running related scripts
 #[derive(Debug)]
-pub struct Game<Evt, EvtSys, EntLst, ColLst>
-where Evt: AsEvent<EntLst, ColLst>, EntLst: AsEntityList, ColLst: AsCollidedList,
-      EvtSys: AsEventSys<Evt, EntLst, ColLst>
+pub struct Game<Evt, EvtSys, Lst>
+where Evt: AsEvent<Lst>, Lst: AsMaterialList,
+      EvtSys: AsEventSys<Evt, Lst>
 {
     phantom: PhantomData<Evt>,
     pub(crate) cs: CoordSys,
     pub(crate) es: EvtSys,
     pub(crate) id_pool: IdPool,
-    pub(crate) entities: EntLst,
-    pub(crate) collided: ColLst,
-    pub(crate) canvas: Canvas<ColLst>,
+    pub(crate) entities: Option<Lst>,
+    pub(crate) canvas: Canvas<Lst>,
     pub(crate) camera: Camera,
 }
 
-impl<Evt, EvtSys, EntLst, ColLst> Game<Evt, EvtSys, EntLst, ColLst>
-where Evt: AsEvent<EntLst, ColLst>, EntLst: AsEntityList, ColLst: AsCollidedList,
-      EvtSys: AsEventSys<Evt, EntLst, ColLst>
+impl<Evt, EvtSys, Lst> Game<Evt, EvtSys, Lst>
+where Evt: AsEvent<Lst>, Lst: AsMaterialList,
+      EvtSys: AsEventSys<Evt, Lst>
 {
     /// Constructor for `Game` taking `Conf` and returning `ReRes` if something fails
     pub fn new(mut conf: Conf) -> ReRes<Self> {
@@ -48,10 +47,8 @@ where Evt: AsEvent<EntLst, ColLst>, EntLst: AsEntityList, ColLst: AsCollidedList
         )?;
 
         let es = EvtSys::new();
-
         let mut id_pool = IdPool::new();
-        let entities = EntLst::new();
-        let collided = ColLst::new();
+        let entities = None;
 
         if let Ok(size) = console::init() {
             (conf.wscr, conf.hscr) = (size.0 as usize, size.1 as usize)
@@ -80,22 +77,24 @@ where Evt: AsEvent<EntLst, ColLst>, EntLst: AsEntityList, ColLst: AsCollidedList
             es,
             id_pool,
             entities,
-            collided,
             canvas,
             camera,
         })
     }
 
     pub fn run(&mut self) -> ReRes<()> {
+        if self.entities.is_none() {
+            return Ok(())
+        }
         loop {
             self.es.push(Evt::from(console::listen()?));
-            self.es.handle_all(&mut self.camera, &mut self.entities, &mut self.collided)?;
+            self.es.handle_all(&mut self.camera, self.entities.as_mut().unwrap())?;
             self.update()?;
         }
     }
 
-    pub fn update(&mut self) -> ReRes<()> {
-        self.canvas.update(&self.camera, &self.cs, &self.collided)?;
+    fn update(&mut self) -> ReRes<()> {
+        self.canvas.update(&self.camera, &self.cs, self.entities.as_ref().unwrap())?;
         self.canvas.draw()?;
         Ok(())
     }
@@ -105,13 +104,17 @@ where Evt: AsEvent<EntLst, ColLst>, EntLst: AsEntityList, ColLst: AsCollidedList
         std::process::exit(0)
     }
 
+    pub fn set_entities(&mut self, entities: Lst) {
+        self.entities = Some(entities)
+    }
+
     /// `Entity` in current game with appending it's `Uuid` into `IdPool`
     pub fn entity(&mut self) -> Entity {
         Entity::new(&self.id_pool.generate())
     }
 
     /// `Canvas` in current game
-    pub fn canvas(&self) -> &Canvas<ColLst> {
+    pub fn canvas(&self) -> &Canvas<Lst> {
         &self.canvas
     }
 
@@ -121,9 +124,9 @@ where Evt: AsEvent<EntLst, ColLst>, EntLst: AsEntityList, ColLst: AsCollidedList
     }
 }
 
-impl<Evt, EvtSys, EntLst, ColLst> Default for Game<Evt, EvtSys, EntLst, ColLst>
-where Evt: AsEvent<EntLst, ColLst>, EntLst: AsEntityList, ColLst: AsCollidedList,
-      EvtSys: AsEventSys<Evt, EntLst, ColLst>
+impl<Evt, EvtSys, Lst> Default for Game<Evt, EvtSys, Lst>
+where Evt: AsEvent<Lst>, Lst: AsMaterialList,
+      EvtSys: AsEventSys<Evt, Lst>
 {
     fn default() -> Self {
         let conf = Conf::default();
