@@ -54,7 +54,7 @@ impl<Lst: AsMaterialList> Canvas<Lst> {
     pub fn draw(&self) -> ReRes<()> {
         console::move_cursor(3, 0)?;
         for line in &self.picture {
-            println!("{:?}", line);
+            println!("{}", line);
         }
         Ok(())
     }

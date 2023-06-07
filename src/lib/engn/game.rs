@@ -24,7 +24,7 @@ where Evt: AsEvent<Lst>, Lst: AsMaterialList,
     phantom: PhantomData<Evt>,
     pub(crate) cs: CoordSys,
     pub(crate) es: EvtSys,
-    pub(crate) id_pool: IdPool,
+    pub id_pool: IdPool,
     pub(crate) entities: Option<Lst>,
     pub(crate) canvas: Canvas<Lst>,
     pub(crate) camera: Camera,
@@ -53,23 +53,22 @@ where Evt: AsEvent<Lst>, Lst: AsMaterialList,
         if let Ok(size) = console::init() {
             (conf.wscr, conf.hscr) = (size.0 as usize, size.1 as usize)
         }
-        let canvas = Canvas::new(conf.wscr, conf.hscr - 3, conf.charmap);
-
         let hfov = match conf.hfov {
             Some(val) => val,
-            None => conf.wfov * (conf.hscr as f64) / (conf.wscr as f64),
+            None => conf.comp_hfov(),
         };
-
         let camera = Camera::new(
-            Entity::new(&id_pool.generate()),
+            Entity::new(id_pool.generate()),
             conf.initpt,
             Vector::new(vec![1.0, 0.0, 0.0]),
             conf.draw_dist,
             conf.wfov,
             hfov,
-            conf.hscr - 3,
             conf.wscr,
+            conf.hscr - 3,
         );
+
+        let canvas = Canvas::new(conf.wscr, conf.hscr - 3, conf.charmap);
 
         Ok(Self {
             phantom: PhantomData,
@@ -110,7 +109,7 @@ where Evt: AsEvent<Lst>, Lst: AsMaterialList,
 
     /// `Entity` in current game with appending it's `Uuid` into `IdPool`
     pub fn entity(&mut self) -> Entity {
-        Entity::new(&self.id_pool.generate())
+        Entity::new(self.id_pool.generate())
     }
 
     /// `Canvas` in current game

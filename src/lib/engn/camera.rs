@@ -123,12 +123,12 @@ impl AsGameObject for Camera {
         &mut self.pos
     }
 
-    fn dir(&self) -> &Vector {
-        &self.dir
+    fn dir(&self) -> &Matrix {
+        &self.dir.coord
     }
 
-    fn dir_mut(&mut self) -> &mut Vector {
-        &mut self.dir
+    fn dir_mut(&mut self) -> &mut Matrix {
+        &mut self.dir.coord
     }
 
     fn planar_rotate(&mut self, from: usize, to: usize, angle: f64) -> ReRes<()> {

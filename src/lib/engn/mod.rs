@@ -17,7 +17,7 @@ pub use {
     canvas::Canvas,
     game::Game,
     event::{
-        AsEvent, AsEventSys
+        AsEvent, ConsoleEvent, AsEventSys, EventQueue,
     },
     material_traits::{
         AsEntity,

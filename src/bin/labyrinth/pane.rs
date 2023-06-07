@@ -88,19 +88,19 @@ impl AsGameObject for XZPanes {
             .unwrap()
     }
 
-    fn dir(&self) -> &Vector {
+    fn dir(&self) -> &Matrix {
         self.props()
             .get("dir")
             .unwrap()
-            .downcast_ref::<Point>()
+            .downcast_ref::<Matrix>()
             .unwrap()
     }
 
-    fn dir_mut(&mut self) -> &mut Vector {
+    fn dir_mut(&mut self) -> &mut Matrix {
         self.props_mut()
             .get_mut("dir")
             .unwrap()
-            .downcast_mut::<Point>()
+            .downcast_mut::<Matrix>()
             .unwrap()
     }
 }
@@ -182,19 +182,19 @@ impl AsGameObject for YZPanes {
             .unwrap()
     }
 
-    fn dir(&self) -> &Vector {
+    fn dir(&self) -> &Matrix {
         self.props()
             .get("dir")
             .unwrap()
-            .downcast_ref::<Point>()
+            .downcast_ref::<Matrix>()
             .unwrap()
     }
 
-    fn dir_mut(&mut self) -> &mut Vector {
+    fn dir_mut(&mut self) -> &mut Matrix {
         self.props_mut()
             .get_mut("dir")
             .unwrap()
-            .downcast_mut::<Point>()
+            .downcast_mut::<Matrix>()
             .unwrap()
     }
 }

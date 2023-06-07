@@ -135,20 +135,23 @@ impl Default for Point {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Basis {
     pub(crate) basis: Matrix,
+    pub(crate) inv: Matrix,
 }
 
 impl Basis {
     /// Constructor for basis, validates it and makes it `Multicol`
     pub fn new(mut basis: Matrix) -> ReRes<Self> {
-        basis
-            .ag_failed()?
-            .ag_not_stratified()?
-            .ag_not_square()?
-            .ag_linear_dependence()?;
+        let inv = basis.inv()?;
+        basis.ag_not_stratified()?;
         if basis.is_multirow() {
             basis = basis.transpose();
         }
-        Ok(Self { basis })
+        Ok(Self { basis, inv })
+    }
+
+    /// Decompose point in current basis
+    pub fn decompose(&self, pt: &Point) -> Vector {
+        Vector { coord: pt.coord.mul_left(&self.inv).to_col() }
     }
 }
 
@@ -156,6 +159,7 @@ impl Default for Basis {
     fn default() -> Self {
         Basis {
             basis: Matrix::identity(3).to_multicol(),
+            inv: Matrix::identity(3),
         }
     }
 }
@@ -296,22 +300,6 @@ impl CoordSys {
             round(lhs.att(l, 0) * rhs.att(r, 1) - lhs.att(l, 1) * rhs.att(r, 0)),
         ];
         self.dual.as_ref().unwrap().combine(coef)
-    }
-
-    /// Decompose point in current basis
-    pub fn decompose_pt(&self, pt: &Point) -> Vector {
-        Vector {
-            coord: pt
-                .coord
-                .mul_left(
-                    &self
-                        .space
-                        .basis
-                        .inv()
-                        .expect("matrix of basis vector haven't inversed"),
-                )
-                .to_col(),
-        }
     }
 }
 

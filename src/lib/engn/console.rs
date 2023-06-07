@@ -23,7 +23,7 @@ pub fn init() -> ReRes<(u16, u16)> {
     let size = size()?;
     enable_raw_mode()?;
     clear();
-    Ok((size.0, size.1 - 3))
+    Ok((size.0, size.1))
 }
 
 pub fn clear() {

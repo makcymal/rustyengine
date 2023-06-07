@@ -52,3 +52,9 @@ impl Into<f64> for Float {
         self.0
     }
 }
+
+impl Into<f64> for &Float {
+    fn into(self) -> f64 {
+        self.0
+    }
+}

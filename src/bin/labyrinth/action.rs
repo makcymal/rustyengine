@@ -82,6 +82,7 @@ impl From<ConsoleEvent> for Action {
             (KeyCode::Char('w'), KeyModifiers::NONE) => Self::MoveForward(1),
             (KeyCode::Char('s'), KeyModifiers::CONTROL) => Self::TakeClue(1),
             (KeyCode::Char('s'), KeyModifiers::NONE) => Self::LeaveClue(1),
+            (KeyCode::Char('c'), KeyModifiers::CONTROL) => std::process::exit(0),
             _ => Self::None,
         }
     }

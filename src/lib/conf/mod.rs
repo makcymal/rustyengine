@@ -163,6 +163,10 @@ impl Conf {
         }
         Ok(self)
     }
+
+    pub fn comp_hfov(&self) -> f64 {
+        self.wfov * (self.hscr as f64) / (self.wscr as f64)
+    }
 }
 
 /// Parses `Vec<f64>` parameter from the `toml::Value::Array(toml::Array)`.

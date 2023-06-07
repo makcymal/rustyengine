@@ -59,9 +59,9 @@ fn rays_discr_6_5_att_center() {
 
 #[test]
 fn mv_camera_about_pos() {
-    let mut game = Game::default();
+    let mut id_pool = IdPool::new();
     let mut camera = Camera::new(
-        game.entity(),
+        Entity::new(id_pool.generate()),
         Point::default(),
         Vector::new(vec![1.0, 0.0, 0.0]),
         500.0,
@@ -76,9 +76,9 @@ fn mv_camera_about_pos() {
 
 #[test]
 fn mv_camera_about_rays() {
-    let mut game = Game::default();
+    let mut id_pool = IdPool::new();
     let mut camera = Camera::new(
-        game.entity(),
+        Entity::new(id_pool.generate()),
         Point::default(),
         Vector::new(vec![1.0, 0.0, 0.0]),
         500.0,
@@ -97,9 +97,9 @@ fn mv_camera_about_rays() {
 
 #[test]
 fn rotate_camera_about_dir() {
-    let mut game = Game::default();
+    let mut id_pool = IdPool::new();
     let mut camera = Camera::new(
-        game.entity(),
+        Entity::new(id_pool.generate()),
         Point::default(),
         Vector::new(vec![1.0, 0.0, 0.0]),
         500.0,
@@ -117,9 +117,9 @@ fn rotate_camera_about_dir() {
 
 #[test]
 fn rotate_camera_twice_about_dir() {
-    let mut game = Game::default();
+    let mut id_pool = IdPool::new();
     let mut camera = Camera::new(
-        game.entity(),
+        Entity::new(id_pool.generate()),
         Point::default(),
         Vector::new(vec![1.0, 0.0, 0.0]),
         500.0,
@@ -138,9 +138,9 @@ fn rotate_camera_twice_about_dir() {
 
 #[test]
 fn rotate_camera_about_rays() {
-    let mut game = Game::default();
+    let mut id_pool = IdPool::new();
     let mut camera = Camera::new(
-        game.entity(),
+        Entity::new(id_pool.generate()),
         Point::default(),
         Vector::new(vec![1.0, 0.0, 0.0]),
         500.0,

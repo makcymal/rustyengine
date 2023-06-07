@@ -11,16 +11,28 @@ use {
 
 
 pub trait AsEvent<Lst>: From<console::Event>
-where Lst: AsMaterialList
+    where Lst: AsMaterialList
 {
     fn handle(&mut self, camera: &mut Camera, entities: &mut Lst) -> ReRes<()> {
         Ok(())
     }
 }
 
+pub struct ConsoleEvent {
+    event: console::Event,
+}
+
+impl From<console::Event> for ConsoleEvent {
+    fn from(event: console::Event) -> Self {
+        Self { event }
+    }
+}
+
+impl AsEvent<EntityList> for ConsoleEvent {}
+
 
 pub trait AsEventSys<Evt, Lst>
-where Evt: AsEvent<Lst>, Lst: AsMaterialList
+    where Evt: AsEvent<Lst>, Lst: AsMaterialList
 {
     fn new() -> Self;
     fn push(&mut self, event: Evt);
@@ -29,14 +41,14 @@ where Evt: AsEvent<Lst>, Lst: AsMaterialList
 
 
 pub struct EventQueue<Evt, Lst>
-where Evt: AsEvent<Lst>, Lst: AsMaterialList
+    where Evt: AsEvent<Lst>, Lst: AsMaterialList
 {
     phantom: PhantomData<Lst>,
     events: VecDeque<Evt>,
 }
 
 impl<Evt, Lst> AsEventSys<Evt, Lst> for EventQueue<Evt, Lst>
-where Evt: AsEvent<Lst>, Lst: AsMaterialList
+    where Evt: AsEvent<Lst>, Lst: AsMaterialList
 {
     fn new() -> Self {
         Self {

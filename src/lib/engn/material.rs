@@ -62,8 +62,8 @@ pub struct Entity {
 }
 
 impl Entity {
-    pub fn new(id: &Rc<Uuid>) -> Self {
-        Self { id: id.clone(), props: HashMap::new() }
+    pub fn new(id: Rc<Uuid>) -> Self {
+        Self { id, props: HashMap::new() }
     }
 }
 
@@ -160,7 +160,7 @@ impl HypePlane {
 
     ///
     pub fn default(entity: Entity) -> Self {
-        todo!()
+        Self::new(entity, Point::default(), Vector::new(vec![1.0, 0.0, 0.0])).unwrap()
     }
 }
 
@@ -204,12 +204,12 @@ impl AsGameObject for HypePlane {
         &mut self.initpt
     }
 
-    fn dir(&self) -> &Vector {
-        &self.normal
+    fn dir(&self) -> &Matrix {
+        &self.normal.coord
     }
 
-    fn dir_mut(&mut self) -> &mut Vector {
-        &mut self.normal
+    fn dir_mut(&mut self) -> &mut Matrix {
+        &mut self.normal.coord
     }
 }
 
@@ -218,27 +218,24 @@ impl AsGameObject for HypePlane {
 #[derive(Debug)]
 pub struct HypeEllipse {
     pub(crate) entity: Entity,
-    pub(crate) cen: Point,
-    pub(crate) dir: Vector,
-    pub(crate) axis: Vec<f64>,
+    pub(crate) center: Point,
+    pub(crate) basis: Basis,
+    pub(crate) semiaxis: Vec<f64>,
 }
 
 impl HypeEllipse {
-    pub fn new(entity: Entity, cen: Point, mut dir: Vector, axis: Vec<f64>) -> ReRes<Self> {
-        if cen.dim() != dir.dim() {
-            return Err(MathErr(DimMismatch { lhs: cen.dim(), rhs: dir.dim() }));
-        } else if dir.dim() != axis.len() {
-            return Err(MathErr(DimMismatch { lhs: dir.dim(), rhs: axis.len() }));
+    pub fn new(entity: Entity, center: Point, basis: Basis, semiaxis: Vec<f64>) -> ReRes<Self> {
+        if center.dim() != basis.basis.dim()? {
+            return Err(MathErr(DimMismatch { lhs: center.dim(), rhs: basis.basis.dim()? }));
+        } else if basis.basis.dim()? != semiaxis.len() {
+            return Err(MathErr(DimMismatch { lhs: basis.basis.dim()?, rhs: semiaxis.len() }));
         }
-        if dir.coord.repr() == Repr::Row {
-            dir.coord = dir.coord.transpose()
-        }
-        Ok(Self { entity, cen, dir, axis })
+        Ok(Self { entity, center, basis, semiaxis })
     }
 
     ///
     pub fn default(entity: Entity) -> Self {
-        todo!()
+        Self::new(entity, Point::default(), Basis::default(), vec![1.0; 3]).unwrap()
     }
 }
 
@@ -258,24 +255,49 @@ impl AsEntity for HypeEllipse {
 
 impl AsCollided for HypeEllipse {
     fn collide(&self, cs: &CoordSys, inc: &Point, dir: &Vector) -> f64 {
-        todo!()
+        let inc = self.basis.decompose(&inc.df(&self.center).unwrap());
+        let dir = self.basis.decompose(dir);
+        let (mut a, mut b, mut c) = (0.0, 0.0, -1.0);
+        for i in 0..self.center.dim() {
+            a += (dir.at(i) / self.semiaxis[i]).powi(2);
+            b += 2.0 * dir.at(i) * inc.at(i) / self.semiaxis[i].powi(2);
+            c += (inc.at(i) / self.semiaxis[i]).powi(2);
+        }
+        let d = b * b - 4.0 * a * c;
+        if d < 0.0 {
+            -1.0
+        } else if aeq(&d, &0.0) {
+            let t = -b / 2.0 / a;
+            if t >= 0.0 {
+                t
+            } else {
+                -1.0
+            }
+        } else {
+            [Float((-b + d.sqrt()) / 2.0 / a), Float((-b - d.sqrt()) / 2.0 / a)]
+                .iter()
+                .filter(|f| *f >= &Float(0.0))
+                .min()
+                .unwrap_or(&Float(-1.0))
+                .into()
+        }
     }
 }
 
 impl AsGameObject for HypeEllipse {
     fn pos(&self) -> &Point {
-        &self.cen
+        &self.center
     }
 
     fn pos_mut(&mut self) -> &mut Point {
-        &mut self.cen
+        &mut self.center
     }
 
-    fn dir(&self) -> &Vector {
-        &self.dir
+    fn dir(&self) -> &Matrix {
+        &self.basis.basis
     }
 
-    fn dir_mut(&mut self) -> &mut Vector {
-        &mut self.dir
+    fn dir_mut(&mut self) -> &mut Matrix {
+        &mut self.basis.basis
     }
 }

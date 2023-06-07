@@ -92,9 +92,9 @@ pub trait AsGameObject: AsEntity {
 
     fn pos_mut(&mut self) -> &mut Point;
 
-    fn dir(&self) -> &Vector;
+    fn dir(&self) -> &Matrix;
 
-    fn dir_mut(&mut self) -> &mut Vector;
+    fn dir_mut(&mut self) -> &mut Matrix;
 
     fn mv(&mut self, vec: &Vector) -> ReRes<()> {
         self.pos_mut().mv_assign(vec)
@@ -105,16 +105,16 @@ pub trait AsGameObject: AsEntity {
     }
 
     fn rotate_3d(&mut self, x: f64, y: f64, z: f64) -> ReRes<()> {
-        self.dir_mut().coord = self.dir().coord.mul(&Matrix::teit_bryan_rotation(x, y, z));
-        self.dir().coord.ag_failed()?;
+        *self.dir_mut() = self.dir().mul(&Matrix::teit_bryan_rotation(x, y, z));
+        self.dir().ag_failed()?;
         Ok(())
     }
 
     fn planar_rotate(&mut self, from: usize, to: usize, angle: f64) -> ReRes<()> {
-        self.dir_mut().coord = Matrix::rotation(from, to, angle, 3)
-            .mul(self.dir().coord())
+        *self.dir_mut() = Matrix::rotation(from, to, angle, 3)
+            .mul(self.dir())
             .to_col();
-        self.dir().coord.ag_failed()?;
+        self.dir().ag_failed()?;
         Ok(())
     }
 

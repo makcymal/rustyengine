@@ -87,8 +87,7 @@ fn transposed_basis() {
             vec![0.0, 0.0, 1.0],
         ])
         .to_multirow(),
-    )
-    .unwrap();
+    ).unwrap();
     assert_eq!(basis.basis.att(1, 2), &1.0);
 }
 
@@ -97,6 +96,5 @@ fn point_decomposition_in_basis() {
     set_biform_identity();
     let basis = Basis::new(Matrix::identity(3).num_mul_assign(2.0).to_multicol()).unwrap();
     let point = Point::new(vec![5.0, 5.0, 5.0]);
-    let cs = CoordSys::new(Point::default(), basis).unwrap();
-    assert_eq!(cs.decompose_pt(&point), Vector::new(vec![2.5, 2.5, 2.5]));
+    assert_eq!(basis.decompose(&point), Vector::new(vec![2.5, 2.5, 2.5]));
 }
