@@ -1,11 +1,16 @@
 use {
-    rustyengine::{engn::*, math::*},
+    rustyengine::{
+        engn::*,
+        math::*,
+    },
     std::{any::Any, cmp::Ordering, collections::HashMap, rc::Rc},
     uuid::Uuid,
 };
 
+
 /// Height of all panes
 const H: f64 = 10.0;
+
 
 /// Part of the entire plane that is right rectangle and collinear to Oxz plane.
 /// Points on it is defined as `(x, y0, z): x1 <= x < x2, 0 <= z <= H`
@@ -37,6 +42,32 @@ impl AsEntity for XZPanes {
 
     fn props_mut(&mut self) -> &mut HashMap<&'static str, Box<dyn Any>> {
         self.core.props_mut()
+    }
+}
+
+impl AsCollided for XZPanes {
+    fn collide(&self, _cs: &CoordSys, inc: &Point, dir: &Vector) -> f64 {
+        if aeq(&dir.at(1), &0.0) {
+            return -1.0;
+        }
+
+        let t = (self.y0 - inc.at(1)) / dir.at(1);
+
+        let z = inc.at(2) + t * dir.at(2);
+        if z < 0.0 || H < z {
+            return -1.0;
+        }
+
+        let x = Float(inc.at(0) + t * dir.at(0));
+        let idx = match self.x_seg.binary_search(&x) {
+            Ok(idx) => idx,
+            Err(idx) => idx,
+        };
+        if idx % 2 == 1 || idx == 0 || x == self.x_seg[idx - 1] || x == self.x_seg[idx] {
+            return t;
+        }
+
+        -1.0
     }
 }
 
@@ -72,37 +103,8 @@ impl AsGameObject for XZPanes {
             .downcast_mut::<Point>()
             .unwrap()
     }
-
-    fn change_visibility(&mut self) {}
-
-    fn is_visible(&self) -> bool {
-        true
-    }
-
-    fn intersect(&self, _cs: &CoordSys, inc: &Point, dir: &Vector) -> f64 {
-        if aeq(&dir.at(1), &0.0) {
-            return -1.0;
-        }
-
-        let t = (self.y0 - inc.at(1)) / dir.at(1);
-
-        let z = inc.at(2) + t * dir.at(2);
-        if z < 0.0 || H < z {
-            return -1.0;
-        }
-
-        let x = Float(inc.at(0) + t * dir.at(0));
-        let idx = match self.x_seg.binary_search(&x) {
-            Ok(idx) => idx,
-            Err(idx) => idx,
-        };
-        if idx % 2 == 1 || idx == 0 || x == self.x_seg[idx - 1] || x == self.x_seg[idx] {
-            return t;
-        }
-
-        -1.0
-    }
 }
+
 
 /// Part of the entire plane that is right rectangle and collinear to Oyz plane.
 /// Points on it is defined as `(x0, y, z): y1 <= y < y2, 0 <= z <= H`
@@ -134,6 +136,32 @@ impl AsEntity for YZPanes {
 
     fn props_mut(&mut self) -> &mut HashMap<&'static str, Box<dyn Any>> {
         self.core.props_mut()
+    }
+}
+
+impl AsCollided for YZPanes {
+    fn collide(&self, _cs: &CoordSys, inc: &Point, dir: &Vector) -> f64 {
+        if aeq(&dir.at(0), &0.0) {
+            return -1.0;
+        }
+
+        let t = (self.x0 - inc.at(0)) / dir.at(0);
+
+        let z = inc.at(2) + t * dir.at(2);
+        if z < 0.0 || H < z {
+            return -1.0;
+        }
+
+        let y = Float(inc.at(1) + t * dir.at(1));
+        let idx = match self.y_seg.binary_search(&y) {
+            Ok(idx) => idx,
+            Err(idx) => idx,
+        };
+        if idx % 2 == 1 || idx == 0 || y == self.y_seg[idx - 1] || y == self.y_seg[idx] {
+            return t;
+        }
+
+        -1.0
     }
 }
 
@@ -169,37 +197,8 @@ impl AsGameObject for YZPanes {
             .downcast_mut::<Point>()
             .unwrap()
     }
-
-    fn change_visibility(&mut self) {}
-
-    fn is_visible(&self) -> bool {
-        true
-    }
-
-    fn intersect(&self, _cs: &CoordSys, inc: &Point, dir: &Vector) -> f64 {
-        if aeq(&dir.at(0), &0.0) {
-            return -1.0;
-        }
-
-        let t = (self.x0 - inc.at(0)) / dir.at(0);
-
-        let z = inc.at(2) + t * dir.at(2);
-        if z < 0.0 || H < z {
-            return -1.0;
-        }
-
-        let y = Float(inc.at(1) + t * dir.at(1));
-        let idx = match self.y_seg.binary_search(&y) {
-            Ok(idx) => idx,
-            Err(idx) => idx,
-        };
-        if idx % 2 == 1 || idx == 0 || y == self.y_seg[idx - 1] || y == self.y_seg[idx] {
-            return t;
-        }
-
-        -1.0
-    }
 }
+
 
 #[derive(Debug, PartialOrd, PartialEq, Clone, Copy)]
 pub struct Float(f64);

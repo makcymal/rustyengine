@@ -131,7 +131,6 @@ impl AsGameObject for Camera {
         &mut self.dir
     }
 
-
     fn planar_rotate(&mut self, from: usize, to: usize, angle: f64) -> ReRes<()> {
         let rot = Matrix::rotation(from, to, angle, 3);
         self.dir.coord = rot.mul(self.dir.coord()).to_col();

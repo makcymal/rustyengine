@@ -1,11 +1,10 @@
 #![allow(warnings)]
 
-// mod labyrinth;
-//
+mod labyrinth;
+
 use {
     anyhow::Result,
-//     labyrinth::console,
-//     rustyengine::prelude::*,
+    rustyengine::prelude::*,
 };
 
 fn main() -> Result<()> {

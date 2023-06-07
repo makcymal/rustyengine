@@ -3,7 +3,7 @@
 pub mod camera;
 pub mod canvas;
 pub mod console;
-pub mod event_sys;
+pub mod event;
 pub mod game;
 pub mod material_traits;
 pub mod material;
@@ -16,7 +16,9 @@ pub use {
     camera::Camera,
     canvas::Canvas,
     game::Game,
-    event_sys::{AsEvent, AsEventSys},
+    event::{
+        AsEvent, AsEventSys
+    },
     material_traits::{
         AsEntity,
         AsEntityList,
@@ -25,5 +27,11 @@ pub use {
         AsGameObject,
         PropKey, PropVal,
     },
-    material::{IdPool, Entity, EntityList, HypePlane},
+    material::{
+        IdPool,
+        Entity,
+        EntityList,
+        HypePlane,
+        HypeEllipse,
+    },
 };

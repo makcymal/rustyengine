@@ -1,10 +1,10 @@
 //! All that relates to error handling
 
-mod game_errs;
+mod engn_errs;
 mod grid_errs;
 mod math_errs;
 
-pub use {game_errs::GameErr, grid_errs::GridErr, math_errs::MathErr};
+pub use {engn_errs::GameErr, grid_errs::GridErr, math_errs::MathErr};
 use {strum_macros::Display, thiserror::Error, std::io};
 
 /// `Result` with `ReErr` as `Err` variant

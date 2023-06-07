@@ -166,4 +166,3 @@ impl std::fmt::Debug for dyn AsGameObject {
         )
     }
 }
-

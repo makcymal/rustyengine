@@ -145,6 +145,11 @@ impl HypePlane {
             normal,
         })
     }
+
+    ///
+    pub fn default(entity: Entity) -> Self {
+        todo!()
+    }
 }
 
 impl AsEntity for HypePlane {
@@ -217,6 +222,11 @@ impl HypeEllipse {
             dir.coord = dir.coord.transpose()
         }
         Ok(Self { entity, cen, dir, axis })
+    }
+
+    ///
+    pub fn default(entity: Entity) -> Self {
+        todo!()
     }
 }
 

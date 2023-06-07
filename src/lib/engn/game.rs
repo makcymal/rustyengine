@@ -18,9 +18,8 @@ use {
 /// Struct responsible for storing current CoordSys and EntityList and running related scripts
 #[derive(Debug)]
 pub struct Game<Evt, EvtSys, EntLst, ColLst>
-where Evt: AsEvent,
-      EntLst: AsEntityList<>, ColLst: AsCollidedList,
-      EvtSys: AsEventSys<Evt, EntLst=EntLst, ColLst=ColLst>,
+where Evt: AsEvent<EntLst, ColLst>, EntLst: AsEntityList, ColLst: AsCollidedList,
+      EvtSys: AsEventSys<Evt, EntLst, ColLst>
 {
     phantom: PhantomData<Evt>,
     pub(crate) cs: CoordSys,
@@ -33,11 +32,9 @@ where Evt: AsEvent,
 }
 
 impl<Evt, EvtSys, EntLst, ColLst> Game<Evt, EvtSys, EntLst, ColLst>
-where Evt: AsEvent,
-      EntLst: AsEntityList<>, ColLst: AsCollidedList,
-      EvtSys: AsEventSys<Evt, EntLst=EntLst, ColLst=ColLst>,
+where Evt: AsEvent<EntLst, ColLst>, EntLst: AsEntityList, ColLst: AsCollidedList,
+      EvtSys: AsEventSys<Evt, EntLst, ColLst>
 {
-
     /// Constructor for `Game` taking `Conf` and returning `ReRes` if something fails
     pub fn new(mut conf: Conf) -> ReRes<Self> {
         set_biform(Matrix::identity(3));
@@ -125,11 +122,9 @@ where Evt: AsEvent,
 }
 
 impl<Evt, EvtSys, EntLst, ColLst> Default for Game<Evt, EvtSys, EntLst, ColLst>
-where Evt: AsEvent,
-      EntLst: AsEntityList<>, ColLst: AsCollidedList,
-      EvtSys: AsEventSys<Evt, EntLst=EntLst, ColLst=ColLst>,
+where Evt: AsEvent<EntLst, ColLst>, EntLst: AsEntityList, ColLst: AsCollidedList,
+      EvtSys: AsEventSys<Evt, EntLst, ColLst>
 {
-
     fn default() -> Self {
         let conf = Conf::default();
         Self::new(conf).unwrap()
