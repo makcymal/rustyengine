@@ -3,8 +3,6 @@ use {
     crate::{
         errs::{
             GameErr::{self, *},
-            GridErr::{self, *},
-            MathErr::{self, *},
             ReErr::{self, *},
             ReRes,
         },
@@ -14,12 +12,15 @@ use {
         any::{Any, TypeId},
         cell::RefCell,
         collections::hash_map::{Entry, HashMap},
-        ops::{Index, IndexMut},
+        ops::Index,
         rc::Rc,
     },
     uuid::Uuid,
 };
 
+
+pub type PropKey = &'static str;
+pub type PropVal = Box<dyn Any>;
 
 
 /// Main trait for any entity instance requires returning UUID and map of properties
@@ -28,13 +29,13 @@ pub trait AsEntity {
     fn id(&self) -> &Rc<Uuid>;
 
     /// Ref to map of properties
-    fn props(&self) -> &HashMap<&'static str, Box<dyn Any>>;
+    fn props(&self) -> &HashMap<PropKey, PropVal>;
 
     /// Mutable ref to map of properties
-    fn props_mut(&mut self) -> &mut HashMap<&'static str, Box<dyn Any>>;
+    fn props_mut(&mut self) -> &mut HashMap<PropKey, PropVal>;
 
     /// Inserts new pair `key`: `val` into `props` field or replaces already existing
-    fn set_prop(&mut self, key: &'static str, val: Box<dyn Any>) {
+    fn set_prop(&mut self, key: PropKey, val: PropVal) {
         match self.props_mut().entry(key) {
             Entry::Occupied(o) => *o.into_mut() = val,
             Entry::Vacant(v) => {
@@ -44,7 +45,7 @@ pub trait AsEntity {
     }
 
     /// Returns `ReRes` with ref to requested `Box<dyn Any>` instance or meaningful error if key doesn't exist
-    fn get_prop(&self, key: &'static str) -> ReRes<&Box<dyn Any>> {
+    fn get_prop(&self, key: PropKey) -> ReRes<&PropVal> {
         if let Some(prop) = self.props().get(key) {
             Ok(prop)
         } else {
@@ -53,7 +54,7 @@ pub trait AsEntity {
     }
 
     /// Performs deleting value by the given `Prop` key
-    fn del_prop(&mut self, key: &'static str) {
+    fn del_prop(&mut self, key: PropKey) {
         self.props_mut().remove(key);
     }
 }
@@ -64,56 +65,60 @@ impl std::fmt::Debug for dyn AsEntity {
     }
 }
 
-impl Index<&'static str> for dyn AsEntity {
-    type Output = Box<dyn Any>;
+impl Index<PropKey> for dyn AsEntity {
+    type Output = PropVal;
 
-    fn index(&self, key: &'static str) -> &Self::Output {
+    fn index(&self, key: PropKey) -> &Self::Output {
         &self.props()[key]
     }
 }
 
 
+///
 pub trait AsEntityList {
+    /// Wrapper around dyn AsEntity, eg Box<dyn AsEntity> or Rc<RefCell<dyn AsEntity>>
+    type Item;
+
     fn new() -> Self;
 
-    fn append(&mut self, entity: impl AsEntity + 'static);
+    fn append(&mut self, item: Self::Item);
 
     fn remove(&mut self, id: &Rc<Uuid>);
 
-    fn iter(&self) -> dyn Iterator<Item=Rc<RefCell<dyn AsEntity>>>;
+    fn iter(&self) -> Box<dyn Iterator<Item=&Self::Item> + '_>;
 
-    fn get(&self, id: &Rc<Uuid>) -> Option<Rc<RefCell<dyn AsEntity>>> {
-        if let Some(rc) =
-            self.iter().find(|entity| Rc::ptr_eq(entity.borrow().id(), id))
-        {
-            Some(rc.clone())
-        } else {
-            None
-        }
-    }
+    /// Returns shared interior mutable ref to entity if exists
+    fn get(&self, id: &Rc<Uuid>) -> Option<&Self::Item>;
 
-    fn exec(&self, f: fn(Rc<RefCell<dyn AsEntity>>)) {
+    /// Permorms closure that may be immutable due to interior mutability
+    fn exec(&self, f: fn(&Self::Item)) {
         for rc in self.iter() {
-            f(rc.clone())
+            f(&rc)
         }
     }
 }
 
 
 ///
-pub trait AsIntersected: AsEntity {
-    fn intersect(&self, cs: &CoordSys, inc: &Point, dir: &Vector) -> f64;
+pub trait AsCollided: AsEntity {
+    fn collide(&self, cs: &CoordSys, inc: &Point, dir: &Vector) -> f64;
+}
+
+impl std::fmt::Debug for dyn AsCollided {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "UUID {:?}", self.id())
+    }
 }
 
 
 ///
-pub trait AsIntersectedList: AsEntityList {
-    fn intersect(&self, cs: &CoordSys, inc: &Point, dir: &Vector) -> f64;
+pub trait AsCollidedList: AsEntityList {
+    fn collide(&self, cs: &CoordSys, inc: &Point, dir: &Vector) -> f64;
 }
 
 
 ///
-pub trait AsGameObject: AsIntersected {
+pub trait AsGameObject: AsEntity {
     fn pos(&self) -> &Point;
 
     fn pos_mut(&mut self) -> &mut Point;
@@ -124,7 +129,7 @@ pub trait AsGameObject: AsIntersected {
 
     fn mv(&mut self, vec: &Vector) -> ReRes<()> {
         self.pos_mut().mv_assign(vec)
-}
+    }
 
     fn df(&self, pt: &Point) -> ReRes<Vector> {
         self.pos().df(pt)
@@ -161,3 +166,4 @@ impl std::fmt::Debug for dyn AsGameObject {
         )
     }
 }
+

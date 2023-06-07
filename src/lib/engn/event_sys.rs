@@ -1,3 +1,4 @@
+use std::marker::PhantomData;
 use {
     std::collections::VecDeque,
     crate::errs::{
@@ -7,38 +8,51 @@ use {
 };
 
 
-pub trait AsEvent {
-    fn handle(self, camera: &mut Camera, entities: &mut EntityList) -> ReRes<()>;
+pub trait AsEvent: From<console::Event> {
+    type EntLst: AsEntityList;
+    type ColLst: AsCollidedList;
+
+    fn handle(self, camera: &mut Camera, entities: &mut Self::EntLst, collided: &mut Self::ColLst) -> ReRes<()>;
 }
 
 
-pub trait AsEventSys {
-    type Event;
+pub trait AsEventSys<Evt: AsEvent> {
+    type EntLst: AsEntityList;
+    type ColLst: AsCollidedList;
 
     fn new() -> Self;
-    fn push(&mut self, event: Self::Event);
-    fn handle_all(&mut self, camera: &mut Camera, entities: &mut EntityList) -> ReRes<()>;
+    fn push(&mut self, event: Evt);
+    fn handle_all(&mut self, camera: &mut Camera, entities: &mut Self::EntLst, collided: &mut Self::ColLst) -> ReRes<()>;
 }
 
 
-pub struct EventQueue<E: AsEvent> {
-    events: VecDeque<E>,
+pub struct EventQueue<Evt, EntLst, ColLst>
+    where Evt: AsEvent, EntLst: AsEntityList, ColLst: AsCollidedList {
+
+    phantom: PhantomData<(EntLst, ColLst)>,
+    events: VecDeque<Evt>,
 }
 
-impl<E: AsEvent> AsEventSys for EventQueue<E> {
-    type Event = E;
+impl<Evt, EntLst, ColLst> AsEventSys<Evt> for EventQueue<Evt, EntLst, ColLst>
+    where Evt: AsEvent<EntLst=EntLst, ColLst=ColLst>, EntLst: AsEntityList, ColLst: AsCollidedList {
+
+    type EntLst = EntLst;
+    type ColLst = ColLst;
 
     fn new() -> Self {
-        Self { events: VecDeque::new() }
+        Self {
+            phantom: PhantomData,
+            events: VecDeque::new()
+        }
     }
 
-    fn push(&mut self, event: E) {
+    fn push(&mut self, event: Evt) {
         self.events.push_back(event);
     }
 
-    fn handle_all(&mut self, camera: &mut Camera, entities: &mut EntityList) -> ReRes<()> {
+    fn handle_all(&mut self, camera: &mut Camera, entities: &mut Self::EntLst, collided: &mut Self::ColLst) -> ReRes<()> {
         while let Some(event) = self.events.pop_front() {
-            event.handle(camera, entities)?
+            event.handle(camera, entities, collided)?
         }
         Ok(())
     }

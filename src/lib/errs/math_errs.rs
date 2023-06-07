@@ -32,7 +32,4 @@ pub enum MathErr {
 
     #[error("trying to set global DIM variable to 0")]
     ZeroDimSpace,
-
-    #[error("point and vector has different dimensions: {pt_dim:?} and {vec_dim:?}")]
-    PtVecDimMismatch { pt_dim: usize, vec_dim: usize },
 }

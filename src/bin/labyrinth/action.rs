@@ -74,7 +74,7 @@ pub struct DedupActions {
 }
 
 impl AsEventSys for DedupActions {
-    type Event = Action;
+    type E = Action;
 
     fn new() -> Self {
         Self {

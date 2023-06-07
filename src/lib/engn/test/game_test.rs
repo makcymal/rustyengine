@@ -25,12 +25,12 @@ fn computed_vert_fov() {
 fn plane_straight_intersect() {
     let mut game = Game::default();
     let plane = HypePlane::new(
-        game.core(),
+        game.entity(),
         Point::new(vec![3.0, 0.0, 0.0]),
         Vector::new(vec![1.0, 0.0, 0.0]),
     )
     .unwrap();
-    let dist = plane.intersect(
+    let dist = plane.collide(
         &game.cs,
         &Point::default(),
         &Vector::new(vec![1.0, 0.0, 0.0]),
@@ -42,12 +42,12 @@ fn plane_straight_intersect() {
 fn curve_plane_straight_intersect() {
     let mut game = Game::default();
     let plane = HypePlane::new(
-        game.core(),
+        game.entity(),
         Point::new(vec![3.0, 0.0, 0.0]),
         Vector::new(vec![1.0, 1.0, 0.0]),
     )
     .unwrap();
-    let dist = plane.intersect(
+    let dist = plane.collide(
         &game.cs,
         &Point::default(),
         &Vector::new(vec![1.0, 0.0, 0.0]),
@@ -59,12 +59,12 @@ fn curve_plane_straight_intersect() {
 fn straight_plane_curve_intersect() {
     let mut game = Game::default();
     let plane = HypePlane::new(
-        game.core(),
+        game.entity(),
         Point::new(vec![3.0, 0.0, 0.0]),
         Vector::new(vec![1.0, 0.0, 0.0]),
     )
     .unwrap();
-    let dist = plane.intersect(
+    let dist = plane.collide(
         &game.cs,
         &Point::default(),
         &Vector::new(vec![1.0, 1.0, 0.0]),
@@ -76,12 +76,12 @@ fn straight_plane_curve_intersect() {
 fn horizontal_plane_curve_intersect() {
     let mut game = Game::default();
     let plane = HypePlane::new(
-        game.core(),
+        game.entity(),
         Point::default(),
         Vector::new(vec![0.0, 0.0, 1.0]),
     )
     .unwrap();
-    let dist = plane.intersect(
+    let dist = plane.collide(
         &game.cs,
         &Point::new(vec![0.0, 0.0, 1.0]),
         &Vector::new(vec![3.0, -1.0, -2.0]),
@@ -93,12 +93,12 @@ fn horizontal_plane_curve_intersect() {
 fn horizontal_plane_no_intersect() {
     let mut game = Game::default();
     let plane = HypePlane::new(
-        game.core(),
+        game.entity(),
         Point::default(),
         Vector::new(vec![0.0, 0.0, 1.0]),
     )
     .unwrap();
-    let dist = plane.intersect(
+    let dist = plane.collide(
         &game.cs,
         &Point::new(vec![0.0, 0.0, 1.0]),
         &Vector::new(vec![3.0, -1.0, 2.0]),

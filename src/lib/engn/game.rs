@@ -1,26 +1,45 @@
+use std::process::id;
+use std::rc::Rc;
+use std::time::Duration;
+use uuid::Uuid;
 use {
     super::*,
-    crate::errs::{
-        ReErr::{self, *},
-        ReRes,
+    crate::{
+        conf::*,
+        errs::{
+            ReErr::{self, *},
+            ReRes,
+        },
+        math::*,
     },
-    crate::{conf::Conf, math::*},
+    std::marker::PhantomData,
 };
 
 /// Struct responsible for storing current CoordSys and EntityList and running related scripts
 #[derive(Debug)]
-pub struct Game<ES: AsEventSys> {
+pub struct Game<Evt, EvtSys, EntLst, ColLst>
+where Evt: AsEvent,
+      EntLst: AsEntityList<>, ColLst: AsCollidedList,
+      EvtSys: AsEventSys<Evt, EntLst=EntLst, ColLst=ColLst>,
+{
+    phantom: PhantomData<Evt>,
     pub(crate) cs: CoordSys,
-    pub(crate) es: ES,
+    pub(crate) es: EvtSys,
     pub(crate) id_pool: IdPool,
-    pub(crate) entities: EntityList,
-    pub(crate) canvas: Canvas,
+    pub(crate) entities: EntLst,
+    pub(crate) collided: ColLst,
+    pub(crate) canvas: Canvas<ColLst>,
     pub(crate) camera: Camera,
 }
 
-impl<ES: AsEventSys> Game<ES> {
-    /// Constructor for `Game` taking `Conf` and `ReRes` if something fails
-    pub fn new(conf: Conf) -> ReRes<Self> {
+impl<Evt, EvtSys, EntLst, ColLst> Game<Evt, EvtSys, EntLst, ColLst>
+where Evt: AsEvent,
+      EntLst: AsEntityList<>, ColLst: AsCollidedList,
+      EvtSys: AsEventSys<Evt, EntLst=EntLst, ColLst=ColLst>,
+{
+
+    /// Constructor for `Game` taking `Conf` and returning `ReRes` if something fails
+    pub fn new(mut conf: Conf) -> ReRes<Self> {
         set_biform(Matrix::identity(3));
 
         set_exact_mode();
@@ -31,12 +50,16 @@ impl<ES: AsEventSys> Game<ES> {
             Basis::new(Matrix::identity(3).to_multicol())?,
         )?;
 
-        let es = ES::new();
+        let es = EvtSys::new();
 
         let mut id_pool = IdPool::new();
-        let entities = EntityList::new();
+        let entities = EntLst::new();
+        let collided = ColLst::new();
 
-        let canvas = Canvas::new(conf.hscr, conf.wscr);
+        if let Ok(size) = console::init() {
+            (conf.wscr, conf.hscr) = (size.0 as usize, size.1 as usize)
+        }
+        let canvas = Canvas::new(conf.wscr, conf.hscr - 3, conf.charmap);
 
         let hfov = match conf.hfov {
             Some(val) => val,
@@ -50,39 +73,48 @@ impl<ES: AsEventSys> Game<ES> {
             conf.draw_dist,
             conf.wfov,
             hfov,
-            conf.hscr,
+            conf.hscr - 3,
             conf.wscr,
         );
 
         Ok(Self {
+            phantom: PhantomData,
             cs,
             es,
             id_pool,
             entities,
+            collided,
             canvas,
             camera,
         })
     }
 
-    pub fn run() {
-        todo!()
+    pub fn run(&mut self) -> ReRes<()> {
+        loop {
+            self.es.push(Evt::from(console::listen()?));
+            self.es.handle_all(&mut self.camera, &mut self.entities, &mut self.collided)?;
+            self.update()?;
+        }
     }
 
-    pub fn update() {
-        todo!()
+    pub fn update(&mut self) -> ReRes<()> {
+        self.canvas.update(&self.camera, &self.cs, &self.collided)?;
+        self.canvas.draw()?;
+        Ok(())
     }
 
-    pub fn exit() {
-        todo!()
+    pub fn ban(self) {
+        self.canvas.banner("BAN", Duration::from_secs(1)).ok();
+        std::process::exit(0)
     }
 
-    /// `Core` in current basis with appending it's `Uuid` into `IdPool`
-    pub fn core(&mut self) -> Entity {
+    /// `Entity` in current game with appending it's `Uuid` into `IdPool`
+    pub fn entity(&mut self) -> Entity {
         Entity::new(&self.id_pool.generate())
     }
 
     /// `Canvas` in current game
-    pub fn canvas(&self) -> &Canvas {
+    pub fn canvas(&self) -> &Canvas<ColLst> {
         &self.canvas
     }
 
@@ -92,7 +124,12 @@ impl<ES: AsEventSys> Game<ES> {
     }
 }
 
-impl<ES: AsEventSys> Default for Game<ES> {
+impl<Evt, EvtSys, EntLst, ColLst> Default for Game<Evt, EvtSys, EntLst, ColLst>
+where Evt: AsEvent,
+      EntLst: AsEntityList<>, ColLst: AsCollidedList,
+      EvtSys: AsEventSys<Evt, EntLst=EntLst, ColLst=ColLst>,
+{
+
     fn default() -> Self {
         let conf = Conf::default();
         Self::new(conf).unwrap()

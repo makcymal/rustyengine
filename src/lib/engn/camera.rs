@@ -8,7 +8,7 @@ use {
 
 #[derive(Debug)]
 pub struct Camera {
-    pub(crate) core: Entity,
+    pub(crate) entity: Entity,
     pub(crate) pos: Point,
     pub(crate) dir: Vector,
     pub(crate) wfov: f64,
@@ -21,7 +21,7 @@ pub struct Camera {
 impl Camera {
     /// Constructs new camera from the given game object
     pub fn new(
-        core: Entity,
+        entity: Entity,
         pos: Point,
         dir: Vector,
         draw_dist: f64,
@@ -31,7 +31,7 @@ impl Camera {
         z: usize,
     ) -> Self {
         Self {
-            core,
+            entity,
             pos,
             dir,
             wfov: yfov,
@@ -102,15 +102,15 @@ pub(crate) fn rays_df(axis: usize, fov: f64, discr: usize) -> Vec<f64> {
 
 impl AsEntity for Camera {
     fn id(&self) -> &Rc<Uuid> {
-        self.core.id()
+        self.entity.id()
     }
 
     fn props(&self) -> &HashMap<&'static str, Box<dyn Any>> {
-        self.core.props()
+        self.entity.props()
     }
 
     fn props_mut(&mut self) -> &mut HashMap<&'static str, Box<dyn Any>> {
-        self.core.props_mut()
+        self.entity.props_mut()
     }
 }
 
@@ -131,15 +131,6 @@ impl AsGameObject for Camera {
         &mut self.dir
     }
 
-    fn change_visibility(&mut self) {}
-
-    fn is_visible(&self) -> bool {
-        false
-    }
-
-    fn intersect(&self, _cs: &CoordSys, _inc: &Point, _dir: &Vector) -> f64 {
-        -1.0
-    }
 
     fn planar_rotate(&mut self, from: usize, to: usize, angle: f64) -> ReRes<()> {
         let rot = Matrix::rotation(from, to, angle, 3);

@@ -29,6 +29,7 @@ pub struct Conf {
     pub draw_dist: f64,
     pub wscr: usize,
     pub hscr: usize,
+    pub charmap: String,
     pub precision: u8,
 }
 
@@ -137,6 +138,19 @@ impl Conf {
         Ok(self)
     }
 
+    /// Parses `CHARMAP` parameter from the `Table` parsed from TOML
+    pub fn parse_charmap(mut self, table: &mut Table) -> ReRes<Self> {
+        let value = match table.remove("CHARMAP") {
+            Some(value) => value,
+            None => return Ok(self),
+        };
+        match value {
+            Value::String(charmap) => self.charmap = charmap,
+            _ => return Err(GameErr(InvalidConfValue("CHARMAP"))),
+        }
+        Ok(self)
+    }
+
     /// Parses `PRECISION` parameter from the `Table` parsed from TOML
     pub fn parse_precision(mut self, table: &mut Table) -> ReRes<Self> {
         let value = match table.remove("PRECISION") {
@@ -181,6 +195,7 @@ impl Default for Conf {
             draw_dist: 100.0,
             wscr: 100,
             hscr: 60,
+            charmap: ".:;><+r*zsvfwqkP694VOGbUAKXH8RD#$B0MNWQ%&@".to_string(),
             precision: 100,
         }
     }

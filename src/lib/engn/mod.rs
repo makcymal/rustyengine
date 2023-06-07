@@ -2,10 +2,9 @@
 
 pub mod camera;
 pub mod canvas;
-pub mod entity;
+pub mod console;
 pub mod event_sys;
 pub mod game;
-pub mod hype;
 pub mod material_traits;
 pub mod material;
 
@@ -16,8 +15,15 @@ mod test;
 pub use {
     camera::Camera,
     canvas::Canvas,
-    entity::{Entity, AsEntity, EntityList, AsGameObject, IdPool},
     game::Game,
-    hype::HypePlane,
     event_sys::{AsEvent, AsEventSys},
+    material_traits::{
+        AsEntity,
+        AsEntityList,
+        AsCollided,
+        AsCollidedList,
+        AsGameObject,
+        PropKey, PropVal,
+    },
+    material::{IdPool, Entity, EntityList, HypePlane},
 };

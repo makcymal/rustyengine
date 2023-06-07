@@ -5,7 +5,7 @@ mod grid_errs;
 mod math_errs;
 
 pub use {game_errs::GameErr, grid_errs::GridErr, math_errs::MathErr};
-use {strum_macros::Display, thiserror::Error};
+use {strum_macros::Display, thiserror::Error, std::io};
 
 /// `Result` with `ReErr` as `Err` variant
 pub type ReRes<T> = Result<T, ReErr>;
@@ -17,4 +17,11 @@ pub enum ReErr {
     GameErr(GameErr),
     GridErr(GridErr),
     MathErr(MathErr),
+    IoError,
+}
+
+impl From<io::Error> for ReErr {
+    fn from(_error: io::Error) -> Self {
+        Self::IoError
+    }
 }

@@ -61,7 +61,7 @@ fn rays_discr_6_5_att_center() {
 fn mv_camera_about_pos() {
     let mut game = Game::default();
     let mut camera = Camera::new(
-        game.core(),
+        game.entity(),
         Point::default(),
         Vector::new(vec![1.0, 0.0, 0.0]),
         500.0,
@@ -78,7 +78,7 @@ fn mv_camera_about_pos() {
 fn mv_camera_about_rays() {
     let mut game = Game::default();
     let mut camera = Camera::new(
-        game.core(),
+        game.entity(),
         Point::default(),
         Vector::new(vec![1.0, 0.0, 0.0]),
         500.0,
@@ -99,7 +99,7 @@ fn mv_camera_about_rays() {
 fn rotate_camera_about_dir() {
     let mut game = Game::default();
     let mut camera = Camera::new(
-        game.core(),
+        game.entity(),
         Point::default(),
         Vector::new(vec![1.0, 0.0, 0.0]),
         500.0,
@@ -119,7 +119,7 @@ fn rotate_camera_about_dir() {
 fn rotate_camera_twice_about_dir() {
     let mut game = Game::default();
     let mut camera = Camera::new(
-        game.core(),
+        game.entity(),
         Point::default(),
         Vector::new(vec![1.0, 0.0, 0.0]),
         500.0,
@@ -140,7 +140,7 @@ fn rotate_camera_twice_about_dir() {
 fn rotate_camera_about_rays() {
     let mut game = Game::default();
     let mut camera = Camera::new(
-        game.core(),
+        game.entity(),
         Point::default(),
         Vector::new(vec![1.0, 0.0, 0.0]),
         500.0,
