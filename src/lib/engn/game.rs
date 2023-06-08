@@ -1,7 +1,3 @@
-use std::process::id;
-use std::rc::Rc;
-use std::time::Duration;
-use uuid::Uuid;
 use {
     super::*,
     crate::{
@@ -12,7 +8,12 @@ use {
         },
         math::*,
     },
-    std::marker::PhantomData,
+    std::{
+        marker::PhantomData,
+        rc::Rc,
+        time::Duration
+    },
+    uuid::Uuid
 };
 
 /// Struct responsible for storing current CoordSys and EntityList and running related scripts
@@ -81,6 +82,8 @@ where Evt: AsEvent<Lst>, Lst: AsMaterialList,
         })
     }
 
+    /// Running game: listening to events, handling them with respect to given implementation.
+    /// Never exits if such event isn't provided
     pub fn run(&mut self) -> ReRes<()> {
         if self.entities.is_none() {
             return Ok(())
@@ -92,17 +95,20 @@ where Evt: AsEvent<Lst>, Lst: AsMaterialList,
         }
     }
 
+    /// Updates image on canvas and drawing it in console
     fn update(&mut self) -> ReRes<()> {
         self.canvas.update(&self.camera, &self.cs, self.entities.as_ref().unwrap())?;
         self.canvas.draw()?;
         Ok(())
     }
 
+    /// Exits game process with printing useful message
     pub fn ban(self) {
         self.canvas.banner("BAN", Duration::from_secs(1)).ok();
         std::process::exit(0)
     }
 
+    /// Providing entities list
     pub fn set_entities(&mut self, entities: Lst) {
         self.entities = Some(entities)
     }

@@ -54,7 +54,7 @@ impl Index<usize> for IdPool {
 }
 
 
-///
+/// Entity struct having `id` and properties map
 #[derive(Debug)]
 pub struct Entity {
     pub(crate) id: Rc<Uuid>,
@@ -86,6 +86,14 @@ impl AsEntity for Entity {
 #[derive(Debug)]
 pub struct EntityList {
     pub(crate) entities: Vec<Rc<RefCell<dyn AsCollided>>>,
+}
+
+impl EntityList {
+    pub fn new() -> Self {
+        Self {
+            entities: vec![],
+        }
+    }
 }
 
 impl AsMaterialList for EntityList {
@@ -143,7 +151,7 @@ pub struct HypePlane {
 }
 
 impl HypePlane {
-    /// HypePlane constructor takes actual `GameObject`, `Point` on plane and normal vector
+    /// HypePlane constructor takes actual `Entity`, `Point` on plane and normal vector
     pub fn new(entity: Entity, initpt: Point, mut normal: Vector) -> ReRes<Self> {
         if initpt.dim() != normal.dim() {
             return Err(MathErr(DimMismatch { lhs: initpt.dim(), rhs: normal.dim() }));
@@ -158,7 +166,7 @@ impl HypePlane {
         })
     }
 
-    ///
+    /// Default instance
     pub fn default(entity: Entity) -> Self {
         Self::new(entity, Point::default(), Vector::new(vec![1.0, 0.0, 0.0])).unwrap()
     }
@@ -214,7 +222,7 @@ impl AsGameObject for HypePlane {
 }
 
 
-///
+/// Ellipse in arbitrary dimension space that defined with center point, direction vectors and semiaxes lengths
 #[derive(Debug)]
 pub struct HypeEllipse {
     pub(crate) entity: Entity,
@@ -224,6 +232,7 @@ pub struct HypeEllipse {
 }
 
 impl HypeEllipse {
+    /// Constructs new `HypeEllipse`
     pub fn new(entity: Entity, center: Point, basis: Basis, semiaxis: Vec<f64>) -> ReRes<Self> {
         if center.dim() != basis.basis.dim()? {
             return Err(MathErr(DimMismatch { lhs: center.dim(), rhs: basis.basis.dim()? }));
@@ -233,7 +242,7 @@ impl HypeEllipse {
         Ok(Self { entity, center, basis, semiaxis })
     }
 
-    ///
+    /// Default instance
     pub fn default(entity: Entity) -> Self {
         Self::new(entity, Point::default(), Basis::default(), vec![1.0; 3]).unwrap()
     }

@@ -164,6 +164,7 @@ impl Conf {
         Ok(self)
     }
 
+    /// Computes `VERTICAL_FIELD_OF_VIEW` if not specified
     pub fn comp_hfov(&self) -> f64 {
         self.wfov * (self.hscr as f64) / (self.wscr as f64)
     }

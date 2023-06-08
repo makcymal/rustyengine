@@ -18,7 +18,7 @@ use {
 
 pub use crossterm::event::Event;
 
-// (columns, rows)
+/// Clears, enables raw mode anr returns console size
 pub fn init() -> ReRes<(u16, u16)> {
     let size = size()?;
     enable_raw_mode()?;
@@ -26,14 +26,17 @@ pub fn init() -> ReRes<(u16, u16)> {
     Ok((size.0, size.1))
 }
 
+/// Clears console
 pub fn clear() {
     print!("\x1b[2J");
 }
 
+/// Blocks process until new event obtained
 pub fn listen() -> Result<Event> {
     crossterm_event::read()
 }
 
+/// Moves cursor on the given position retunring error if position isn't valid
 pub(crate) fn move_cursor(row: u16, col: u16) -> Result<()> {
     stdout().execute(cursor::MoveTo(col, row))?;
     Ok(())

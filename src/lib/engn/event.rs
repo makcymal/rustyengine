@@ -10,6 +10,7 @@ use {
 };
 
 
+/// Trait for events, requires `From<crossterm::event::Event>`
 pub trait AsEvent<Lst>: From<console::Event>
     where Lst: AsMaterialList
 {
@@ -18,6 +19,7 @@ pub trait AsEvent<Lst>: From<console::Event>
     }
 }
 
+/// Simple event in console
 pub struct ConsoleEvent {
     event: console::Event,
 }
@@ -31,6 +33,7 @@ impl From<console::Event> for ConsoleEvent {
 impl AsEvent<EntityList> for ConsoleEvent {}
 
 
+/// Trait for event systems, it's single instance is stored in `Game`
 pub trait AsEventSys<Evt, Lst>
     where Evt: AsEvent<Lst>, Lst: AsMaterialList
 {
@@ -40,11 +43,13 @@ pub trait AsEventSys<Evt, Lst>
 }
 
 
+/// Simple event system that is just queue of obtaining events and furthermore
+/// it implements `AsEventSys` handling events consequently
 pub struct EventQueue<Evt, Lst>
     where Evt: AsEvent<Lst>, Lst: AsMaterialList
 {
     phantom: PhantomData<Lst>,
-    events: VecDeque<Evt>,
+    pub(crate) events: VecDeque<Evt>,
 }
 
 impl<Evt, Lst> AsEventSys<Evt, Lst> for EventQueue<Evt, Lst>

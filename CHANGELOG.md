@@ -3,6 +3,30 @@
 All notable changes to this project will be documented in this file.
 
 
+## [0.1.0] - 2023-06-08
+
+### Added
+- `Conf` now can be read from `.toml` file
+- `Default` impl for `Conf` and therefore `Default` impl for `Game`
+- `HypeEllipse` that defined with its center, semiaxes lengths and it's axes themselves
+- `AsEvent` trait for events, requires `From<crossterm::event::Event>`
+- `AsEventSys` trait for event systems, it's single instance is stored in `Game`
+- `EventQueue` event system that is just queue of obtaining events and furthermore it implements `AsEventSys` handling events consequently
+- Traits
+  - `AsEntity`: for material that can be indexed inside the `Game` instance with `Uuid` and can store properties within `HashMap` 
+  - `AsCollided`: for material that can be collided with `Ray`. Coefficient of `Ray` resizing is returned if collision exists else `-1.0`
+  - `AsGameObject`: for material that has not-consistent position and direction in the game
+  - `AsEntityList`: for lists that stores `dyn AsEntity`
+  - `AsCollidedList`: for lists that stores `dyn AsCollided`
+  - Ierarchy: `AsGameObject`: `AsCollided`: `AsEntity`, `AsCollidedList`: `AsEntityList`
+- `Canvas` updates its content and stores picture as `Vec<String>` respectively to `charmap` given in the `Conf`
+- `console` utils for getting console size, moving cursor and clearing console
+
+### Changed
+- `Camera` no longer creates a bunch of rays each frame but rotates one its instance
+- `Game` is parametrized with `AsEvent`, `AsEventSys`, `AsCollidedList` types
+
+
 ## [0.0.5] - 2023-05-19
 
 ### Added

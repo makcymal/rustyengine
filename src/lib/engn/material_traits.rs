@@ -23,7 +23,7 @@ pub type PropKey = &'static str;
 pub type PropVal = Box<dyn Any>;
 
 
-/// Main trait for any entity instance requires returning UUID and map of properties
+/// For material that can be indexed inside the `Game` instance with `Uuid` and can store properties within `HashMap`
 pub trait AsEntity {
     /// UUID of entity
     fn id(&self) -> &Rc<Uuid>;
@@ -74,7 +74,7 @@ impl Index<PropKey> for dyn AsEntity {
 }
 
 
-///
+/// for material that can be collided with `Ray`. Coefficient of `Ray` resizing is returned if collision exists else `-1.0`
 pub trait AsCollided: AsEntity {
     fn collide(&self, cs: &CoordSys, inc: &Point, dir: &Vector) -> f64;
 }
@@ -86,7 +86,7 @@ impl std::fmt::Debug for dyn AsCollided {
 }
 
 
-///
+/// For material that has not-consistent position and direction in the game
 pub trait AsGameObject: AsEntity {
     fn pos(&self) -> &Point;
 
@@ -141,8 +141,10 @@ pub trait AsMaterialList {
     /// Wrapper around dyn AsCollided, eg Box<dyn AsCollided> or Rc<RefCell<dyn AsCollided>>
     type Item;
 
+    /// Appends given item to the current list
     fn append(&mut self, item: Self::Item);
 
+    /// Removes item with given id from the current list
     fn remove(&mut self, id: &Rc<Uuid>);
 
     /// Returns ref to `Self::Item` if requested material exists
@@ -151,5 +153,6 @@ pub trait AsMaterialList {
     /// Permorms closure to some subset of all the entities
     fn exec(&self, f: fn(&Self::Item));
 
+    /// Computes minimal distance to entities
     fn collide(&self, cs: &CoordSys, inc: &Point, dir: &Vector) -> f64;
 }

@@ -4,3 +4,5 @@ mod camera_test;
 mod material_test;
 #[cfg(test)]
 mod game_test;
+#[cfg(test)]
+mod event_test;

@@ -6,6 +6,8 @@ use {
     uuid::Uuid,
 };
 
+
+/// Camera object that can be moved and rotated
 #[derive(Debug)]
 pub struct Camera {
     pub(crate) entity: Entity,
