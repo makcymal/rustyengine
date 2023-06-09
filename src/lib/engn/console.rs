@@ -18,12 +18,12 @@ use {
 
 pub use crossterm::event::Event;
 
-/// Clears, enables raw mode anr returns console size
+/// Clears, enables raw mode anr returns console size as (rows, cols)
 pub fn init() -> ReRes<(u16, u16)> {
     let size = size()?;
     enable_raw_mode()?;
     clear();
-    Ok((size.0, size.1))
+    Ok((size.1, size.0))
 }
 
 /// Clears console

@@ -19,16 +19,25 @@ use {
     toml::{Table, Value},
 };
 
+
+const INITPT_KEY: &str = "INITIAL_POINT";
+const ANGLE_DISCR_KEY: &str = "ROTATION_HALF_PI_DISCRETIZATION";
+const WFOV_KEY: &str = "HORIZONTAL_FIELD_OF_VIEW_OUT_OF_PI";
+const HFOV_KEY: &str = "VERTICAL_FIELD_OF_VIEW_OUT_OF_PI";
+const DRAW_DIST_KEY: &str = "DRAW_DISTANCE";
+const CHARMAP_KEY: &str = "CHARMAP";
+const PRECISION_KEY: &str = "PRECISION";
+
+
 /// Struct that packages configuration parameters,
 /// it further is used for `Game` object instanciating
 #[derive(Debug, Clone, PartialEq)]
 pub struct Conf {
     pub initpt: Point,
+    pub angle_discr: usize,
     pub wfov: f64,
     pub hfov: Option<f64>,
     pub draw_dist: f64,
-    pub wscr: usize,
-    pub hscr: usize,
     pub charmap: String,
     pub precision: u8,
 }
@@ -49,124 +58,99 @@ impl Conf {
             };
             conf = conf
                 .parse_initpt(&mut table)?
+                .parse_angle_discr(&mut table)?
                 .parse_wfov(&mut table)?
                 .parse_hfov(&mut table)?
                 .parse_draw_dist(&mut table)?
-                .parse_wscr(&mut table)?
-                .parse_hscr(&mut table)?
                 .parse_precision(&mut table)?;
         }
         Ok(conf)
     }
 
-    /// Parses `INITIAL_POINT` parameter from the `Table` parsed from TOML
     pub fn parse_initpt(mut self, table: &mut Table) -> ReRes<Self> {
-        let key = "INITIAL_POINT";
-        let value = match table.remove(key) {
+        let value = match table.remove(INITPT_KEY) {
             Some(value) => value,
             None => return Ok(self),
         };
-        self.initpt = Point::new(parse_single(value, key)?);
+        self.initpt = Point::new(parse_single(value, INITPT_KEY)?);
         Ok(self)
     }
 
-    /// Parses `HORIZONTAL_FIELD_OF_VIEW` parameter from the `Table` parsed from TOML
+    pub fn parse_angle_discr(mut self, table: &mut Table) -> ReRes<Self> {
+        let value = match table.remove(ANGLE_DISCR_KEY) {
+            Some(value) => value,
+            None => return Ok(self),
+        };
+        match value {
+            Value::Integer(val) => self.angle_discr = val as usize,
+            Value::Float(val) => self.angle_discr = val as usize,
+            _ => return Err(GameErr(InvalidConfValue(ANGLE_DISCR_KEY))),
+        }
+        Ok(self)
+    }
+
     pub fn parse_wfov(mut self, table: &mut Table) -> ReRes<Self> {
-        let value = match table.remove("HORIZONTAL_FIELD_OF_VIEW") {
+        let value = match table.remove(WFOV_KEY) {
             Some(value) => value,
             None => return Ok(self),
         };
         match value {
             Value::Integer(fov) => self.wfov = fov as f64,
             Value::Float(fov) => self.wfov = fov,
-            _ => return Err(GameErr(InvalidConfValue("HORIZONTAL_FIELD_OF_VIEW"))),
+            _ => return Err(GameErr(InvalidConfValue(WFOV_KEY))),
         }
         Ok(self)
     }
 
-    /// Parses `VERTICAL_FIELD_OF_VIEW` parameter from the `Table` parsed from TOML
     pub fn parse_hfov(mut self, table: &mut Table) -> ReRes<Self> {
-        let value = match table.remove("VERTICAL_FIELD_OF_VIEW") {
+        let value = match table.remove(HFOV_KEY) {
             Some(value) => value,
             None => return Ok(self),
         };
         match value {
             Value::Integer(fov) => self.hfov = Some(fov as f64),
             Value::Float(fov) => self.hfov = Some(fov),
-            _ => return Err(GameErr(InvalidConfValue("VERTICAL_FIELD_OF_VIEW"))),
+            _ => return Err(GameErr(InvalidConfValue(HFOV_KEY))),
         }
         Ok(self)
     }
 
-    /// Parses `DRAW_DISTANCE` parameter from the `Table` parsed from TOML
     pub fn parse_draw_dist(mut self, table: &mut Table) -> ReRes<Self> {
-        let value = match table.remove("DRAW_DISTANCE") {
+        let value = match table.remove(DRAW_DIST_KEY) {
             Some(value) => value,
             None => return Ok(self),
         };
         match value {
             Value::Integer(draw_dist) => self.draw_dist = draw_dist as f64,
             Value::Float(draw_dist) => self.draw_dist = draw_dist,
-            _ => return Err(GameErr(InvalidConfValue("DRAW_DISTANCE"))),
+            _ => return Err(GameErr(InvalidConfValue(DRAW_DIST_KEY))),
         }
         Ok(self)
     }
 
-    /// Parses `SCREEN_WIDTH` parameter from the `Table` parsed from TOML
-    pub fn parse_wscr(mut self, table: &mut Table) -> ReRes<Self> {
-        let value = match table.remove("SCREEN_WIDTH") {
-            Some(value) => value,
-            None => return Ok(self),
-        };
-        match value {
-            Value::Integer(scr_x) => self.wscr = scr_x as usize,
-            _ => return Err(GameErr(InvalidConfValue("SCREEN_WIDTH"))),
-        }
-        Ok(self)
-    }
-
-    /// Parses `SCREEN_HEIGHT` parameter from the `Table` parsed from TOML
-    pub fn parse_hscr(mut self, table: &mut Table) -> ReRes<Self> {
-        let value = match table.remove("SCREEN_HEIGHT") {
-            Some(value) => value,
-            None => return Ok(self),
-        };
-        match value {
-            Value::Integer(scr_y) => self.hscr = scr_y as usize,
-            _ => return Err(GameErr(InvalidConfValue("SCREEN_HEIGHT"))),
-        }
-        Ok(self)
-    }
-
-    /// Parses `CHARMAP` parameter from the `Table` parsed from TOML
     pub fn parse_charmap(mut self, table: &mut Table) -> ReRes<Self> {
-        let value = match table.remove("CHARMAP") {
+        let value = match table.remove(CHARMAP_KEY) {
             Some(value) => value,
             None => return Ok(self),
         };
         match value {
             Value::String(charmap) => self.charmap = charmap,
-            _ => return Err(GameErr(InvalidConfValue("CHARMAP"))),
+            _ => return Err(GameErr(InvalidConfValue(CHARMAP_KEY))),
         }
         Ok(self)
     }
 
     /// Parses `PRECISION` parameter from the `Table` parsed from TOML
     pub fn parse_precision(mut self, table: &mut Table) -> ReRes<Self> {
-        let value = match table.remove("PRECISION") {
+        let value = match table.remove(PRECISION_KEY) {
             Some(value) => value,
             None => return Ok(self),
         };
         match value {
             Value::Integer(precision) => self.precision = (precision % 256) as u8,
-            _ => return Err(GameErr(InvalidConfValue("PRECISION"))),
+            _ => return Err(GameErr(InvalidConfValue(PRECISION_KEY))),
         }
         Ok(self)
-    }
-
-    /// Computes `VERTICAL_FIELD_OF_VIEW` if not specified
-    pub fn comp_hfov(&self) -> f64 {
-        self.wfov * (self.hscr as f64) / (self.wscr as f64)
     }
 }
 
@@ -195,12 +179,11 @@ impl Default for Conf {
     fn default() -> Self {
         Self {
             initpt: Point::new(vec![0.0; 3]),
+            angle_discr: 6,
             wfov: PI / 2.0,
             hfov: None,
             draw_dist: 100.0,
-            wscr: 100,
-            hscr: 60,
-            charmap: ".:;><+r*zsvfwqkP694VOGbUAKXH8RD#$B0MNWQ%&@".to_string(),
+            charmap: "$@&%#WMNB8RGAHP694XKYJOUVIL*+:-·".to_string(),
             precision: 100,
         }
     }

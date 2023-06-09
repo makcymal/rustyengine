@@ -11,7 +11,8 @@ use {
     std::{
         marker::PhantomData,
         rc::Rc,
-        time::Duration
+        time::Duration,
+        f64::consts::PI,
     },
     uuid::Uuid
 };
@@ -51,25 +52,24 @@ where Evt: AsEvent<Lst>, Lst: AsMaterialList,
         let mut id_pool = IdPool::new();
         let entities = None;
 
-        if let Ok(size) = console::init() {
-            (conf.wscr, conf.hscr) = (size.0 as usize, size.1 as usize)
-        }
+        let size = console::init()?;
+        let size = ((size.0 - 3) as usize, size.1 as usize);
+
         let hfov = match conf.hfov {
             Some(val) => val,
-            None => conf.comp_hfov(),
+            None => (size.0 as f64) * conf.wfov / (size.1 as f64),
         };
+
         let camera = Camera::new(
-            Entity::new(id_pool.generate()),
             conf.initpt,
-            Vector::new(vec![1.0, 0.0, 0.0]),
+            conf.angle_discr,
+            conf.wfov * PI,
+            hfov * PI,
+            size.clone(),
             conf.draw_dist,
-            conf.wfov,
-            hfov,
-            conf.wscr,
-            conf.hscr - 3,
         );
 
-        let canvas = Canvas::new(conf.wscr, conf.hscr - 3, conf.charmap);
+        let canvas = Canvas::new(size, conf.charmap);
 
         Ok(Self {
             phantom: PhantomData,

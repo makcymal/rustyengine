@@ -70,7 +70,7 @@ fn mv_camera_about_pos() {
         6,
         5,
     );
-    camera.mv(&Vector::new(vec![1.0, 0.0, 0.0])).unwrap();
+    camera.dir(&Vector::new(vec![1.0, 0.0, 0.0])).unwrap();
     assert_eq!(camera.pos, Point::new(vec![1.0, 0.0, 0.0]))
 }
 
@@ -87,7 +87,7 @@ fn mv_camera_about_rays() {
         6,
         5,
     );
-    camera.mv(&Vector::new(vec![1.0, 0.0, 0.0])).unwrap();
+    camera.dir(&Vector::new(vec![1.0, 0.0, 0.0])).unwrap();
     assert!(camera
         .rays
         .att(2, 3)

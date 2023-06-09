@@ -222,6 +222,41 @@ impl AsGameObject for HypePlane {
 }
 
 
+#[derive(Debug)]
+pub struct XYPlane {
+    pub(crate) entity: Entity
+}
+
+impl XYPlane {
+    pub fn new(entity: Entity) -> Self {
+        Self { entity }
+    }
+}
+
+impl AsEntity for XYPlane {
+    fn id(&self) -> &Rc<Uuid> {
+        self.entity.id()
+    }
+
+    fn props(&self) -> &HashMap<PropKey, PropVal> {
+        self.entity.props()
+    }
+
+    fn props_mut(&mut self) -> &mut HashMap<PropKey, PropVal> {
+        self.entity.props_mut()
+    }
+}
+
+impl AsCollided for XYPlane {
+    fn collide(&self, cs: &CoordSys, inc: &Point, dir: &Vector) -> f64 {
+        if aeq(&dir.at(2), &0.0) {
+            return -1.0
+        }
+        -inc.at(2) / dir.at(2)
+    }
+}
+
+
 /// Ellipse in arbitrary dimension space that defined with center point, direction vectors and semiaxes lengths
 #[derive(Debug)]
 pub struct HypeEllipse {

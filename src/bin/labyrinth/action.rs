@@ -16,6 +16,7 @@ use {
     rustyengine::{
         engn::*,
         errs::ReRes,
+        math::*,
     },
     std::cmp::Ordering,
 };
@@ -35,29 +36,29 @@ pub enum Action {
 }
 
 impl Action {
-    pub fn times(&self) -> Option<&i8> {
+    pub fn increment(&mut self) {
         match self {
-            Self::LeaveClue(t) => Some(t),
-            Self::TakeClue(t) => Some(t),
-            Self::RotateUp(t) => Some(t),
-            Self::RotateDown(t) => Some(t),
-            Self::RotateLeft(t) => Some(t),
-            Self::RotateRight(t) => Some(t),
-            Self::MoveForward(t) => Some(t),
-            Self::None => None,
+            Self::LeaveClue(t) => *t = t.saturating_add(1),
+            Self::TakeClue(t) => *t = t.saturating_add(1),
+            Self::RotateUp(t) => *t = t.saturating_add(1),
+            Self::RotateDown(t) => *t = t.saturating_add(1),
+            Self::RotateLeft(t) => *t = t.saturating_add(1),
+            Self::RotateRight(t) => *t = t.saturating_add(1),
+            Self::MoveForward(t) => *t = t.saturating_add(1),
+            Self::None => unreachable!(),
         }
     }
 
-    pub fn times_mut(&mut self) -> Option<&mut i8> {
+    pub fn times(&self) -> i8 {
         match self {
-            Self::LeaveClue(t) => Some(t),
-            Self::TakeClue(t) => Some(t),
-            Self::RotateUp(t) => Some(t),
-            Self::RotateDown(t) => Some(t),
-            Self::RotateLeft(t) => Some(t),
-            Self::RotateRight(t) => Some(t),
-            Self::MoveForward(t) => Some(t),
-            Self::None => None,
+            Self::LeaveClue(t) => *t,
+            Self::TakeClue(t) => *t,
+            Self::RotateUp(t) => *t,
+            Self::RotateDown(t) => *t,
+            Self::RotateLeft(t) => *t,
+            Self::RotateRight(t) => *t,
+            Self::MoveForward(t) => *t,
+            Self::None => unreachable!(),
         }
     }
 }
@@ -114,11 +115,10 @@ impl AsEventSys<Action, Scene> for DedupActions {
         if let Action::None = event {
             return;
         }
-        *self.actions[ActionDiscr::from(event) as usize].times_mut().unwrap() += 1;
+        self.actions[ActionDiscr::from(event) as usize].increment();
     }
 
-    fn handle_all(&mut self, camera: &mut Camera, entities: &mut Scene) -> ReRes<()>
-    {
+    fn handle_all(&mut self, camera: &mut Camera, entities: &mut Scene) -> ReRes<()> {
         match self.actions[0].times().cmp(&self.actions[1].times()) {
             Ordering::Greater => entities.leave_clue(camera.pos()),
             Ordering::Less => entities.take_clue(camera.pos()),
@@ -126,24 +126,25 @@ impl AsEventSys<Action, Scene> for DedupActions {
         };
 
 
-        // let vert = self.actions[2].1 - self.actions[3].1;
-        // (self.actions[2].1, self.actions[3].1) = match vert.cmp(&0) {
-        //     Ordering::Greater => (vert, 0),
-        //     Ordering::Equal => (0, 0),
-        //     Ordering::Less => (0, -vert),
-        // };
-        //
-        // let hor = self.actions[4].1 - self.actions[5].1;
-        // (self.actions[4].1, self.actions[5].1) = match hor.cmp(&0) {
-        //     Ordering::Greater => (hor, 0),
-        //     Ordering::Equal => (0, 0),
-        //     Ordering::Less => (0, -hor),
-        // };
+        let vert = self.actions[2].times() - self.actions[3].times();
+        match vert.cmp(&0) {
+            Ordering::Greater => camera.rotate_up(vert as usize),
+            Ordering::Less => camera.rotate_down(-vert as usize),
+            _ => (),
+        };
 
+        let hor = self.actions[4].times() - self.actions[5].times();
+        match hor.cmp(&0) {
+            Ordering::Greater => camera.rotate_left(hor as usize),
+            Ordering::Less => camera.rotate_right(-hor as usize),
+            _ => (),
+        };
 
-
-        //
-        // camera
+        let mv = self.actions[6].times();
+        if mv != 0 {
+            let dir = camera.dir();
+            camera.mv(&Vector::new(vec![dir.0, dir.1, 0.0]))?
+        }
 
         Ok(())
     }
