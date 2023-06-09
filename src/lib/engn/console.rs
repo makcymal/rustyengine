@@ -22,7 +22,7 @@ pub use crossterm::event::Event;
 pub fn init() -> ReRes<(u16, u16)> {
     let size = size()?;
     enable_raw_mode()?;
-    clear();
+    // clear();
     Ok((size.1, size.0))
 }
 

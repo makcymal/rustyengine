@@ -40,6 +40,7 @@ pub use {
         Entity,
         EntityList,
         HypePlane,
+        XYPlane,
         HypeEllipse,
     },
 };

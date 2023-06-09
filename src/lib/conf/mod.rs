@@ -62,6 +62,7 @@ impl Conf {
                 .parse_wfov(&mut table)?
                 .parse_hfov(&mut table)?
                 .parse_draw_dist(&mut table)?
+                .parse_charmap(&mut table)?
                 .parse_precision(&mut table)?;
         }
         Ok(conf)

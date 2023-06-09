@@ -22,17 +22,19 @@ pub struct Canvas<Lst: AsMaterialList> {
     size: (usize, usize),
     charmap: Vec<char>,
     charmap_len: f64,
+    draw_dist: f64,
     picture: Vec<String>,
 }
 
 impl<Lst: AsMaterialList> Canvas<Lst> {
     /// Constructs new canvas
-    pub fn new(size: (usize, usize), charmap: String) -> Self {
+    pub fn new(size: (usize, usize), charmap: String, draw_dist: f64) -> Self {
         Self {
             phantom: PhantomData,
             size,
             charmap: charmap.chars().collect(),
             charmap_len: charmap.len() as f64,
+            draw_dist: draw_dist + 1.0,
             picture: vec![(0..size.1).map(|_| ' ').collect::<String>(); size.0],
         }
     }
@@ -42,11 +44,13 @@ impl<Lst: AsMaterialList> Canvas<Lst> {
         for r in 0..self.size.0 {
             self.picture[r] = (0..self.size.1)
                 .map(|c| {
-                    let mut dist = entities.collide(cs, &camera.pos, camera.ray(r, c));
+                    let (ray, len) = camera.ray(r, c);
+                    let mut dist = entities.collide(cs, &camera.pos, ray) * len;
                     if dist < 0.0 || camera.draw_dist < dist {
                         dist = camera.draw_dist;
                     }
-                    self.charmap[(dist / camera.draw_dist * self.charmap_len).round() as usize]
+                    // dbg!(dist, self.draw_dist, self.charmap_len, (dist / self.draw_dist * self.charmap_len));
+                    self.charmap[(dist / self.draw_dist * self.charmap_len).floor() as usize]
                 })
                 .collect::<String>();
         }

@@ -47,7 +47,7 @@ impl AsEntity for XZPanes {
 
 impl AsCollided for XZPanes {
     fn collide(&self, _cs: &CoordSys, inc: &Point, dir: &Vector) -> f64 {
-        if aeq(&dir.at(1), &0.0) {
+        if aeq(&dir.at(1), &0.0) || self.x_seg.is_empty() {
             return -1.0;
         }
 
@@ -63,11 +63,23 @@ impl AsCollided for XZPanes {
             Ok(idx) => idx,
             Err(idx) => idx,
         };
-        if idx % 2 == 1 || idx == 0 || x == self.x_seg[idx - 1] || x == self.x_seg[idx] {
-            return t;
+        if idx == 0 {
+            match aeq(&x.0, &self.x_seg[0].0) {
+                true => t,
+                false => -1.0
+            }
         }
-
-        -1.0
+        else if idx == self.x_seg.len() {
+            match aeq(&x.0, &self.x_seg.last().unwrap().0) {
+                true => t,
+                false => -1.0
+            }
+        }
+        else if idx % 2 == 1 || aeq(&x.0, &self.x_seg[idx - 1].0) || aeq(&x.0, &self.x_seg[idx].0) {
+            t
+        } else {
+            -1.0
+        }
     }
 }
 
@@ -141,7 +153,7 @@ impl AsEntity for YZPanes {
 
 impl AsCollided for YZPanes {
     fn collide(&self, _cs: &CoordSys, inc: &Point, dir: &Vector) -> f64 {
-        if aeq(&dir.at(0), &0.0) {
+        if aeq(&dir.at(0), &0.0) || self.y_seg.is_empty() {
             return -1.0;
         }
 
@@ -157,11 +169,23 @@ impl AsCollided for YZPanes {
             Ok(idx) => idx,
             Err(idx) => idx,
         };
-        if idx % 2 == 1 || idx == 0 || y == self.y_seg[idx - 1] || y == self.y_seg[idx] {
-            return t;
+        if idx == 0 {
+            match aeq(&y.0, &self.y_seg[0].0) {
+                true => t,
+                false => -1.0
+            }
         }
-
-        -1.0
+        else if idx == self.y_seg.len() {
+            match aeq(&y.0, &self.y_seg.last().unwrap().0) {
+                true => t,
+                false => -1.0
+            }
+        }
+        else if idx % 2 == 1 || aeq(&y.0, &self.y_seg[idx - 1].0) || aeq(&y.0, &self.y_seg[idx].0) {
+            t
+        } else {
+            -1.0
+        }
     }
 }
 

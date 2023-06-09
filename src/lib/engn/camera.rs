@@ -13,13 +13,15 @@ pub struct Vision {
     // second - azimut rotation
     // third - rows of rays
     // fourth - columns of rays
-
     rays: Vec<Vec<Vec<Vec<Vector>>>>,
+    lens: Vec<Vec<f64>>,
 }
 
 impl Vision {
     pub(crate) fn new(discr: usize, wfov: f64, hfov: f64, size: (usize, usize)) -> Self {
         let mut vision: Vec<Vec<Vec<Vec<Vector>>>> = vec![vec![vec![vec![]; size.0]; 4 * discr]; 2 * discr - 1];
+        let mut lens: Vec<Vec<f64>> = vec![vec![]; size.0];
+
         let wfov_step = wfov / (size.1 as f64);
         let hfov_step = hfov / (size.0 as f64);
 
@@ -29,8 +31,9 @@ impl Vision {
         for i in (0..(discr - 1)).rev() {
             for r in 0..size.0 {
                 for c in 0..size.1 {
-                    let coord = rot.mul(vision[i + 1][0][r][c].coord());
-                    vision[i][0][r].push(Vector { coord })
+                    let coord = rot.mul(vision[i + 1][0][r][c].coord()).to_col();
+                    lens[r].push(coord.len().unwrap() );
+                    vision[i][0][r].push(Vector { coord });
                 }
             }
         }
@@ -39,7 +42,7 @@ impl Vision {
         for i in discr..(2 * discr - 1) {
             for r in 0..size.0 {
                 for c in 0..size.1 {
-                    let coord = rot.mul(vision[i - 1][0][r][c].coord());
+                    let coord = rot.mul(vision[i - 1][0][r][c].coord()).to_col();
                     vision[i][0][r].push(Vector { coord })
                 }
             }
@@ -50,14 +53,14 @@ impl Vision {
             for j in 1..(4 * discr) {
                 for r in 0..size.0 {
                     for c in 0..size.1 {
-                        let coord = rot.mul(vision[i][j - 1][r][c].coord());
+                        let coord = rot.mul(vision[i][j - 1][r][c].coord()).to_col();
                         vision[i][j][r].push(Vector { coord })
                     }
                 }
             }
         }
 
-        Self { rays: vision }
+        Self { rays: vision, lens}
     }
 }
 
@@ -81,8 +84,6 @@ pub struct Camera {
 
 impl Camera {
     pub fn new(pos: Point, discr: usize, yfov: f64, zfov: f64, mut size: (usize, usize), draw_dist: f64) -> Self {
-        if size.0 % 2 == 0 { size.0 -= 1 }
-        if size.1 % 2 == 0 { size.1 -= 1 }
         Self {
             pos,
             vision: Vision::new(discr, yfov, zfov, size),
@@ -112,8 +113,9 @@ impl Camera {
         self.pos.mv_assign(vec)
     }
 
-    pub fn ray(&self, r: usize, c: usize) -> &Vector {
-        &self.vision.rays[self.zen_idx][self.azi_idx][r][c]
+    pub fn ray(&self, r: usize, c: usize) -> (&Vector, f64) {
+        // dbg!(r, c, &self.vision.rays[self.zen_idx][self.azi_idx][r][c]);
+        (&self.vision.rays[self.zen_idx][self.azi_idx][r][c], self.vision.lens[r][c])
     }
 
     pub fn rotate_up(&mut self, step: usize) {
@@ -123,7 +125,7 @@ impl Camera {
     pub fn rotate_down(&mut self, step: usize) {
         let idx = self.zen_idx + step;
         self.zen_idx = if idx >= self.zen_max {
-            self.zen_max
+            self.zen_max - 1
         } else {
             idx
         }

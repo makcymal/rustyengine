@@ -146,6 +146,16 @@ impl AsEventSys<Action, Scene> for DedupActions {
             camera.mv(&Vector::new(vec![dir.0, dir.1, 0.0]))?
         }
 
+        self.actions = [
+                Action::LeaveClue(0),
+                Action::TakeClue(0),
+                Action::RotateUp(0),
+                Action::RotateDown(0),
+                Action::RotateLeft(0),
+                Action::RotateRight(0),
+                Action::MoveForward(0),
+        ];
+
         Ok(())
     }
 }

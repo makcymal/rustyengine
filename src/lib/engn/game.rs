@@ -53,7 +53,9 @@ where Evt: AsEvent<Lst>, Lst: AsMaterialList,
         let entities = None;
 
         let size = console::init()?;
-        let size = ((size.0 - 3) as usize, size.1 as usize);
+        let mut size = ((size.0 - 3) as usize, size.1 as usize);
+        if size.0 % 2 == 0 { size.0 -= 1 }
+        if size.1 % 2 == 0 { size.1 -= 1 }
 
         let hfov = match conf.hfov {
             Some(val) => val,
@@ -69,7 +71,7 @@ where Evt: AsEvent<Lst>, Lst: AsMaterialList,
             conf.draw_dist,
         );
 
-        let canvas = Canvas::new(size, conf.charmap);
+        let canvas = Canvas::new(size, conf.charmap, conf.draw_dist);
 
         Ok(Self {
             phantom: PhantomData,

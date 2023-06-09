@@ -25,7 +25,7 @@ pub const HANDLEN: f64 = 0.5;
 pub struct Scene {
     xz_panes: [XZPanes; XZPANES],
     yz_panes: [YZPanes; YZPANES],
-    ground: HypePlane,
+    ground: XYPlane,
     clues: [HypeEllipse; CLUES],
     clues_visibility: [bool; CLUES],
     clues_available: i8,
@@ -104,7 +104,7 @@ impl Scene {
                              10.0,
                              vec![0.0, 10.0]),
             ],
-            ground: HypePlane::default(Entity::new(id_pool.generate())),
+            ground: XYPlane::new(Entity::new(id_pool.generate())),
             clues: [
                 HypeEllipse::default(Entity::new(id_pool.generate())),
                 HypeEllipse::default(Entity::new(id_pool.generate())),
@@ -185,9 +185,9 @@ impl AsMaterialList for Scene {
                 for i in 0..XZPANES {
                     let d = self.xz_panes[i].collide(cs, inc, dir);
                     if d >= 0.0 {
-                        if let Some(mut dist) = dist_opt {
-                            if d <= dist {
-                                dist = d
+                        if let Some(ref mut dist) = dist_opt {
+                            if d <= *dist {
+                                *dist = d
                             }
                         } else {
                             dist_opt = Some(d);
@@ -200,9 +200,9 @@ impl AsMaterialList for Scene {
                 for i in (0..XZPANES).rev() {
                     let d = self.xz_panes[i].collide(cs, inc, dir);
                     if d >= 0.0 {
-                        if let Some(mut dist) = dist_opt {
-                            if d <= dist {
-                                dist = d
+                        if let Some(ref mut dist) = dist_opt {
+                            if d <= *dist {
+                                *dist = d
                             }
                         } else {
                             dist_opt = Some(d);
@@ -214,7 +214,16 @@ impl AsMaterialList for Scene {
             _ => (),
         };
 
+        let d = self.ground.collide(cs, inc, dir);
+        if let Some(ref mut dist) = dist_opt {
+            if d <= *dist {
+                *dist = d
+            }
+        } else {
+            dist_opt = Some(d)
+        }
 
+        // dbg!(inc, dir, &dist_opt);
         dist_opt.unwrap_or(-1.0)
     }
 }
