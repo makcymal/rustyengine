@@ -20,6 +20,6 @@ impl AsCollided for Ground {
         if aeq(dir[2], 0.0) {
             return -1.0
         }
-        -inc.at(2) / dir.at(2)
+        -inc[2] / dir[2]
     }
 }

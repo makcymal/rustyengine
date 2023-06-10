@@ -66,7 +66,6 @@ pub fn set_precision(prec: u8) {
     unsafe { EPSILON *= ((255 - prec + 1) as f32) }
 }
 
-
 pub fn aeq(lhs: f32, rhs: f32) -> bool {
     unsafe { (lhs - rhs).abs() < EPSILON }
 }

@@ -1,6 +1,6 @@
 use {
     crate::labyrinth::{
-        action::*,
+        ground::*,
         pane::*,
     },
     rustyengine::{
@@ -15,152 +15,59 @@ use {
 };
 
 
-pub const STEP: f64 = 0.5;
+pub const STEP: f32 = 0.5;
 pub const XZPANES: usize = 11;
 pub const YZPANES: usize = 11;
-pub const CLUES: usize = 4;
-pub const HANDLEN: f64 = 0.5;
 
 
 pub struct Scene {
     xz_panes: [XZPanes; XZPANES],
     yz_panes: [YZPanes; YZPANES],
-    ground: XYPlane,
-    clues: [HypeEllipse; CLUES],
-    clues_visibility: [bool; CLUES],
-    clues_available: i8,
+    ground: Ground,
 }
 
 impl Scene {
-    pub fn new(id_pool: &mut IdPool) -> Self {
+    pub fn new() -> Self {
         Self {
             xz_panes: [
-                XZPanes::new(Entity::new(id_pool.generate()),
-                             0.0,
-                             vec![0.0, 10.0]),
-                XZPanes::new(Entity::new(id_pool.generate()),
-                             1.0,
-                             vec![3.0, 7.0, 8.0, 9.0]),
-                XZPanes::new(Entity::new(id_pool.generate()),
-                             2.0,
-                             vec![0.0, 1.0, 4.0, 7.0, 8.0, 9.0]),
-                XZPanes::new(Entity::new(id_pool.generate()),
-                             3.0,
-                             vec![1.0, 2.0, 4.0, 5.0, 6.0, 7.0]),
-                XZPanes::new(Entity::new(id_pool.generate()),
-                             4.0,
-                             vec![0.0, 1.0, 3.0, 6.0, 7.0, 10.0]),
-                XZPanes::new(Entity::new(id_pool.generate()),
-                             5.0,
-                             vec![1.0, 6.0, 8.0, 9.0]),
-                XZPanes::new(Entity::new(id_pool.generate()),
-                             6.0,
-                             vec![2.0, 3.0, 4.0, 7.0, 8.0, 9.0]),
-                XZPanes::new(Entity::new(id_pool.generate()),
-                             7.0,
-                             vec![8.0, 9.0]),
-                XZPanes::new(Entity::new(id_pool.generate()),
-                             8.0,
-                             vec![4.0, 5.0, 6.0, 7.0, 9.0, 10.0]),
-                XZPanes::new(Entity::new(id_pool.generate()),
-                             9.0,
-                             vec![4.0, 5.0, 8.0, 9.0]),
-                XZPanes::new(Entity::new(id_pool.generate()),
-                             10.0,
-                             vec![0.0, 10.0]),
+                XZPanes::new(0.0, vec![0.0, 10.0]),
+                XZPanes::new(1.0, vec![3.0, 7.0, 8.0, 9.0]),
+                XZPanes::new(2.0, vec![0.0, 1.0, 4.0, 7.0, 8.0, 9.0]),
+                XZPanes::new(3.0, vec![1.0, 2.0, 4.0, 5.0, 6.0, 7.0]),
+                XZPanes::new(4.0, vec![0.0, 1.0, 3.0, 6.0, 7.0, 10.0]),
+                XZPanes::new(5.0, vec![1.0, 6.0, 8.0, 9.0]),
+                XZPanes::new(6.0, vec![2.0, 3.0, 4.0, 7.0, 8.0, 9.0]),
+                XZPanes::new(7.0, vec![8.0, 9.0]),
+                XZPanes::new(8.0, vec![4.0, 5.0, 6.0, 7.0, 9.0, 10.0]),
+                XZPanes::new(9.0, vec![4.0, 5.0, 8.0, 9.0]),
+                XZPanes::new(10.0, vec![0.0, 10.0]),
             ],
             yz_panes: [
-                YZPanes::new(Entity::new(id_pool.generate()),
-                             0.0,
-                             vec![0.0, 10.0]),
-                YZPanes::new(Entity::new(id_pool.generate()),
-                             1.0,
-                             vec![1.0, 2.0, 5.0, 9.0]),
-                YZPanes::new(Entity::new(id_pool.generate()),
-                             2.0,
-                             vec![0.0, 8.0, 9.0, 10.0]),
-                YZPanes::new(Entity::new(id_pool.generate()),
-                             3.0,
-                             vec![1.0, 4.0, 7.0, 9.0]),
-                YZPanes::new(Entity::new(id_pool.generate()),
-                             4.0,
-                             vec![2.0, 3.0, 6.0, 7.0, 8.0, 9.0]),
-                YZPanes::new(Entity::new(id_pool.generate()),
-                             5.0,
-                             vec![7.0, 8.0, 9.0, 10.0]),
-                YZPanes::new(Entity::new(id_pool.generate()),
-                             6.0,
-                             vec![3.0, 5.0, 7.0, 8.0, 9.0, 10.0]),
-                YZPanes::new(Entity::new(id_pool.generate()),
-                             7.0,
-                             vec![2.0, 3.0, 5.0, 9.0]),
-                YZPanes::new(Entity::new(id_pool.generate()),
-                             8.0,
-                             vec![0.0, 2.0, 3.0, 4.0, 5.0, 9.0]),
-                YZPanes::new(Entity::new(id_pool.generate()),
-                             9.0,
-                             vec![2.0, 3.0, 9.0, 10.0]),
-                YZPanes::new(Entity::new(id_pool.generate()),
-                             10.0,
-                             vec![0.0, 10.0]),
+                YZPanes::new(0.0, vec![0.0, 10.0]),
+                YZPanes::new(1.0, vec![1.0, 2.0, 5.0, 9.0]),
+                YZPanes::new(2.0, vec![0.0, 8.0, 9.0, 10.0]),
+                YZPanes::new(3.0, vec![1.0, 4.0, 7.0, 9.0]),
+                YZPanes::new(4.0, vec![2.0, 3.0, 6.0, 7.0, 8.0, 9.0]),
+                YZPanes::new(5.0, vec![7.0, 8.0, 9.0, 10.0]),
+                YZPanes::new(6.0, vec![3.0, 5.0, 7.0, 8.0, 9.0, 10.0]),
+                YZPanes::new(7.0, vec![2.0, 3.0, 5.0, 9.0]),
+                YZPanes::new(8.0, vec![0.0, 2.0, 3.0, 4.0, 5.0, 9.0]),
+                YZPanes::new(9.0, vec![2.0, 3.0, 9.0, 10.0]),
+                YZPanes::new(10.0, vec![0.0, 10.0]),
             ],
-            ground: XYPlane::new(Entity::new(id_pool.generate())),
-            clues: [
-                HypeEllipse::default(Entity::new(id_pool.generate())),
-                HypeEllipse::default(Entity::new(id_pool.generate())),
-                HypeEllipse::default(Entity::new(id_pool.generate())),
-                HypeEllipse::default(Entity::new(id_pool.generate())),
-            ],
-            clues_visibility: [false; CLUES],
-            clues_available: CLUES as i8,
-        }
-    }
-
-    pub fn leave_clue(&mut self, pos: &Point) {
-        if self.clues_available == 0 {
-            return;
-        }
-        let i = (0..CLUES).find(|i| !self.clues_visibility[*i]).unwrap();
-        let clue_pos = self.clues[i].pos_mut();
-        *clue_pos.at_mut(0) = pos.at(0);
-        *clue_pos.at_mut(1) = pos.at(1);
-        self.clues_visibility[i] = true;
-        self.clues_available -= 1;
-    }
-
-    pub fn take_clue(&mut self, pos: &Point) {
-        for i in 0..CLUES {
-            if !self.clues_visibility[i] { continue; }
-            let clue_pos = self.clues[i].pos();
-            if (clue_pos.at(0) - pos.at(0)).powi(2) +
-                (clue_pos.at(1) - pos.at(1)).powi(2) < HANDLEN
-            {
-                self.clues_visibility[i] = false;
-                self.clues_available += 1;
-                break;
-            }
+            ground: Ground::new(),
         }
     }
 }
 
-impl AsEntityList for Scene {
-    type Item = ();
+impl AsScene for Scene {
+    fn collide(&self, inc: &Point, dir: &Vector) -> f32 {
+        let mut dist_opt: Option<f32> = None;
 
-    fn append(&mut self, item: Self::Item) {}
-
-    fn remove(&mut self, id: &Rc<Uuid>) {}
-
-    fn get(&self, id: &Rc<Uuid>) -> Option<&Self::Item> { None }
-
-    fn exec(&self, f: fn(&Self::Item)) {}
-
-    fn collide(&self, cs: &CoordSys, inc: &Point, dir: &Vector) -> f64 {
-        let mut dist_opt: Option<f64> = None;
-
-        match dir.at(0).partial_cmp(&0.0) {
+        match dir[0].partial_cmp(&0.0) {
             Some(Ordering::Greater) => {
                 for i in 0..YZPANES {
-                    let d = self.yz_panes[i].collide(cs, inc, dir);
+                    let d = self.yz_panes[i].collide(inc, dir);
                     if d >= 0.0 {
                         dist_opt = Some(d);
                         break;
@@ -169,7 +76,7 @@ impl AsEntityList for Scene {
             }
             Some(Ordering::Less) => {
                 for i in (0..YZPANES).rev() {
-                    let d = self.yz_panes[i].collide(cs, inc, dir);
+                    let d = self.yz_panes[i].collide(inc, dir);
                     if d >= 0.0 {
                         dist_opt = Some(d);
                         break;
@@ -180,10 +87,10 @@ impl AsEntityList for Scene {
         };
 
 
-        match dir.at(1).partial_cmp(&0.0) {
+        match dir[1].partial_cmp(&0.0) {
             Some(Ordering::Greater) => {
                 for i in 0..XZPANES {
-                    let d = self.xz_panes[i].collide(cs, inc, dir);
+                    let d = self.xz_panes[i].collide(inc, dir);
                     if d >= 0.0 {
                         if let Some(ref mut dist) = dist_opt {
                             if d <= *dist {
@@ -198,7 +105,7 @@ impl AsEntityList for Scene {
             }
             Some(Ordering::Less) => {
                 for i in (0..XZPANES).rev() {
-                    let d = self.xz_panes[i].collide(cs, inc, dir);
+                    let d = self.xz_panes[i].collide(inc, dir);
                     if d >= 0.0 {
                         if let Some(ref mut dist) = dist_opt {
                             if d <= *dist {
@@ -214,7 +121,7 @@ impl AsEntityList for Scene {
             _ => (),
         };
 
-        let d = self.ground.collide(cs, inc, dir);
+        let d = self.ground.collide(inc, dir);
         if let Some(ref mut dist) = dist_opt {
             if d <= *dist {
                 *dist = d
@@ -227,3 +134,4 @@ impl AsEntityList for Scene {
         dist_opt.unwrap_or(-1.0)
     }
 }
+

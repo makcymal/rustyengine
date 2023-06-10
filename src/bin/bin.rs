@@ -4,11 +4,11 @@ mod labyrinth;
 
 use {
     anyhow::Result,
-    rustyengine::prelude::*,
+    rustyengine::{
+        conf::*,
+        engn::{Game, MovementEvent, MovementEventSys},
+    },
     crate::labyrinth::{
-        action::{
-            Action, DedupActions,
-        },
         scene::Scene,
     }
 };
@@ -17,7 +17,7 @@ use {
 fn main() -> Result<()> {
     let conf = Conf::read(vec!["src/bin/conf.toml"])?;
     let scene = Scene::new();
-    let mut game = Game::<Action, DedupActions, Scene>::new(conf, scene)?;
+    let mut game = Game::<MovementEvent<Scene>, MovementEventSys, Scene>::new(conf, scene)?;
     game.run()?;
     Ok(())
 }

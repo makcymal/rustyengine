@@ -13,6 +13,7 @@ pub mod camera;
 pub mod canvas;
 pub mod console;
 pub mod event;
+pub mod event_traits;
 pub mod game;
 pub mod material_traits;
 pub mod material;
@@ -20,12 +21,14 @@ pub mod material;
 #[cfg(test)]
 mod test;
 
-// re-exports in scope of namespace `engn`
 pub use {
     camera::Camera,
     canvas::Canvas,
     game::Game,
     event::{
+        MovementEvent, MovementEventSys
+    },
+    event_traits::{
         AsEvent, AsEventSys
     },
     material_traits::{
