@@ -26,13 +26,14 @@ pub use {
     canvas::Canvas,
     game::Game,
     event::{
-        AsEvent, ConsoleEvent, AsEventSys, EventQueue,
+        AsEvent, AsEventSys
     },
     material_traits::{
         AsEntity,
         AsCollided,
         AsGameObject,
-        AsMaterialList,
+        AsEntityList,
+        AsScene,
         PropKey, PropVal,
     },
     material::{
@@ -40,7 +41,6 @@ pub use {
         Entity,
         EntityList,
         HypePlane,
-        XYPlane,
         HypeEllipse,
     },
 };

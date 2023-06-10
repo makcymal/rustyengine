@@ -75,52 +75,43 @@ impl Index<PropKey> for dyn AsEntity {
 
 
 /// for material that can be collided with `Ray`. Coefficient of `Ray` resizing is returned if collision exists else `-1.0`
-pub trait AsCollided: AsEntity {
-    fn collide(&self, cs: &CoordSys, inc: &Point, dir: &Vector) -> f64;
+pub trait AsCollided {
+    fn collide(&self, inc: &Point, dir: &Vector) -> f32;
 }
 
 impl std::fmt::Debug for dyn AsCollided {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "UUID {:?}", self.id())
+        write!(f, "Collided trait object")
     }
 }
 
 
 /// For material that has not-consistent position and direction in the game
-pub trait AsGameObject: AsEntity {
+pub trait AsGameObject: AsCollided {
     fn pos(&self) -> &Point;
 
     fn pos_mut(&mut self) -> &mut Point;
 
-    fn dir(&self) -> &Matrix;
+    fn dir(&self) -> &Vector;
 
-    fn dir_mut(&mut self) -> &mut Matrix;
+    fn dir_mut(&mut self) -> &mut Vector;
 
-    fn mv(&mut self, vec: &Vector) -> ReRes<()> {
-        self.pos_mut().mv_assign(vec)
+    fn mv(&mut self, vec: &Vector) {
+        self.pos_mut().mv(vec)
     }
 
-    fn df(&self, pt: &Point) -> ReRes<Vector> {
+    fn df(&self, pt: &Point) -> Vector {
         self.pos().df(pt)
     }
 
-    fn rotate_3d(&mut self, x: f64, y: f64, z: f64) -> ReRes<()> {
-        *self.dir_mut() = self.dir().mul(&Matrix::teit_bryan_rotation(x, y, z));
-        self.dir().ag_failed()?;
-        Ok(())
+    fn planar_rotate(&mut self, from: usize, to: usize, angle: f32) {
+        *self.dir_mut() = &Matrix::rotation(from, to, angle) * self.dir()
     }
 
-    fn planar_rotate(&mut self, from: usize, to: usize, angle: f64) -> ReRes<()> {
-        *self.dir_mut() = Matrix::rotation(from, to, angle, 3)
-            .mul(self.dir())
-            .to_col();
-        self.dir().ag_failed()?;
-        Ok(())
-    }
-
-    /// Dimension of space where `GameObject` lays
-    fn dim(&self) -> usize {
-        self.pos().dim()
+    fn rotate_3d(&mut self, xy: f32, yz: f32, xz: f32) {
+        self.planar_rotate(0, 1, xy);
+        self.planar_rotate(1, 2, yz);
+        self.planar_rotate(0, 2, xz);
     }
 }
 
@@ -128,8 +119,7 @@ impl std::fmt::Debug for dyn AsGameObject {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "UUID {:?}\n Position {:?}\n Direction {:?}",
-            self.id(),
+            "Position {:?}\n Direction {:?}",
             self.pos(),
             self.dir()
         )
@@ -137,7 +127,7 @@ impl std::fmt::Debug for dyn AsGameObject {
 }
 
 
-pub trait AsMaterialList {
+pub trait AsEntityList {
     /// Wrapper around dyn AsCollided, eg Box<dyn AsCollided> or Rc<RefCell<dyn AsCollided>>
     type Item;
 
@@ -147,12 +137,14 @@ pub trait AsMaterialList {
     /// Removes item with given id from the current list
     fn remove(&mut self, id: &Rc<Uuid>);
 
-    /// Returns ref to `Self::Item` if requested material exists
-    fn get(&self, id: &Rc<Uuid>) -> Option<&Self::Item>;
-
-    /// Permorms closure to some subset of all the entities
     fn exec(&self, f: fn(&Self::Item));
 
+    /// Returns ref to `Self::Item` if requested material exists
+    fn get(&self, id: &Rc<Uuid>) -> Option<&Self::Item>;
+}
+
+
+pub trait AsScene {
     /// Computes minimal distance to entities
-    fn collide(&self, cs: &CoordSys, inc: &Point, dir: &Vector) -> f64;
+    fn collide(&self, inc: &Point, dir: &Vector) -> f32;
 }

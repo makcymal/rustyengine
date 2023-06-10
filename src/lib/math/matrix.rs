@@ -1,4 +1,4 @@
-//! `Matrix` is defines as `Grid<f64>`.
+//! `Matrix` is defines as `Grid<f32>`.
 //! Besides inherited methods `Matrix` also has matrices-specific methods like determinant,
 //! inversed, minor, additions, subtractions, multiplications, divisions, norms. On matrices that
 //! stratified into `Row` and `Col` scalar and vector products can be applied, therefore also computing
@@ -6,8 +6,7 @@
 
 use {
     super::{
-        pow_minus,
-        precision::{aeq, round, round_mode::round_prec},
+        *,
         Sign::{self, *},
     },
     crate::{
@@ -23,8 +22,8 @@ use {
     std::ops::{Add, Div, Mul, Neg, Sub},
 };
 
-/// Grid with `f64` numbers
-pub type Matrix = Grid<f64>;
+/// Grid with `f32` numbers
+pub type Matrix = Grid<f32>;
 
 /// Common matrix methods
 impl Matrix {
@@ -44,7 +43,7 @@ impl Matrix {
 
     /// Determinant of square `Matrix`. If not square, `GridErr(IsNotSquare)` is returned.
     /// It doesn't matter whether `Matrix` is transposed or not
-    pub fn det(&self) -> ReRes<f64> {
+    pub fn det(&self) -> ReRes<f32> {
         self.ag_failed()?.ag_not_square()?;
         let mut rows = vec![true; self.rows()];
         let mut cols = vec![true; self.cols()];
@@ -55,7 +54,7 @@ impl Matrix {
     /// Unless it exists `GridErr(IsNotSquare)` or `MatrErr(NullDeterminant)` is returned
     pub fn inv(&self) -> ReRes<Self> {
         let det = self.det()?;
-        if aeq(&det, &0.0) {
+        if aeq(det, 0.0) {
             return Err(MathErr(NullDeterminant));
         }
 
@@ -78,7 +77,7 @@ impl Matrix {
 
     /// Minor based on ignored rows and columns, computed recursively.
     /// `rows` and `cols` must contain equal number of `true`s
-    pub fn minor(&self, rows: &mut Vec<bool>, cols: &mut Vec<bool>) -> f64 {
+    pub fn minor(&self, rows: &mut Vec<bool>, cols: &mut Vec<bool>) -> f32 {
         let row = rows.iter().position(|&x| x);
         if row.is_none() {
             return 1.0;
@@ -91,7 +90,7 @@ impl Matrix {
         for col in 0..self.cols() {
             if cols[col] {
                 let elem = *self.att(row, col);
-                if !aeq(&elem, &0.0) {
+                if !aeq(elem, 0.0) {
                     cols[col] = false;
                     minor += pow_minus(j) * elem * self.minor(rows, cols);
                     cols[col] = true;
@@ -101,28 +100,6 @@ impl Matrix {
         }
         rows[row] = true;
         round(minor)
-    }
-
-    /// Rounds all the elements with precision specified in `math::precision`
-    pub fn round(mut self) -> Self {
-        for r in 0..self.rawgrid_ref().rows(false) {
-            for c in 0..self.rawgrid_ref().cols(false) {
-                let elem = *self.rawgrid_ref().att(r, c, false);
-                *self.rawgrid_mut().att_mut(r, c, false) = round(elem);
-            }
-        }
-        self
-    }
-
-    /// Rounds all the elements with given precision
-    pub fn round_prec(mut self, prec: u16) -> Self {
-        for r in 0..self.rawgrid_ref().rows(false) {
-            for c in 0..self.rawgrid_ref().cols(false) {
-                let elem = *self.rawgrid_ref().att(r, c, false);
-                *self.rawgrid_mut().att_mut(r, c, false) = round_prec(elem, prec);
-            }
-        }
-        self
     }
 
     /// Element-wise sum of two `Matrix`'s
@@ -310,26 +287,26 @@ impl Matrix {
     }
 
     /// Multiplies all the elements by the given number on the cloned `self`
-    pub fn num_mul(&self, num: f64) -> Self {
+    pub fn num_mul(&self, num: f32) -> Self {
         self.clone().raw_num_mul(num)
     }
 
     /// Multiplies all the elements by the given number on place
-    pub fn num_mul_assign(mut self, num: f64) -> Self {
+    pub fn num_mul_assign(mut self, num: f32) -> Self {
         self.raw_num_mul(num)
     }
 
     /// Divides all the elements by the given number on the cloned `self`
-    pub fn num_div(&self, num: f64) -> Self {
-        if aeq(&num, &0.0) {
+    pub fn num_div(&self, num: f32) -> Self {
+        if aeq(num, 0.0) {
             return Self::Failure(MathErr(ZeroDivision));
         }
         self.clone().raw_num_mul(1.0 / num)
     }
 
     /// Divides all the elements by the given number on place
-    pub fn num_div_assign(mut self, num: f64) -> Self {
-        if aeq(&num, &0.0) {
+    pub fn num_div_assign(mut self, num: f32) -> Self {
+        if aeq(num, 0.0) {
             return Self::Failure(MathErr(ZeroDivision));
         }
         self.raw_num_mul(1.0 / num)
@@ -341,7 +318,7 @@ impl Matrix {
     }
 
     /// Multiplies by the given number
-    fn raw_num_mul(mut self, num: f64) -> Self {
+    fn raw_num_mul(mut self, num: f32) -> Self {
         if self.is_failure() {
             return Self::Failure(GridErr(UnhandledFailure));
         }
@@ -355,7 +332,7 @@ impl Matrix {
     }
 
     /// Norm of the `Matrix` as sqrt of sum of square of elements
-    pub fn norm(&self) -> ReRes<f64> {
+    pub fn norm(&self) -> ReRes<f32> {
         self.ag_failed()?;
         match self {
             Self::Arbitrary(grid)
@@ -366,21 +343,21 @@ impl Matrix {
                     .map(|r| {
                         (0..grid.cols(false))
                             .map(|c| grid.att(r, c, false).powi(2))
-                            .sum::<f64>()
+                            .sum::<f32>()
                     })
-                    .sum::<f64>()
+                    .sum::<f32>()
                     .sqrt(),
             )),
             Self::Row(grid) => Ok(round(
                 (0..grid.cols(false))
                     .map(|c| grid.att(0, c, false).powi(2))
-                    .sum::<f64>()
+                    .sum::<f32>()
                     .sqrt(),
             )),
             Self::Col(grid) => Ok(round(
                 (0..grid.rows(false))
                     .map(|r| grid.att(r, 0, false).powi(2))
-                    .sum::<f64>()
+                    .sum::<f32>()
                     .sqrt(),
             )),
             _ => unreachable!(),
@@ -389,7 +366,7 @@ impl Matrix {
 
     /// Whether `self` element-wise approximate equals to `other` treating the repr
     pub fn aeq(&self, other: &Self) -> bool {
-        let p = |lhs: &f64, rhs: &f64| aeq(lhs, rhs);
+        let p = |lhs: f32, rhs: f32| aeq(lhs, rhs);
         if self.repr() == other.repr() {
             self.rawgrid_ref().eqp(other.rawgrid_ref(), p)
         } else {
@@ -441,7 +418,7 @@ impl Neg for Matrix {
 /// Rotations
 impl Matrix {
     /// Rotation matrix in n-dim space on the given angle
-    pub fn rotation(mut from: usize, mut to: usize, mut angle: f64, dim: usize) -> Self {
+    pub fn rotation(mut from: usize, mut to: usize, mut angle: f32, dim: usize) -> Self {
         let mut matr = Self::identity(dim);
         if from == to {
             return Self::Failure(MathErr(RotationInOneAxis(from)));
@@ -459,7 +436,7 @@ impl Matrix {
 
     /// Suppose it's needed to rotate vector on `from` axis and then extend it so theq would compose
     /// right triangle. This function constructs such rotation matrix
-    pub fn triag_rotation(mut from: usize, mut to: usize, mut angle: f64, dim: usize) -> Self {
+    pub fn triag_rotation(mut from: usize, mut to: usize, mut angle: f32, dim: usize) -> Self {
         let mut matr = Self::identity(dim);
         if from == to {
             return Self::Failure(MathErr(RotationInOneAxis(from)));
@@ -476,7 +453,7 @@ impl Matrix {
     }
 
     /// Rotation matrix in 3-dim space on the 3 given angles around cardinal axes
-    pub fn teit_bryan_rotation(x: f64, y: f64, z: f64) -> Self {
+    pub fn teit_bryan_rotation(x: f32, y: f32, z: f32) -> Self {
         Self::rotation(1, 2, x, 3)
             .mul(&Self::rotation(0, 2, -y, 3))
             .mul(&Self::rotation(0, 1, z, 3))
@@ -486,12 +463,12 @@ impl Matrix {
 /// All methods related to representation `Row`, `Col`, `MultiRow` or `MultiCol`
 impl Matrix {
     /// Constructor for column
-    pub fn col(comp: Vec<f64>) -> Self {
+    pub fn col(comp: Vec<f32>) -> Self {
         Self::from_single(comp).raw_transpose().to_col()
     }
 
     /// Linear combination of rows or cols producing single row or col
-    pub fn combine(&self, coef: Vec<f64>) -> ReRes<Self> {
+    pub fn combine(&self, coef: Vec<f32>) -> ReRes<Self> {
         self.ag_failed()?.ag_not_stratified()?;
         match self.repr() {
             Repr::Row | Repr::Col => Ok(self.num_mul(coef[0])),
@@ -567,13 +544,13 @@ impl Matrix {
     }
 
     /// Orthonorm length of `Row` or `Col` without basis according only to `BIFORM` matrix
-    pub fn len(&self) -> ReRes<f64> {
+    pub fn len(&self) -> ReRes<f32> {
         Ok(round(self.scalar_prod(self)?.sqrt()))
     }
 
     /// Orthonorm length of vector in the given index `s` in `Row`, `MultiRow`, `Col` or `MultiCol`
     /// without basis according only to `BIFORM` matrix
-    pub fn len_at(&self, s: usize) -> ReRes<f64> {
+    pub fn len_at(&self, s: usize) -> ReRes<f32> {
         Ok(round(self.scalar_prod_at(s, self, s)?.sqrt()))
     }
 
@@ -604,28 +581,28 @@ impl Matrix {
     }
 
     /// Orthonorm scalar product without basis according only to `BIFORM` matrix.
-    /// Operands must have single `Row` or `Col` having the same dim. Produces `f64`
-    pub fn scalar_prod(&self, rhs: &Self) -> ReRes<f64> {
+    /// Operands must have single `Row` or `Col` having the same dim. Produces `f32`
+    pub fn scalar_prod(&self, rhs: &Self) -> ReRes<f32> {
         self.approve_single_vector_ops(rhs)?;
         Ok(*self.raw_scalar_prod(rhs, biform())?.att(0, 0))
     }
 
     /// Orthonorm scalar product without basis according only to `BIFORM` matrix.
     /// Operands at the given indices must have the same dim.
-    pub fn scalar_prod_at(&self, i: usize, rhs: &Self, j: usize) -> ReRes<f64> {
+    pub fn scalar_prod_at(&self, i: usize, rhs: &Self, j: usize) -> ReRes<f32> {
         self.raw_scalar_prod_at(i, rhs, j, biform())
     }
 
     /// Orthonorm scalar product without basis according only to `BIFORM` matrix.
     /// Operands must have `Row` or `Col` of the same dim.
-    /// Produces `Arbitrary` matrix of `f64`, that is pair-wise scalar products
+    /// Produces `Arbitrary` matrix of `f32`, that is pair-wise scalar products
     pub fn multi_scalar_prod(&self, rhs: &Self) -> ReRes<Self> {
         self.raw_scalar_prod(rhs, biform())
     }
 
     /// Scalar product according to given `core` matrix.
     /// Operands must have `Row` or `Col` of the same dim.
-    /// Produces `Arbitrary` matrix of `f64`, that is pair-wise scalar products
+    /// Produces `Arbitrary` matrix of `f32`, that is pair-wise scalar products
     pub(super) fn raw_scalar_prod(&self, rhs: &Self, core: &Self) -> ReRes<Self> {
         self.approve_multi_vector_ops(rhs)?;
         let lhs = match self.repr() {
@@ -642,14 +619,14 @@ impl Matrix {
 
     /// Scalar product according to given `core` matrix.
     /// Operands at the given indices must have the same dim.
-    /// Between `Row`'s or `Col`'s produces `f64`
+    /// Between `Row`'s or `Col`'s produces `f32`
     pub(super) fn raw_scalar_prod_at(
         &self,
         s: usize,
         rhs: &Self,
         r: usize,
         core: &Self,
-    ) -> ReRes<f64> {
+    ) -> ReRes<f32> {
         self.approve_multi_vector_ops(rhs)?;
         Ok(round(
             (0..self.dim().unwrap())
@@ -657,9 +634,9 @@ impl Matrix {
                     self.att(s, i)
                         * (0..rhs.dim().unwrap())
                             .map(|j| core.att(i, j) * rhs.att(r, j))
-                            .sum::<f64>()
+                            .sum::<f32>()
                 })
-                .sum::<f64>(),
+                .sum::<f32>(),
         ))
     }
 
@@ -711,7 +688,7 @@ pub fn set_biform(biform: Matrix) {
     }
 }
 
-pub fn set_biform_vec(double: Vec<Vec<f64>>) {
+pub fn set_biform_vec(double: Vec<Vec<f32>>) {
     unsafe {
         BIFORM.take();
         BIFORM

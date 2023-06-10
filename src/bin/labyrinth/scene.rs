@@ -143,7 +143,7 @@ impl Scene {
     }
 }
 
-impl AsMaterialList for Scene {
+impl AsEntityList for Scene {
     type Item = ();
 
     fn append(&mut self, item: Self::Item) {}

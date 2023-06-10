@@ -1,11 +1,11 @@
 //! This modules defines math features like
-//! 1. `Matrix` that is just `Grid<f64>`
+//! 1. `Matrix` that is just `Grid<f32>`
 //! 2. Precision features like roundation and approximate equality
 //! 3. Types related to analytical geometry like `VectorSpace`, `Point`, `CoordSys`
 
-pub mod matrix;
-mod precision;
-mod space;
+// mod matrix;
+// mod space;
+mod euclide;
 
 #[cfg(test)]
 mod test;
@@ -15,9 +15,9 @@ use {
 };
 
 pub use {
-    matrix::{set_biform, set_biform_identity, set_biform_vec, Matrix},
-    precision::{aeq, round, set_exact_mode, set_precision, set_round_mode},
-    space::{Basis, CoordSys, Point, Vector},
+    // matrix::Matrix,
+    // space::{Basis, CoordSys, Point, Vector},
+    euclide::*,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -27,7 +27,7 @@ pub enum Sign {
 }
 
 #[inline(always)]
-pub(crate) fn pow_minus(x: usize) -> f64 {
+pub(crate) fn pow_minus(x: usize) -> f32 {
     match x % 2 {
         0 => 1.0,
         1 => -1.0,
@@ -37,7 +37,7 @@ pub(crate) fn pow_minus(x: usize) -> f64 {
 
 
 #[derive(Debug, PartialOrd, PartialEq, Clone, Copy)]
-pub struct Float(pub f64);
+pub struct Float(pub f32);
 
 impl Eq for Float {}
 
@@ -47,18 +47,26 @@ impl Ord for Float {
     }
 }
 
-impl Into<f64> for Float {
-    fn into(self) -> f64 {
+impl Into<f32> for Float {
+    fn into(self) -> f32 {
         self.0
     }
 }
 
-impl Into<f64> for &Float {
-    fn into(self) -> f64 {
+impl Into<f32> for &Float {
+    fn into(self) -> f32 {
         self.0
     }
 }
 
 
-// #[derive(Debug)]
-// pub struct Pair()
+pub static mut EPSILON: f32 = f32::EPSILON;
+
+pub fn set_precision(prec: u8) {
+    unsafe { EPSILON *= ((255 - prec + 1) as f32) }
+}
+
+
+pub fn aeq(lhs: f32, rhs: f32) -> bool {
+    unsafe { (lhs - rhs).abs() < EPSILON }
+}

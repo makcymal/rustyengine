@@ -85,7 +85,7 @@ impl AsEntity for Entity {
 ///
 #[derive(Debug)]
 pub struct EntityList {
-    pub(crate) entities: Vec<Rc<RefCell<dyn AsCollided>>>,
+    pub(crate) entities: Vec<Rc<RefCell<dyn AsEntity>>>,
 }
 
 impl EntityList {
@@ -96,8 +96,8 @@ impl EntityList {
     }
 }
 
-impl AsMaterialList for EntityList {
-    type Item = Rc<RefCell<dyn AsCollided>>;
+impl AsEntityList for EntityList {
+    type Item = Rc<RefCell<dyn AsEntity>>;
 
     /// Appends new entity that must implement Entity
     fn append(&mut self, item: Self::Item) {
@@ -107,6 +107,12 @@ impl AsMaterialList for EntityList {
     /// Removes entity from the list with the given `Uuid`
     fn remove(&mut self, id: &Rc<Uuid>) {
         self.entities.retain(|entity| Rc::ptr_eq(entity.borrow().id(), id));
+    }
+
+    fn exec(&self, f: fn(&Self::Item)) {
+        for rc in &self.entities {
+            f(rc)
+        }
     }
 
     fn get(&self, id: &Rc<Uuid>) -> Option<&Self::Item> {
@@ -120,85 +126,34 @@ impl AsMaterialList for EntityList {
             None
         }
     }
-
-    fn exec(&self, f: fn(&Self::Item)) {
-        for rc in &self.entities {
-            f(rc)
-        }
-    }
-
-    fn collide(&self, cs: &CoordSys, inc: &Point, dir: &Vector) -> f64 {
-        if let Some(dist) = self.entities
-            .iter()
-            .map(|ent| Float(ent.borrow().collide(cs, inc, dir)))
-            .filter(|dist| *dist >= Float(0.0))
-            .min()
-        {
-            dist.into()
-        } else {
-            -1.0
-        }
-    }
 }
 
 
 /// Hype plane defined with some point on it and normal vector
 #[derive(Debug)]
 pub struct HypePlane {
-    pub(crate) entity: Entity,
     pub(crate) initpt: Point,
     pub(crate) normal: Vector,
 }
 
 impl HypePlane {
     /// HypePlane constructor takes actual `Entity`, `Point` on plane and normal vector
-    pub fn new(entity: Entity, initpt: Point, mut normal: Vector) -> ReRes<Self> {
-        if initpt.dim() != normal.dim() {
-            return Err(MathErr(DimMismatch { lhs: initpt.dim(), rhs: normal.dim() }));
-        }
-        if normal.coord.repr() == Repr::Row {
-            normal.coord = normal.coord.transpose();
-        }
-        Ok(Self {
-            entity,
+    pub fn new(initpt: Point, normal: Vector) -> Self {
+        Self {
             initpt,
             normal,
-        })
-    }
-
-    /// Default instance
-    pub fn default(entity: Entity) -> Self {
-        Self::new(entity, Point::default(), Vector::new(vec![1.0, 0.0, 0.0])).unwrap()
-    }
-}
-
-impl AsEntity for HypePlane {
-    fn id(&self) -> &Rc<Uuid> {
-        self.entity.id()
-    }
-
-    fn props(&self) -> &HashMap<PropKey, PropVal> {
-        self.entity.props()
-    }
-
-    fn props_mut(&mut self) -> &mut HashMap<PropKey, PropVal> {
-        self.entity.props_mut()
+        }
     }
 }
 
 impl AsCollided for HypePlane {
-    fn collide(&self, cs: &CoordSys, inc: &Point, dir: &Vector) -> f64 {
-        let denom = cs.scalar_prod(&dir.coord, &self.normal.coord).unwrap();
-        if aeq(&denom, &0.0) {
+    fn collide(&self, inc: &Point, dir: &Vector) -> f32 {
+        let denom = dir.scalar_prod(&self.normal);
+        if aeq(denom, 0.0) {
             return -1.0;
         }
-        let numer = cs
-            .scalar_prod(&self.initpt.df(inc).unwrap().coord, &self.normal.coord)
-            .unwrap();
+        let numer = &self.initpt.df(inc).scalar_prod(&self.normal);
         let dist = numer / denom;
-        if dist < 0.0 {
-            return -1.0;
-        }
         dist
     }
 }
@@ -212,47 +167,12 @@ impl AsGameObject for HypePlane {
         &mut self.initpt
     }
 
-    fn dir(&self) -> &Matrix {
-        &self.normal.coord
+    fn dir(&self) -> &Vector {
+        &self.normal
     }
 
-    fn dir_mut(&mut self) -> &mut Matrix {
-        &mut self.normal.coord
-    }
-}
-
-
-#[derive(Debug)]
-pub struct XYPlane {
-    pub(crate) entity: Entity
-}
-
-impl XYPlane {
-    pub fn new(entity: Entity) -> Self {
-        Self { entity }
-    }
-}
-
-impl AsEntity for XYPlane {
-    fn id(&self) -> &Rc<Uuid> {
-        self.entity.id()
-    }
-
-    fn props(&self) -> &HashMap<PropKey, PropVal> {
-        self.entity.props()
-    }
-
-    fn props_mut(&mut self) -> &mut HashMap<PropKey, PropVal> {
-        self.entity.props_mut()
-    }
-}
-
-impl AsCollided for XYPlane {
-    fn collide(&self, cs: &CoordSys, inc: &Point, dir: &Vector) -> f64 {
-        if aeq(&dir.at(2), &0.0) {
-            return -1.0
-        }
-        -inc.at(2) / dir.at(2)
+    fn dir_mut(&mut self) -> &mut Vector {
+        &mut self.normal
     }
 }
 
@@ -260,63 +180,33 @@ impl AsCollided for XYPlane {
 /// Ellipse in arbitrary dimension space that defined with center point, direction vectors and semiaxes lengths
 #[derive(Debug)]
 pub struct HypeEllipse {
-    pub(crate) entity: Entity,
     pub(crate) center: Point,
     pub(crate) basis: Basis,
-    pub(crate) semiaxis: Vec<f64>,
+    pub(crate) semiaxis: [f32; 3],
 }
 
 impl HypeEllipse {
     /// Constructs new `HypeEllipse`
-    pub fn new(entity: Entity, center: Point, basis: Basis, semiaxis: Vec<f64>) -> ReRes<Self> {
-        if center.dim() != basis.basis.dim()? {
-            return Err(MathErr(DimMismatch { lhs: center.dim(), rhs: basis.basis.dim()? }));
-        } else if basis.basis.dim()? != semiaxis.len() {
-            return Err(MathErr(DimMismatch { lhs: basis.basis.dim()?, rhs: semiaxis.len() }));
-        }
-        Ok(Self { entity, center, basis, semiaxis })
-    }
-
-    /// Default instance
-    pub fn default(entity: Entity) -> Self {
-        Self::new(entity, Point::default(), Basis::default(), vec![1.0; 3]).unwrap()
-    }
-}
-
-impl AsEntity for HypeEllipse {
-    fn id(&self) -> &Rc<Uuid> {
-        self.entity.id()
-    }
-
-    fn props(&self) -> &HashMap<PropKey, PropVal> {
-        self.entity.props()
-    }
-
-    fn props_mut(&mut self) -> &mut HashMap<PropKey, PropVal> {
-        self.entity.props_mut()
+    pub fn new(center: Point, basis: Basis, semiaxis: [f32; 3]) -> Self {
+        Self { center, basis, semiaxis }
     }
 }
 
 impl AsCollided for HypeEllipse {
-    fn collide(&self, cs: &CoordSys, inc: &Point, dir: &Vector) -> f64 {
-        let inc = self.basis.decompose(&inc.df(&self.center).unwrap());
+    fn collide(&self, inc: &Point, dir: &Vector) -> f32 {
+        let inc = self.basis.decompose(&inc.df(&self.center));
         let dir = self.basis.decompose(dir);
         let (mut a, mut b, mut c) = (0.0, 0.0, -1.0);
-        for i in 0..self.center.dim() {
-            a += (dir.at(i) / self.semiaxis[i]).powi(2);
-            b += 2.0 * dir.at(i) * inc.at(i) / self.semiaxis[i].powi(2);
-            c += (inc.at(i) / self.semiaxis[i]).powi(2);
+        for i in 0..3 {
+            a += (dir[i] / self.semiaxis[i]).powi(2);
+            b += 2.0 * dir[i] * inc[i] / self.semiaxis[i].powi(2);
+            c += (inc[i] / self.semiaxis[i]).powi(2);
         }
         let d = b * b - 4.0 * a * c;
         if d < 0.0 {
             -1.0
-        } else if aeq(&d, &0.0) {
-            let t = -b / 2.0 / a;
-            if t >= 0.0 {
-                t
-            } else {
-                -1.0
-            }
+        } else if aeq(d, 0.0) {
+            -b / 2.0 / a
         } else {
             [Float((-b + d.sqrt()) / 2.0 / a), Float((-b - d.sqrt()) / 2.0 / a)]
                 .iter()
@@ -337,11 +227,18 @@ impl AsGameObject for HypeEllipse {
         &mut self.center
     }
 
-    fn dir(&self) -> &Matrix {
-        &self.basis.basis
+    fn dir(&self) -> &Vector {
+        &self.basis[0]
     }
 
-    fn dir_mut(&mut self) -> &mut Matrix {
-        &mut self.basis.basis
+    fn dir_mut(&mut self) -> &mut Vector {
+        &mut self.basis[0]
+    }
+
+    fn planar_rotate(&mut self, from: usize, to: usize, angle: f32) {
+        let rot = Matrix::rotation(from, to, angle);
+        for i in 0..3 {
+            self.basis[i] = &rot * &self.basis[i];
+        }
     }
 }

@@ -15,7 +15,7 @@ use {
         },
         math::*,
     },
-    std::{f64::consts::PI, fs::read_to_string},
+    std::{f32::consts::PI, fs::read_to_string},
     toml::{Table, Value},
 };
 
@@ -35,9 +35,9 @@ const PRECISION_KEY: &str = "PRECISION";
 pub struct Conf {
     pub initpt: Point,
     pub angle_discr: usize,
-    pub wfov: f64,
-    pub hfov: Option<f64>,
-    pub draw_dist: f64,
+    pub wfov: f32,
+    pub hfov: Option<f32>,
+    pub draw_dist: f32,
     pub charmap: String,
     pub precision: u8,
 }
@@ -96,8 +96,8 @@ impl Conf {
             None => return Ok(self),
         };
         match value {
-            Value::Integer(fov) => self.wfov = fov as f64,
-            Value::Float(fov) => self.wfov = fov,
+            Value::Integer(fov) => self.wfov = fov as f32,
+            Value::Float(fov) => self.wfov = fov as f32,
             _ => return Err(GameErr(InvalidConfValue(WFOV_KEY))),
         }
         Ok(self)
@@ -109,8 +109,8 @@ impl Conf {
             None => return Ok(self),
         };
         match value {
-            Value::Integer(fov) => self.hfov = Some(fov as f64),
-            Value::Float(fov) => self.hfov = Some(fov),
+            Value::Integer(fov) => self.hfov = Some(fov as f32),
+            Value::Float(fov) => self.hfov = Some(fov as f32),
             _ => return Err(GameErr(InvalidConfValue(HFOV_KEY))),
         }
         Ok(self)
@@ -122,8 +122,8 @@ impl Conf {
             None => return Ok(self),
         };
         match value {
-            Value::Integer(draw_dist) => self.draw_dist = draw_dist as f64,
-            Value::Float(draw_dist) => self.draw_dist = draw_dist,
+            Value::Integer(draw_dist) => self.draw_dist = draw_dist as f32,
+            Value::Float(draw_dist) => self.draw_dist = draw_dist as f32,
             _ => return Err(GameErr(InvalidConfValue(DRAW_DIST_KEY))),
         }
         Ok(self)
@@ -155,21 +155,21 @@ impl Conf {
     }
 }
 
-/// Parses `Vec<f64>` parameter from the `toml::Value::Array(toml::Array)`.
+/// Parses `[f32; 3]` parameter from the `toml::Value::Array(toml::Array)`.
 /// `key` that is the name of parameter is used for error messages
-fn parse_single(value: Value, key: &'static str) -> ReRes<Vec<f64>> {
+fn parse_single(value: Value, key: &'static str) -> ReRes<[f32; 3]> {
     let array = match value {
         Value::Array(array) => array,
         _ => return Err(GameErr(InvalidConfValue(key))),
     };
-    let mut single: Vec<f64> = vec![];
-    for val in array {
-        if single.len() == 3 {
+    let mut single = [0.0; 3];
+    for (i, val) in array.iter().enumerate() {
+        if i == 3 {
             return Err(GameErr(InvalidConfValue(key)));
         }
-        match val {
-            Value::Integer(c) => single.push(c as f64),
-            Value::Float(c) => single.push(c),
+        single[i] = match val {
+            Value::Integer(c) => *c as f32,
+            Value::Float(c) => *c as f32,
             _ => return Err(GameErr(InvalidConfValue(key))),
         }
     }
@@ -179,7 +179,7 @@ fn parse_single(value: Value, key: &'static str) -> ReRes<Vec<f64>> {
 impl Default for Conf {
     fn default() -> Self {
         Self {
-            initpt: Point::new(vec![0.0; 3]),
+            initpt: Point::new([0.0; 3]),
             angle_discr: 6,
             wfov: PI / 2.0,
             hfov: None,

@@ -16,11 +16,8 @@ use {
 
 fn main() -> Result<()> {
     let conf = Conf::read(vec!["src/bin/conf.toml"])?;
-    let mut game = Game::<Action, DedupActions, Scene>::new(conf)?;
-    let scene = Scene::new(&mut game.id_pool);
-    game.set_entities(scene);
-
+    let scene = Scene::new();
+    let mut game = Game::<Action, DedupActions, Scene>::new(conf, scene)?;
     game.run()?;
-
     Ok(())
 }
