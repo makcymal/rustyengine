@@ -27,10 +27,10 @@ pub const GAP: f32 = 0.5;
 
 pub struct Scene {
     xz_walls: [XzWalls; XZWALLS],
-    xz_walls_charcoal: Charcoal,
+    xz_charcoal: Charcoal,
     xz_limiters: [XzWalls; 2 * XZWALLS],
     yz_walls: [YzWalls; YZWALLS],
-    yz_walls_charcoal: Charcoal,
+    yz_charcoal: Charcoal,
     yz_limiters: [YzWalls; 2 * YZWALLS],
     ground: Ground,
     ground_charcoal: Charcoal,
@@ -118,20 +118,20 @@ impl Scene {
 
         Self {
             xz_walls,
-            xz_walls_charcoal: Charcoal::new("=".to_string(), draw_dist),
+            xz_charcoal: Charcoal::new("=".to_string(), draw_dist),
             xz_limiters,
 
             yz_walls,
-            yz_walls_charcoal: Charcoal::new("^".to_string(), draw_dist),
+            yz_charcoal: Charcoal::new("^".to_string(), draw_dist),
             yz_limiters,
 
             ground: Ground::new(),
             ground_charcoal: Charcoal::new("#".to_string(), draw_dist),
 
             sun: HypeEllipse::new(
-                Point::new([0.0, 0.0, 100.0]),
+                Point::new([0.0, 0.0, 50.0]),
                 Basis::new(),
-                [50.0, 50.0, 50.0],
+                [20.0, 20.0, 20.0],
                 false,
                 Some(Charcoal::new("O".to_string(), draw_dist)),
             ),
@@ -153,22 +153,57 @@ impl Scene {
             }
         }
     }
-}
 
+    pub fn collision_ag_xz_walls(&self, inc: &Point, dir: &Vector) -> Option<f32> {
+        let mut collision = None;
+        match dir[1].partial_cmp(&0.0) {
+            Some(Ordering::Greater) => {
+                let rng = match inc[1] < 0.0 {
+                    true => 0..XZWALLS,
+                    false => (inc[1] / PASSAGE + 1.0).floor() as usize..XZWALLS,
+                };
+                for i in rng {
+                    if let Some(dist) = self.xz_walls[i].collide(inc, dir) {
+                        if collision.is_none() || dist < collision.unwrap() {
+                            collision = Some(dist);
+                        }
+                        break;
+                    }
+                }
+            }
+            Some(Ordering::Less) => {
+                let rng = match BACKWALL < inc[1] {
+                    true => (0..XZWALLS).rev(),
+                    false => (0..(inc[1] / PASSAGE).ceil() as usize).rev()
+                };
+                for i in rng {
+                    if let Some(dist) = self.xz_walls[i].collide(inc, dir) {
+                        if collision.is_none() || dist < collision.unwrap() {
+                            collision = Some(dist);
+                        }
+                        break;
+                    }
+                }
+            }
+            _ => return None
+        };
+        collision
+    }
 
-impl AsScene for Scene {
-    fn collide(&self, inc: &Point, dir: &Vector) -> Either<f32, char> {
-        let mut collision: Option<(f32, char)> = None;
+    pub fn collision_ag_yz_walls(&self, inc: &Point, dir: &Vector) -> Option<f32> {
+        let mut collision = None;
 
         match dir[0].partial_cmp(&0.0) {
             Some(Ordering::Greater) => {
                 let rng = match inc[0] < 0.0 {
                     true => 0..YZWALLS,
-                    false => (inc[0] / PASSAGE + 1.0).floor() as usize ..YZWALLS,
+                    false => (inc[0] / PASSAGE + 1.0).floor() as usize..YZWALLS,
                 };
                 for i in rng {
                     if let Some(dist) = self.yz_walls[i].collide(inc, dir) {
-                        update_collision(&mut collision, dist, &self.yz_walls_charcoal);
+                        if collision.is_none() || dist < collision.unwrap() {
+                            collision = Some(dist);
+                        }
                         break;
                     }
                 }
@@ -180,49 +215,46 @@ impl AsScene for Scene {
                 };
                 for i in rng {
                     if let Some(dist) = self.yz_walls[i].collide(inc, dir) {
-                        update_collision(&mut collision, dist, &self.yz_walls_charcoal);
+                        if collision.is_none() || dist < collision.unwrap() {
+                            collision = Some(dist);
+                        }
                         break;
                     }
                 }
             }
-            _ => ()
+            _ => return None
         };
+        collision
+    }
+}
 
 
-        match dir[1].partial_cmp(&0.0) {
-            Some(Ordering::Greater) => {
-                let rng = match inc[0] < 0.0 {
-                    true => 0..XZWALLS,
-                    false => (inc[0] / PASSAGE + 1.0).floor() as usize ..XZWALLS,
-                };
-                for i in rng {
-                    if let Some(dist) = self.xz_walls[i].collide(inc, dir) {
-                        update_collision(&mut collision, dist, &self.xz_walls_charcoal);
-                        break;
-                    }
-                }
+impl AsScene for Scene {
+    fn collide(&self, inc: &Point, dir: &Vector) -> Either<f32, char> {
+        let mut collision: Option<(f32, char)> = None;
+
+        if let Some(dist) = self.collision_ag_xz_walls(inc, dir) {
+            if collision.is_none() || dist < collision.unwrap().0 {
+                collision = Some((dist, self.xz_charcoal.ignite(dist)));
             }
-            Some(Ordering::Less) => {
-                let rng = match BACKWALL < inc[0] {
-                    true => (0..XZWALLS).rev(),
-                    false => (0..(inc[0] / PASSAGE).ceil() as usize).rev()
-                };
-                for i in rng {
-                    if let Some(dist) = self.xz_walls[i].collide(inc, dir) {
-                        update_collision(&mut collision, dist, &self.xz_walls_charcoal);
-                        break;
-                    }
-                }
+        }
+
+        if let Some(dist) = self.collision_ag_yz_walls(inc, dir) {
+            if collision.is_none() || dist < collision.unwrap().0 {
+                collision = Some((dist, self.yz_charcoal.ignite(dist)));
             }
-            _ => (),
-        };
+        }
 
         if let Some(dist) = self.ground.collide(inc, dir) {
-            update_collision(&mut collision, dist, &self.ground_charcoal);
+            if collision.is_none() || dist < collision.unwrap().0 {
+                collision = Some((dist, self.ground_charcoal.ignite(dist)));
+            }
         }
 
         if let Some(dist) = self.sun.collide(inc, dir) {
-            update_collision(&mut collision, dist, &self.sun.charcoal.as_ref().unwrap());
+            if collision.is_none() || dist < collision.unwrap().0 {
+                collision = Some((dist, self.sun.charcoal.as_ref().unwrap().ignite(dist)));
+            }
         }
 
         if let Some((_, c)) = collision {
@@ -233,64 +265,25 @@ impl AsScene for Scene {
     }
 
     fn validate_mv(&self, pos: &Point, mv: &mut Vector) {
-        match mv[0].partial_cmp(&0.0) {
-            Some(Ordering::Greater) => {
-                for i in 0..YZWALLS.mul(2) {
-                    if let Some(dist) = self.yz_limiters[i].collide(pos, mv) {
-                        if dist < 1.0 {
-                            mv.resize(dist * 0.1);
-                        }
-                        break;
-                    }
-                }
+        let mut collision = None;
+        if let Some(dist) = self.collision_ag_xz_walls(pos, mv) {
+            if collision.is_none() || dist < collision.unwrap() {
+                collision = Some(dist);
             }
-            Some(Ordering::Less) => {
-                for i in (0..YZWALLS.mul(2)).rev() {
-                    if let Some(dist) = self.yz_limiters[i].collide(pos, mv) {
-                        if dist < 1.0 {
-                            mv.resize(dist * 0.1);
-                        }
-                        break;
-                    }
-                }
+        }
+        if let Some(dist) = self.collision_ag_yz_walls(pos, mv) {
+            if collision.is_none() || dist < collision.unwrap() {
+                collision = Some(dist);
             }
-            _ => ()
         }
 
-        match mv[1].partial_cmp(&0.0) {
-            Some(Ordering::Greater) => {
-                for i in 0..XZWALLS.mul(2) {
-                    if let Some(dist) = self.xz_limiters[i].collide(pos, mv) {
-                        if dist < 1.0 {
-                            mv.resize(dist * 0.1);
-                        }
-                        break;
-                    }
-                }
+        if let Some(dist) = collision {
+            if dist < 0.5 {
+                mv.resize(0.0);
             }
-            Some(Ordering::Less) => {
-                for i in (0..XZWALLS.mul(2)).rev() {
-                    if let Some(dist) = self.xz_limiters[i].collide(pos, mv) {
-                        if dist < 1.0 {
-                            mv.resize(dist * 0.1);
-                        }
-                        break;
-                    }
-                }
+            if dist < 1.0 {
+                mv.resize(dist);
             }
-            _ => ()
         }
     }
-}
-
-fn update_collision(collision: &mut Option<(f32, char)>, dist: f32, charcoal: &Charcoal) {
-        match collision {
-            Some(col) =>  {
-                if dist < col.0 {
-                    collision.as_mut().unwrap().0 = dist;
-                    collision.as_mut().unwrap().1 = charcoal.ignite(dist);
-                }
-            },
-            None => *collision = Some((dist, charcoal.ignite(dist))),
-        }
 }

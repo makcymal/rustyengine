@@ -109,12 +109,12 @@ impl<Scn: AsScene> AsEventSys<MovementEvent<Scn>, Scn> for MovementEventSys {
         let dir = camera.dir();
         let step = self.step * (self.movement[4] as f32 - self.movement[5] as f32);
         let mut mv = Vector::new([dir.0 * step, dir.1 * step, 0.0]);
-        // scene.validate_mv(camera.pos(), &mut mv);
+        scene.validate_mv(camera.pos(), &mut mv);
         camera.mv(&mv);
 
         let step = self.step * (self.movement[6] as f32 - self.movement[7] as f32);
         let mut mv = Vector::new([-dir.1 * step, dir.0 * step, 0.0]);
-        // scene.validate_mv(camera.pos(), &mut mv);
+        scene.validate_mv(camera.pos(), &mut mv);
         camera.mv(&mv);
 
         self.movement = [0; 8];
