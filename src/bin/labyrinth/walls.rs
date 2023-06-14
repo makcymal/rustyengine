@@ -1,9 +1,8 @@
 use {
-    rustyengine::{engn::*, math::*},
+    rustyengine::{conf::*, engn::*, math::*},
     std::{any::Any, cmp::Ordering, collections::HashMap, rc::Rc},
     uuid::Uuid,
 };
-use rustyengine::engn::material_traits::validate_collision;
 
 /// Height of all panes
 const H: f64 = 5.0;
@@ -69,7 +68,8 @@ impl AsCollided for XzWalls {
                 true => validate_collision(t),
                 false => None,
             }
-        } else if idx % 2 == 1 || aeq(&x.0, &self.x_seg[idx - 1].0) || aeq(&x.0, &self.x_seg[idx].0) {
+        } else if idx % 2 == 1 || aeq(&x.0, &self.x_seg[idx - 1].0) || aeq(&x.0, &self.x_seg[idx].0)
+        {
             validate_collision(t)
         } else {
             None
@@ -142,7 +142,8 @@ impl AsCollided for YzWalls {
                 true => validate_collision(t),
                 false => None,
             }
-        } else if idx % 2 == 1 || aeq(&y.0, &self.y_seg[idx - 1].0) || aeq(&y.0, &self.y_seg[idx].0) {
+        } else if idx % 2 == 1 || aeq(&y.0, &self.y_seg[idx - 1].0) || aeq(&y.0, &self.y_seg[idx].0)
+        {
             validate_collision(t)
         } else {
             None

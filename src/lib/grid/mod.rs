@@ -16,6 +16,6 @@ mod raw_grid;
 mod test;
 
 pub use {
-    grid::{Elem, Grid, Line, Repr},
+    grid::{Grid, Repr},
     raw_grid::RawGrid,
 };

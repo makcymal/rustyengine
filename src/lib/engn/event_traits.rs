@@ -1,12 +1,22 @@
-use {super::*, crate::errs::ReRes};
-use crate::math::CoordSys;
+use {
+    crate::{
+        engn::*,
+        errs::{
+            GameErr::{self, *},
+            ReErr::{self, *},
+            ReRes,
+        },
+        math::*,
+    },
+    crossterm::event::Event,
+};
 
 /// Trait for events, requires `From<crossterm::event::Event>`
-pub trait AsEvent<Scn>: From<console::Event>
+pub trait AsEvent<Scn>: From<Event>
 where
     Scn: AsScene,
 {
-    fn handle(&mut self, camera: &mut Camera, entities: &mut Scn) -> ReRes<()> {
+    fn handle(&mut self, _camera: &mut Camera, _entities: &mut Scn) -> ReRes<()> {
         Ok(())
     }
 }

@@ -1,14 +1,13 @@
 use {
     crate::errs::{ReErr, ReRes},
     crossterm::{
-        cursor, event as crossterm_event,
+        cursor,
+        event::{self as crossterm_event, Event},
         terminal::{enable_raw_mode, size},
         ExecutableCommand, Result,
     },
     std::io::{stdout, Error as IoError},
 };
-
-pub use crossterm::event::Event;
 
 /// Clears, enables raw mode anr returns console size as (rows, cols)
 pub fn init() -> ReRes<(u16, u16)> {

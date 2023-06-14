@@ -4,14 +4,16 @@
 //! 3. Types related to analytical geometry like `VectorSpace`, `Point`, `CoordSys`
 
 pub mod matrix;
-mod precision;
-mod space;
+pub mod precision;
+pub mod space;
 
 #[cfg(test)]
 mod test;
 
-use std::cmp::Ordering;
-use std::ops::{Add, MulAssign, Sub};
+use std::{
+    cmp::Ordering,
+    ops::{Add, MulAssign, Sub},
+};
 
 pub use {
     matrix::{set_biform, set_biform_identity, set_biform_vec, Matrix},

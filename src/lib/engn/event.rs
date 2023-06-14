@@ -1,8 +1,16 @@
-use std::collections::VecDeque;
 use {
-    crate::{engn::*, errs::ReRes, math::*},
-    crossterm::event::{self, Event as ConsoleEvent, KeyCode, KeyEvent, KeyModifiers},
-    std::{cmp::Ordering, marker::PhantomData},
+    crate::{
+        engn::*,
+        errs::{
+            GameErr::{self, *},
+            ReErr::{self, *},
+            ReRes,
+        },
+        grid::*,
+        math::*,
+    },
+    crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers},
+    std::{cmp::Ordering, collections::VecDeque, marker::PhantomData},
 };
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
@@ -18,15 +26,15 @@ pub enum MovementEvent<Scn: AsScene> {
     None(PhantomData<Scn>),
 }
 
-impl<Scn: AsScene> From<ConsoleEvent> for MovementEvent<Scn> {
-    fn from(ev: ConsoleEvent) -> Self {
+impl<Scn: AsScene> From<Event> for MovementEvent<Scn> {
+    fn from(ev: Event) -> Self {
         let mut key_code = KeyCode::Backspace;
         let mut key_modif = KeyModifiers::NONE;
 
         match ev {
-            ConsoleEvent::Key(KeyEvent {
-                                  code, modifiers, ..
-                              }) => (key_code, key_modif) = (code, modifiers),
+            Event::Key(KeyEvent {
+                code, modifiers, ..
+            }) => (key_code, key_modif) = (code, modifiers),
             _ => return Self::None(PhantomData),
         };
 
@@ -112,24 +120,24 @@ impl<Scn: AsScene> AsEventSys<MovementEvent<Scn>, Scn> for MovementEventSys {
 /// Simple event system that is just queue of obtaining events and furthermore
 /// it implements `AsEventSys` handling events consequently
 pub struct EventQueue<Evt, Lst>
-    where
-        Evt: AsEvent<Lst>,
-        Lst: AsScene,
+where
+    Evt: AsEvent<Lst>,
+    Lst: AsScene,
 {
     phantom: PhantomData<Lst>,
     pub(crate) events: VecDeque<Evt>,
 }
 
 impl<Evt, Scn> AsEventSys<Evt, Scn> for EventQueue<Evt, Scn>
-    where
-        Evt: AsEvent<Scn>,
-        Scn: AsScene,
+where
+    Evt: AsEvent<Scn>,
+    Scn: AsScene,
 {
     fn push(&mut self, event: Evt) {
         self.events.push_back(event);
     }
 
-    fn handle_all(&mut self, cs: &CoordSys, camera: &mut Camera, entities: &mut Scn) -> ReRes<()> {
+    fn handle_all(&mut self, _cs: &CoordSys, camera: &mut Camera, entities: &mut Scn) -> ReRes<()> {
         while let Some(mut event) = self.events.pop_front() {
             event.handle(camera, entities)?;
         }

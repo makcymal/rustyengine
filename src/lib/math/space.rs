@@ -1,4 +1,3 @@
-use std::ops::Index;
 use {
     super::*,
     crate::{
@@ -10,6 +9,7 @@ use {
         },
         grid::Repr::{self, *},
     },
+    std::ops::Index,
 };
 
 /// Vector that is `Matrix::Col`

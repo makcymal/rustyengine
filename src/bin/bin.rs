@@ -3,14 +3,10 @@
 mod labyrinth;
 
 use {
-    crate::labyrinth::{
-        scene::Scene,
-    },
+    crate::labyrinth::scene::*,
     anyhow::Result,
-    rustyengine::prelude::*,
+    rustyengine::{conf::*, engn::*},
 };
-use rustyengine::engn::{MovementEvent, MovementEventSys};
-use crate::labyrinth::scene::{gen_init_pos, STEP};
 
 fn main() -> Result<()> {
     let mut conf = Conf::read(vec!["src/bin/conf.toml"])?;

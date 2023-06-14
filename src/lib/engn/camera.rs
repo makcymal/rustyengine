@@ -1,9 +1,20 @@
-use std::f64::consts::FRAC_PI_2;
-use crate::errs::ReRes;
 use {
-    super::*,
-    crate::{grid::*, math::*},
-    std::{any::Any, collections::HashMap, f64::consts::PI, rc::Rc},
+    crate::{
+        engn::*,
+        errs::{
+            GameErr::{self, *},
+            ReErr::{self, *},
+            ReRes,
+        },
+        grid::*,
+        math::*,
+    },
+    std::{
+        any::Any,
+        collections::HashMap,
+        f64::consts::{FRAC_PI_2, PI},
+        rc::Rc,
+    },
     uuid::Uuid,
 };
 
@@ -56,7 +67,6 @@ impl Vision {
                 }
             }
         }
-
 
         Self { rays }
     }

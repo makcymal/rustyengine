@@ -1,16 +1,16 @@
-use std::cmp::min;
 use {
-    super::*,
     crate::{
+        engn::*,
         errs::{
+            GameErr::{self, *},
             ReErr::{self, *},
             ReRes,
         },
         grid::*,
         math::*,
     },
-    std::{marker::PhantomData, str::Chars, thread, time::Duration},
     either::Either,
+    std::{cmp::min, marker::PhantomData, str::Chars, thread, time::Duration},
 };
 
 /// Stores picture as `Vec<String>` respectively to `charmap` given in the `Conf`

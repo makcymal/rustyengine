@@ -1,9 +1,12 @@
 use {
     super::raw_grid::{RawGrid, VecWrapper},
-    crate::errs::{
-        GridErr::{self, *},
-        ReErr::{self, *},
-        ReRes,
+    crate::{
+        errs::{
+            GridErr::{self, *},
+            ReErr::{self, *},
+            ReRes,
+        },
+        grid::*,
     },
     std::ops::{Index, IndexMut},
     strum_macros::Display,

@@ -1,16 +1,13 @@
 use {
     crate::labyrinth::{ground::*, walls::*},
     either::Either,
-    rustyengine::{engn::*, math::*},
+    rand::Rng,
+    rustyengine::{conf::*, engn::*, errs::*, math::*},
     std::{
         cmp::Ordering,
-        rc::Rc,
         ops::{Div, Mul},
     },
-    uuid::Uuid,
-    rand::Rng,
 };
-use rustyengine::errs::ReRes;
 
 pub const STEP: f64 = 1.0;
 pub const XZWALLS: usize = 11;
@@ -32,28 +29,104 @@ impl Scene {
     pub fn new(draw_dist: f64) -> ReRes<Self> {
         let xz_walls = [
             XzWalls::new(Entity::new(IdPool::get().generate()), 0.0, vec![0.0, 10.0]),
-            XzWalls::new(Entity::new(IdPool::get().generate()), 1.0, vec![3.0, 7.0, 8.0, 9.0]),
-            XzWalls::new(Entity::new(IdPool::get().generate()), 2.0, vec![0.0, 1.0, 4.0, 7.0, 8.0, 9.0]),
-            XzWalls::new(Entity::new(IdPool::get().generate()), 3.0, vec![1.0, 2.0, 4.0, 5.0, 6.0, 7.0]),
-            XzWalls::new(Entity::new(IdPool::get().generate()), 4.0, vec![0.0, 1.0, 3.0, 6.0, 7.0, 10.0]),
-            XzWalls::new(Entity::new(IdPool::get().generate()), 5.0, vec![1.0, 6.0, 8.0, 9.0]),
-            XzWalls::new(Entity::new(IdPool::get().generate()), 6.0, vec![2.0, 3.0, 4.0, 7.0, 8.0, 9.0]),
-            XzWalls::new(Entity::new(IdPool::get().generate()), 7.0, vec![3.0, 4.0, 8.0, 9.0]),
-            XzWalls::new(Entity::new(IdPool::get().generate()), 8.0, vec![4.0, 5.0, 6.0, 7.0, 9.0, 10.0]),
-            XzWalls::new(Entity::new(IdPool::get().generate()), 9.0, vec![4.0, 5.0, 8.0, 9.0]),
-            XzWalls::new(Entity::new(IdPool::get().generate()), 10.0, vec![0.0, 4.0, 5.0, 10.0]),
+            XzWalls::new(
+                Entity::new(IdPool::get().generate()),
+                1.0,
+                vec![3.0, 7.0, 8.0, 9.0],
+            ),
+            XzWalls::new(
+                Entity::new(IdPool::get().generate()),
+                2.0,
+                vec![0.0, 1.0, 4.0, 7.0, 8.0, 9.0],
+            ),
+            XzWalls::new(
+                Entity::new(IdPool::get().generate()),
+                3.0,
+                vec![1.0, 2.0, 4.0, 5.0, 6.0, 7.0],
+            ),
+            XzWalls::new(
+                Entity::new(IdPool::get().generate()),
+                4.0,
+                vec![0.0, 1.0, 3.0, 6.0, 7.0, 10.0],
+            ),
+            XzWalls::new(
+                Entity::new(IdPool::get().generate()),
+                5.0,
+                vec![1.0, 6.0, 8.0, 9.0],
+            ),
+            XzWalls::new(
+                Entity::new(IdPool::get().generate()),
+                6.0,
+                vec![2.0, 3.0, 4.0, 7.0, 8.0, 9.0],
+            ),
+            XzWalls::new(
+                Entity::new(IdPool::get().generate()),
+                7.0,
+                vec![3.0, 4.0, 8.0, 9.0],
+            ),
+            XzWalls::new(
+                Entity::new(IdPool::get().generate()),
+                8.0,
+                vec![4.0, 5.0, 6.0, 7.0, 9.0, 10.0],
+            ),
+            XzWalls::new(
+                Entity::new(IdPool::get().generate()),
+                9.0,
+                vec![4.0, 5.0, 8.0, 9.0],
+            ),
+            XzWalls::new(
+                Entity::new(IdPool::get().generate()),
+                10.0,
+                vec![0.0, 4.0, 5.0, 10.0],
+            ),
         ];
         let yz_walls = [
             YzWalls::new(Entity::new(IdPool::get().generate()), 0.0, vec![0.0, 10.0]),
-            YzWalls::new(Entity::new(IdPool::get().generate()), 1.0, vec![1.0, 2.0, 5.0, 9.0]),
-            YzWalls::new(Entity::new(IdPool::get().generate()), 2.0, vec![0.0, 8.0, 9.0, 10.0]),
-            YzWalls::new(Entity::new(IdPool::get().generate()), 3.0, vec![1.0, 4.0, 7.0, 9.0]),
-            YzWalls::new(Entity::new(IdPool::get().generate()), 4.0, vec![2.0, 3.0, 6.0, 7.0, 8.0, 9.0]),
-            YzWalls::new(Entity::new(IdPool::get().generate()), 5.0, vec![7.0, 8.0, 9.0, 10.0]),
-            YzWalls::new(Entity::new(IdPool::get().generate()), 6.0, vec![3.0, 5.0, 7.0, 8.0, 9.0, 10.0]),
-            YzWalls::new(Entity::new(IdPool::get().generate()), 7.0, vec![2.0, 3.0, 5.0, 9.0]),
-            YzWalls::new(Entity::new(IdPool::get().generate()), 8.0, vec![0.0, 2.0, 3.0, 4.0, 5.0, 9.0]),
-            YzWalls::new(Entity::new(IdPool::get().generate()), 9.0, vec![2.0, 3.0, 9.0, 10.0]),
+            YzWalls::new(
+                Entity::new(IdPool::get().generate()),
+                1.0,
+                vec![1.0, 2.0, 5.0, 9.0],
+            ),
+            YzWalls::new(
+                Entity::new(IdPool::get().generate()),
+                2.0,
+                vec![0.0, 8.0, 9.0, 10.0],
+            ),
+            YzWalls::new(
+                Entity::new(IdPool::get().generate()),
+                3.0,
+                vec![1.0, 4.0, 7.0, 9.0],
+            ),
+            YzWalls::new(
+                Entity::new(IdPool::get().generate()),
+                4.0,
+                vec![2.0, 3.0, 6.0, 7.0, 8.0, 9.0],
+            ),
+            YzWalls::new(
+                Entity::new(IdPool::get().generate()),
+                5.0,
+                vec![7.0, 8.0, 9.0, 10.0],
+            ),
+            YzWalls::new(
+                Entity::new(IdPool::get().generate()),
+                6.0,
+                vec![3.0, 5.0, 7.0, 8.0, 9.0, 10.0],
+            ),
+            YzWalls::new(
+                Entity::new(IdPool::get().generate()),
+                7.0,
+                vec![2.0, 3.0, 5.0, 9.0],
+            ),
+            YzWalls::new(
+                Entity::new(IdPool::get().generate()),
+                8.0,
+                vec![0.0, 2.0, 3.0, 4.0, 5.0, 9.0],
+            ),
+            YzWalls::new(
+                Entity::new(IdPool::get().generate()),
+                9.0,
+                vec![2.0, 3.0, 9.0, 10.0],
+            ),
             YzWalls::new(Entity::new(IdPool::get().generate()), 10.0, vec![0.0, 10.0]),
         ];
 
@@ -202,14 +275,14 @@ impl AsScene for Scene {
         }
     }
 
-    fn validate_mv(&self, cs: &CoordSys,  pos: &Point, mv: &mut Vector) {
+    fn validate_mv(&self, cs: &CoordSys, pos: &Point, mv: &mut Vector) {
         let mut collision = None;
         if let Some(dist) = self.collision_ag_xz_walls(cs, pos, mv) {
             if collision.is_none() || dist < collision.unwrap() {
                 collision = Some(dist);
             }
         }
-        if let Some(dist) = self.collision_ag_yz_walls(cs,pos, mv) {
+        if let Some(dist) = self.collision_ag_yz_walls(cs, pos, mv) {
             if collision.is_none() || dist < collision.unwrap() {
                 collision = Some(dist);
             }

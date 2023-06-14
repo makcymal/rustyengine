@@ -1,7 +1,6 @@
-use crate::engn::material_traits::{AsEntityList, validate_collision};
 use {
-    super::*,
     crate::{
+        engn::*,
         errs::{
             GameErr::{self, *},
             GridErr::{self, *},
@@ -9,9 +8,10 @@ use {
             ReErr::{self, *},
             ReRes,
         },
-        grid::Repr,
+        grid::*,
         math::*,
     },
+    either::Either,
     std::{
         any::{Any, TypeId},
         cell::RefCell,
@@ -20,7 +20,6 @@ use {
         rc::Rc,
     },
     uuid::Uuid,
-    either::Either,
 };
 
 /// Matrix of `Uuid` (standard v4) allocated in heap
@@ -281,7 +280,7 @@ impl AsEntity for HypeEllipse {
 }
 
 impl AsCollided for HypeEllipse {
-    fn collide(&self, cs: &CoordSys, inc: &Point, dir: &Vector) -> Option<f64> {
+    fn collide(&self, _cs: &CoordSys, inc: &Point, dir: &Vector) -> Option<f64> {
         let inc = self.basis.decompose(&inc.df(&self.center).unwrap());
         let dir = self.basis.decompose(dir);
         let (mut a, mut b, mut c) = (0.0, 0.0, -1.0);
@@ -296,15 +295,17 @@ impl AsCollided for HypeEllipse {
         } else if aeq(&d, &0.0) {
             validate_collision(-b / 2.0 / a)
         } else {
-            validate_collision([
-                Float((-b + d.sqrt()) / 2.0 / a),
-                Float((-b - d.sqrt()) / 2.0 / a),
-            ]
+            validate_collision(
+                [
+                    Float((-b + d.sqrt()) / 2.0 / a),
+                    Float((-b - d.sqrt()) / 2.0 / a),
+                ]
                 .iter()
                 .filter(|f| *f >= &Float(0.0))
                 .min()
                 .unwrap_or(&Float(-1.0))
-                .into())
+                .into(),
+            )
         }
     }
 

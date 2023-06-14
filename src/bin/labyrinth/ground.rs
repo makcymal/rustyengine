@@ -1,8 +1,8 @@
-use std::collections::HashMap;
-use std::rc::Rc;
-use uuid::Uuid;
-use rustyengine::{engn::*, math::*};
-use rustyengine::engn::material_traits::validate_collision;
+use {
+    rustyengine::{conf::*, engn::*, math::*},
+    std::{collections::HashMap, rc::Rc},
+    uuid::Uuid,
+};
 
 #[derive(Debug)]
 pub struct Ground {

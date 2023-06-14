@@ -1,11 +1,13 @@
 use {
-    super::*,
     crate::{
         conf::*,
+        engn::*,
         errs::{
+            GameErr::{self, *},
             ReErr::{self, *},
             ReRes,
         },
+        grid::*,
         math::*,
     },
     std::{f64::consts::PI, marker::PhantomData, rc::Rc, time::Duration},
@@ -86,7 +88,8 @@ where
     pub fn run(&mut self) -> ReRes<()> {
         loop {
             self.es.push(Evt::from(console::listen()?));
-            self.es.handle_all(&self.cs, &mut self.camera, &mut self.scene)?;
+            self.es
+                .handle_all(&self.cs, &mut self.camera, &mut self.scene)?;
             self.update()?;
         }
     }

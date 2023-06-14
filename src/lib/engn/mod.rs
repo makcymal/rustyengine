@@ -26,9 +26,12 @@ pub use {
     camera::Camera,
     canvas::Canvas,
     charcoal::Charcoal,
-    event::{MovementEvent, MovementEventSys, EventQueue},
+    event::{EventQueue, MovementEvent, MovementEventSys},
     event_traits::{AsEvent, AsEventSys},
     game::Game,
     material::{Entity, EntityList, HypeEllipse, HypePlane, IdPool},
-    material_traits::{AsCollided, AsEntity, AsGameObject, AsEntityList, AsScene, PropKey, PropVal},
+    material_traits::{
+        validate_collision, AsCollided, AsEntity, AsEntityList, AsGameObject, AsScene, PropKey,
+        PropVal,
+    },
 };
