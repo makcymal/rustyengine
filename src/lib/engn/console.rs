@@ -1,19 +1,11 @@
 use {
+    crate::errs::{ReErr, ReRes},
     crossterm::{
         cursor, event as crossterm_event,
         terminal::{enable_raw_mode, size},
-        ExecutableCommand,
-        Result,
+        ExecutableCommand, Result,
     },
-    std::{
-        io::{
-            stdout, Error as IoError,
-        }
-    },
-    crate::errs::{
-        ReRes,
-        ReErr
-    },
+    std::io::{stdout, Error as IoError},
 };
 
 pub use crossterm::event::Event;

@@ -87,7 +87,8 @@ fn transposed_basis() {
             vec![0.0, 0.0, 1.0],
         ])
         .to_multirow(),
-    ).unwrap();
+    )
+    .unwrap();
     assert_eq!(basis.basis.att(1, 2), &1.0);
 }
 

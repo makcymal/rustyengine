@@ -1,3 +1,4 @@
+use std::f64::consts::FRAC_PI_2;
 use crate::errs::ReRes;
 use {
     super::*,
@@ -6,7 +7,6 @@ use {
     uuid::Uuid,
 };
 
-
 #[derive(Debug)]
 pub struct Vision {
     // first - zenith rotation
@@ -14,63 +14,59 @@ pub struct Vision {
     // third - rows of rays
     // fourth - columns of rays
     rays: Vec<Vec<Vec<Vec<Vector>>>>,
-    lens: Vec<Vec<f64>>,
 }
 
 impl Vision {
     pub(crate) fn new(discr: usize, wfov: f64, hfov: f64, size: (usize, usize)) -> Self {
-        let mut vision: Vec<Vec<Vec<Vec<Vector>>>> = vec![vec![vec![vec![]; size.0]; 4 * discr]; 2 * discr - 1];
-        let mut lens: Vec<Vec<f64>> = vec![vec![]; size.0];
+        let mut rays: Vec<Vec<Vec<Vec<Vector>>>> =
+            vec![vec![vec![vec![]; size.0]; 4 * discr]; 2 * discr - 1];
 
-        let wfov_step = wfov / (size.1 as f64);
-        let hfov_step = hfov / (size.0 as f64);
+        let angle_step = FRAC_PI_2 / (discr as f64);
 
-        vision[discr - 1][0] = rays(wfov, hfov, size.1, size.0);
+        rays[discr - 1][0] = init_rays(wfov, hfov, size.1, size.0);
 
-        let rot = &Matrix::rotation(0, 2, hfov_step, 3);
+        let rot = &Matrix::rotation(0, 2, angle_step, 3);
         for i in (0..(discr - 1)).rev() {
             for r in 0..size.0 {
                 for c in 0..size.1 {
-                    let coord = rot.mul(vision[i + 1][0][r][c].coord()).to_col();
-                    lens[r].push(coord.len().unwrap() );
-                    vision[i][0][r].push(Vector { coord });
+                    let coord = rot.mul(rays[i + 1][0][r][c].coord()).to_col();
+                    rays[i][0][r].push((Vector { coord }))
                 }
             }
         }
 
-        let rot = &Matrix::rotation(0, 2, -hfov_step, 3);
+        let rot = &Matrix::rotation(0, 2, -angle_step, 3);
         for i in discr..(2 * discr - 1) {
             for r in 0..size.0 {
                 for c in 0..size.1 {
-                    let coord = rot.mul(vision[i - 1][0][r][c].coord()).to_col();
-                    vision[i][0][r].push(Vector { coord })
+                    let coord = rot.mul(rays[i - 1][0][r][c].coord()).to_col();
+                    rays[i][0][r].push(Vector { coord })
                 }
             }
         }
 
-        let rot = &Matrix::rotation(0, 1, wfov_step, 3);
+        let rot = &Matrix::rotation(0, 1, angle_step, 3);
         for i in 0..(2 * discr - 1) {
             for j in 1..(4 * discr) {
                 for r in 0..size.0 {
                     for c in 0..size.1 {
-                        let coord = rot.mul(vision[i][j - 1][r][c].coord()).to_col();
-                        vision[i][j][r].push(Vector { coord })
+                        let coord = rot.mul(rays[i][j - 1][r][c].coord()).to_col();
+                        rays[i][j][r].push(Vector { coord })
                     }
                 }
             }
         }
 
-        Self { rays: vision, lens}
+
+        Self { rays }
     }
 }
-
 
 /// Camera object that can be moved and rotated
 #[derive(Debug)]
 pub struct Camera {
     pub(crate) pos: Point,
     pub(crate) vision: Vision,
-    pub(crate) dir: Vec<f64>,
     pub(crate) discr: usize,
     pub(crate) zen_idx: usize,
     pub(crate) azi_idx: usize,
@@ -79,15 +75,21 @@ pub struct Camera {
     pub(crate) size: (usize, usize),
     pub(crate) wfov: f64,
     pub(crate) hfov: f64,
-    pub(crate) draw_dist: f64
+    pub(crate) draw_dist: f64,
 }
 
 impl Camera {
-    pub fn new(pos: Point, discr: usize, yfov: f64, zfov: f64, mut size: (usize, usize), draw_dist: f64) -> Self {
+    pub fn new(
+        pos: Point,
+        discr: usize,
+        yfov: f64,
+        zfov: f64,
+        size: (usize, usize),
+        draw_dist: f64,
+    ) -> Self {
         Self {
             pos,
             vision: Vision::new(discr, yfov, zfov, size),
-            dir: (0..(discr + 1)).map(|i| ((i / discr) as f64).cos()).collect(),
             discr,
             zen_idx: discr - 1,
             azi_idx: 0,
@@ -113,9 +115,8 @@ impl Camera {
         self.pos.mv_assign(vec)
     }
 
-    pub fn ray(&self, r: usize, c: usize) -> (&Vector, f64) {
-        // dbg!(r, c, &self.vision.rays[self.zen_idx][self.azi_idx][r][c]);
-        (&self.vision.rays[self.zen_idx][self.azi_idx][r][c], self.vision.lens[r][c])
+    pub fn ray(&self, r: usize, c: usize) -> &Vector {
+        &self.vision.rays[self.zen_idx][self.azi_idx][r][c]
     }
 
     pub fn rotate_up(&mut self, step: usize) {
@@ -148,7 +149,7 @@ impl Camera {
 /// direction [1, 0, 0]. `yfov` and `zfov` are the horizontal and vertical fields of view respectively.
 /// `y` and `z` are the screen width and height respectively.
 /// All the vectors will be rotated with the camera rotation as well
-pub(crate) fn rays(yfov: f64, zfov: f64, y: usize, z: usize) -> Vec<Vec<Vector>> {
+pub(crate) fn init_rays(yfov: f64, zfov: f64, y: usize, z: usize) -> Vec<Vec<Vector>> {
     let mut rays = vec![vec![Vector::new(vec![1.0, 0.0, 0.0]); y]; z];
 
     let y_rays_df = rays_df(1, yfov, y);

@@ -16,12 +16,11 @@ use {
         rc::Rc,
     },
     uuid::Uuid,
+    either::Either,
 };
-
 
 pub type PropKey = &'static str;
 pub type PropVal = Box<dyn Any>;
-
 
 /// For material that can be indexed inside the `Game` instance with `Uuid` and can store properties within `HashMap`
 pub trait AsEntity {
@@ -73,10 +72,11 @@ impl Index<PropKey> for dyn AsEntity {
     }
 }
 
-
 /// for material that can be collided with `Ray`. Coefficient of `Ray` resizing is returned if collision exists else `-1.0`
 pub trait AsCollided: AsEntity {
-    fn collide(&self, cs: &CoordSys, inc: &Point, dir: &Vector) -> f64;
+    fn collide(&self, cs: &CoordSys, inc: &Point, dir: &Vector) -> Option<f64>;
+
+    fn charmap(&self, dist: f64) -> Option<char>;
 }
 
 impl std::fmt::Debug for dyn AsCollided {
@@ -85,9 +85,16 @@ impl std::fmt::Debug for dyn AsCollided {
     }
 }
 
+pub fn validate_collision(dist: f64) -> Option<f64> {
+    if dist < 0.0 {
+        None
+    } else {
+        Some(dist)
+    }
+}
 
 /// For material that has not-consistent position and direction in the game
-pub trait AsGameObject: AsEntity {
+pub trait AsGameObject: AsCollided {
     fn pos(&self) -> &Point;
 
     fn pos_mut(&mut self) -> &mut Point;
@@ -136,8 +143,7 @@ impl std::fmt::Debug for dyn AsGameObject {
     }
 }
 
-
-pub trait AsMaterialList {
+pub trait AsEntityList {
     /// Wrapper around dyn AsCollided, eg Box<dyn AsCollided> or Rc<RefCell<dyn AsCollided>>
     type Item;
 
@@ -152,7 +158,11 @@ pub trait AsMaterialList {
 
     /// Permorms closure to some subset of all the entities
     fn exec(&self, f: fn(&Self::Item));
+}
 
+pub trait AsScene {
     /// Computes minimal distance to entities
-    fn collide(&self, cs: &CoordSys, inc: &Point, dir: &Vector) -> f64;
+    fn collide(&self, cs: &CoordSys, inc: &Point, dir: &Vector) -> Either<f64, char>;
+
+    fn validate_mv(&self, cs: &CoordSys, pos: &Point, mv: &mut Vector);
 }

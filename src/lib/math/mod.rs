@@ -10,9 +10,8 @@ mod space;
 #[cfg(test)]
 mod test;
 
-use {
-    std::cmp::Ordering
-};
+use std::cmp::Ordering;
+use std::ops::{Add, MulAssign, Sub};
 
 pub use {
     matrix::{set_biform, set_biform_identity, set_biform_vec, Matrix},
@@ -34,7 +33,6 @@ pub(crate) fn pow_minus(x: usize) -> f64 {
         _ => unreachable!(),
     }
 }
-
 
 #[derive(Debug, PartialOrd, PartialEq, Clone, Copy)]
 pub struct Float(pub f64);
@@ -59,6 +57,24 @@ impl Into<f64> for &Float {
     }
 }
 
+impl Add<f64> for Float {
+    type Output = Float;
 
-// #[derive(Debug)]
-// pub struct Pair()
+    fn add(self, rhs: f64) -> Self::Output {
+        Float(self.0 + rhs)
+    }
+}
+
+impl Sub<f64> for Float {
+    type Output = Float;
+
+    fn sub(self, rhs: f64) -> Self::Output {
+        Float(self.0 - rhs)
+    }
+}
+
+impl MulAssign<f64> for Float {
+    fn mul_assign(&mut self, rhs: f64) {
+        self.0 *= rhs
+    }
+}

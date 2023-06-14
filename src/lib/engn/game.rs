@@ -8,36 +8,34 @@ use {
         },
         math::*,
     },
-    std::{
-        marker::PhantomData,
-        rc::Rc,
-        time::Duration,
-        f64::consts::PI,
-    },
-    uuid::Uuid
+    std::{f64::consts::PI, marker::PhantomData, rc::Rc, time::Duration},
+    uuid::Uuid,
 };
 
 /// Struct responsible for storing current CoordSys and EntityList and running related scripts
 #[derive(Debug)]
-pub struct Game<Evt, EvtSys, Lst>
-where Evt: AsEvent<Lst>, Lst: AsMaterialList,
-      EvtSys: AsEventSys<Evt, Lst>
+pub struct Game<Evt, EvtSys, Scn>
+where
+    Evt: AsEvent<Scn>,
+    Scn: AsScene,
+    EvtSys: AsEventSys<Evt, Scn>,
 {
     phantom: PhantomData<Evt>,
     pub(crate) cs: CoordSys,
     pub(crate) es: EvtSys,
-    pub id_pool: IdPool,
-    pub(crate) entities: Option<Lst>,
-    pub(crate) canvas: Canvas<Lst>,
+    pub(crate) scene: Scn,
+    pub(crate) canvas: Canvas<Scn>,
     pub(crate) camera: Camera,
 }
 
-impl<Evt, EvtSys, Lst> Game<Evt, EvtSys, Lst>
-where Evt: AsEvent<Lst>, Lst: AsMaterialList,
-      EvtSys: AsEventSys<Evt, Lst>
+impl<Evt, EvtSys, Scn> Game<Evt, EvtSys, Scn>
+where
+    Evt: AsEvent<Scn>,
+    Scn: AsScene,
+    EvtSys: AsEventSys<Evt, Scn>,
 {
     /// Constructor for `Game` taking `Conf` and returning `ReRes` if something fails
-    pub fn new(mut conf: Conf) -> ReRes<Self> {
+    pub fn new(mut conf: Conf, scene: Scn, es: EvtSys) -> ReRes<Self> {
         set_biform(Matrix::identity(3));
 
         set_exact_mode();
@@ -48,14 +46,14 @@ where Evt: AsEvent<Lst>, Lst: AsMaterialList,
             Basis::new(Matrix::identity(3).to_multicol())?,
         )?;
 
-        let es = EvtSys::new();
-        let mut id_pool = IdPool::new();
-        let entities = None;
-
         let size = console::init()?;
         let mut size = ((size.0 - 3) as usize, size.1 as usize);
-        if size.0 % 2 == 0 { size.0 -= 1 }
-        if size.1 % 2 == 0 { size.1 -= 1 }
+        if size.0 % 2 == 0 {
+            size.0 -= 1
+        }
+        if size.1 % 2 == 0 {
+            size.1 -= 1
+        }
 
         let hfov = match conf.hfov {
             Some(val) => val,
@@ -77,8 +75,7 @@ where Evt: AsEvent<Lst>, Lst: AsMaterialList,
             phantom: PhantomData,
             cs,
             es,
-            id_pool,
-            entities,
+            scene,
             canvas,
             camera,
         })
@@ -87,19 +84,16 @@ where Evt: AsEvent<Lst>, Lst: AsMaterialList,
     /// Running game: listening to events, handling them with respect to given implementation.
     /// Never exits if such event isn't provided
     pub fn run(&mut self) -> ReRes<()> {
-        if self.entities.is_none() {
-            return Ok(())
-        }
         loop {
             self.es.push(Evt::from(console::listen()?));
-            self.es.handle_all(&mut self.camera, self.entities.as_mut().unwrap())?;
+            self.es.handle_all(&self.cs, &mut self.camera, &mut self.scene)?;
             self.update()?;
         }
     }
 
     /// Updates image on canvas and drawing it in console
     fn update(&mut self) -> ReRes<()> {
-        self.canvas.update(&self.camera, &self.cs, self.entities.as_ref().unwrap())?;
+        self.canvas.update(&self.camera, &self.cs, &self.scene)?;
         self.canvas.draw()?;
         Ok(())
     }
@@ -110,33 +104,18 @@ where Evt: AsEvent<Lst>, Lst: AsMaterialList,
         std::process::exit(0)
     }
 
-    /// Providing entities list
-    pub fn set_entities(&mut self, entities: Lst) {
-        self.entities = Some(entities)
-    }
-
     /// `Entity` in current game with appending it's `Uuid` into `IdPool`
     pub fn entity(&mut self) -> Entity {
-        Entity::new(self.id_pool.generate())
+        Entity::new(IdPool::get().generate())
     }
 
     /// `Canvas` in current game
-    pub fn canvas(&self) -> &Canvas<Lst> {
+    pub fn canvas(&self) -> &Canvas<Scn> {
         &self.canvas
     }
 
     /// `Camera` in current game
     pub fn camera(&self) -> &Camera {
         &self.camera
-    }
-}
-
-impl<Evt, EvtSys, Lst> Default for Game<Evt, EvtSys, Lst>
-where Evt: AsEvent<Lst>, Lst: AsMaterialList,
-      EvtSys: AsEventSys<Evt, Lst>
-{
-    fn default() -> Self {
-        let conf = Conf::default();
-        Self::new(conf).unwrap()
     }
 }

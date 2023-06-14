@@ -1,3 +1,4 @@
+use std::ops::Index;
 use {
     super::*,
     crate::{
@@ -131,6 +132,14 @@ impl Default for Point {
     }
 }
 
+impl Index<usize> for Point {
+    type Output = f64;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        self.coord().at(index)
+    }
+}
+
 /// Basis that is `Matrix::MultiCol`, square, linear independence
 #[derive(Debug, Clone, PartialEq)]
 pub struct Basis {
@@ -151,7 +160,9 @@ impl Basis {
 
     /// Decompose point in current basis
     pub fn decompose(&self, pt: &Point) -> Vector {
-        Vector { coord: pt.coord.mul_left(&self.inv).to_col() }
+        Vector {
+            coord: pt.coord.mul_left(&self.inv).to_col(),
+        }
     }
 }
 

@@ -19,7 +19,6 @@ use {
     toml::{Table, Value},
 };
 
-
 const INITPT_KEY: &str = "INITIAL_POINT";
 const ANGLE_DISCR_KEY: &str = "ROTATION_HALF_PI_DISCRETIZATION";
 const WFOV_KEY: &str = "HORIZONTAL_FIELD_OF_VIEW_OUT_OF_PI";
@@ -27,7 +26,6 @@ const HFOV_KEY: &str = "VERTICAL_FIELD_OF_VIEW_OUT_OF_PI";
 const DRAW_DIST_KEY: &str = "DRAW_DISTANCE";
 const CHARMAP_KEY: &str = "CHARMAP";
 const PRECISION_KEY: &str = "PRECISION";
-
 
 /// Struct that packages configuration parameters,
 /// it further is used for `Game` object instanciating
@@ -97,7 +95,7 @@ impl Conf {
         };
         match value {
             Value::Integer(fov) => self.wfov = fov as f64,
-            Value::Float(fov) => self.wfov = fov,
+            Value::Float(fov) => self.wfov = fov as f64,
             _ => return Err(GameErr(InvalidConfValue(WFOV_KEY))),
         }
         Ok(self)
@@ -110,7 +108,7 @@ impl Conf {
         };
         match value {
             Value::Integer(fov) => self.hfov = Some(fov as f64),
-            Value::Float(fov) => self.hfov = Some(fov),
+            Value::Float(fov) => self.hfov = Some(fov as f64),
             _ => return Err(GameErr(InvalidConfValue(HFOV_KEY))),
         }
         Ok(self)
@@ -123,7 +121,7 @@ impl Conf {
         };
         match value {
             Value::Integer(draw_dist) => self.draw_dist = draw_dist as f64,
-            Value::Float(draw_dist) => self.draw_dist = draw_dist,
+            Value::Float(draw_dist) => self.draw_dist = draw_dist as f64,
             _ => return Err(GameErr(InvalidConfValue(DRAW_DIST_KEY))),
         }
         Ok(self)
