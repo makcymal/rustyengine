@@ -10,6 +10,7 @@ mod euclide;
 #[cfg(test)]
 mod test;
 
+use std::ops::{Add, MulAssign, Sub};
 use {
     std::cmp::Ordering
 };
@@ -56,6 +57,28 @@ impl Into<f32> for Float {
 impl Into<f32> for &Float {
     fn into(self) -> f32 {
         self.0
+    }
+}
+
+impl Add<f32> for Float {
+    type Output = Float;
+
+    fn add(self, rhs: f32) -> Self::Output {
+        Float(self.0 + rhs)
+    }
+}
+
+impl Sub<f32> for Float {
+    type Output = Float;
+
+    fn sub(self, rhs: f32) -> Self::Output {
+        Float(self.0 - rhs)
+    }
+}
+
+impl MulAssign<f32> for Float {
+    fn mul_assign(&mut self, rhs: f32) {
+        self.0 *= rhs
     }
 }
 

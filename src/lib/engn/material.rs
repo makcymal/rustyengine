@@ -20,6 +20,7 @@ use {
     },
     uuid::Uuid,
 };
+use crate::engn::material_traits::validate_collision;
 
 
 /// Matrix of `Uuid` (standard v4) allocated in heap
@@ -134,27 +135,39 @@ impl AsEntityList for EntityList {
 pub struct HypePlane {
     pub(crate) initpt: Point,
     pub(crate) normal: Vector,
+    pub(crate) is_rigid: bool,
+    pub(crate) charcoal: Option<Charcoal>,
 }
 
 impl HypePlane {
     /// HypePlane constructor takes actual `Entity`, `Point` on plane and normal vector
-    pub fn new(initpt: Point, normal: Vector) -> Self {
+    pub fn new(initpt: Point, normal: Vector, is_rigid: bool, charcoal: Option<Charcoal>) -> Self {
         Self {
             initpt,
             normal,
+            is_rigid,
+            charcoal,
         }
     }
 }
 
 impl AsCollided for HypePlane {
-    fn collide(&self, inc: &Point, dir: &Vector) -> f32 {
+    fn collide(&self, inc: &Point, dir: &Vector) -> Option<f32> {
         let denom = dir.scalar_prod(&self.normal);
         if aeq(denom, 0.0) {
-            return -1.0;
+            None
+        } else {
+            let numer = &self.initpt.df(inc).scalar_prod(&self.normal);
+            validate_collision(numer / denom)
         }
-        let numer = &self.initpt.df(inc).scalar_prod(&self.normal);
-        let dist = numer / denom;
-        dist
+    }
+
+    fn charmap(&self, dist: f32) -> Option<char> {
+        if let Some(charcoal) = &self.charcoal {
+            Some(charcoal.ignite(dist))
+        } else {
+            None
+        }
     }
 }
 
@@ -183,17 +196,25 @@ pub struct HypeEllipse {
     pub(crate) center: Point,
     pub(crate) basis: Basis,
     pub(crate) semiaxis: [f32; 3],
+    pub(crate) is_rigid: bool,
+    pub charcoal: Option<Charcoal>,
 }
 
 impl HypeEllipse {
     /// Constructs new `HypeEllipse`
-    pub fn new(center: Point, basis: Basis, semiaxis: [f32; 3]) -> Self {
-        Self { center, basis, semiaxis }
+    pub fn new(center: Point, basis: Basis, semiaxis: [f32; 3], is_rigid: bool, charcoal: Option<Charcoal>) -> Self {
+        Self {
+            center,
+            basis,
+            semiaxis,
+            is_rigid,
+            charcoal,
+        }
     }
 }
 
 impl AsCollided for HypeEllipse {
-    fn collide(&self, inc: &Point, dir: &Vector) -> f32 {
+    fn collide(&self, inc: &Point, dir: &Vector) -> Option<f32> {
         let inc = self.basis.decompose(&inc.df(&self.center));
         let dir = self.basis.decompose(dir);
         let (mut a, mut b, mut c) = (0.0, 0.0, -1.0);
@@ -204,16 +225,26 @@ impl AsCollided for HypeEllipse {
         }
         let d = b * b - 4.0 * a * c;
         if d < 0.0 {
-            -1.0
+            None
         } else if aeq(d, 0.0) {
-            -b / 2.0 / a
+            validate_collision(-b / 2.0 / a)
         } else {
-            [Float((-b + d.sqrt()) / 2.0 / a), Float((-b - d.sqrt()) / 2.0 / a)]
-                .iter()
-                .filter(|f| *f >= &Float(0.0))
-                .min()
-                .unwrap_or(&Float(-1.0))
-                .into()
+            validate_collision(
+                [Float((-b + d.sqrt()) / 2.0 / a), Float((-b - d.sqrt()) / 2.0 / a)]
+                    .iter()
+                    .filter(|f| *f >= &Float(0.0))
+                    .min()
+                    .unwrap_or(&Float(-1.0))
+                    .into()
+            )
+        }
+    }
+
+    fn charmap(&self, dist: f32) -> Option<char> {
+        if let Some(charcoal) = &self.charcoal {
+            Some(charcoal.ignite(dist))
+        } else {
+            None
         }
     }
 }

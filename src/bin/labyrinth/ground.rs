@@ -16,10 +16,14 @@ impl Ground {
 
 
 impl AsCollided for Ground {
-    fn collide(&self, inc: &Point, dir: &Vector) -> f32 {
+    fn collide(&self, inc: &Point, dir: &Vector) -> Option<f32> {
         if aeq(dir[2], 0.0) {
-            return -1.0
+            return None;
         }
-        -inc[2] / dir[2]
+        validate_collision(-inc[2] / dir[2])
+    }
+
+    fn charmap(&self, _dist: f32) -> Option<char> {
+        None
     }
 }

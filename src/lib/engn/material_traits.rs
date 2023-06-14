@@ -1,3 +1,4 @@
+use either::Either;
 use {
     super::*,
     crate::{
@@ -76,7 +77,17 @@ impl Index<PropKey> for dyn AsEntity {
 
 /// for material that can be collided with `Ray`. Coefficient of `Ray` resizing is returned if collision exists else `-1.0`
 pub trait AsCollided {
-    fn collide(&self, inc: &Point, dir: &Vector) -> f32;
+    fn collide(&self, inc: &Point, dir: &Vector) -> Option<f32>;
+
+    fn charmap(&self, dist: f32) -> Option<char>;
+}
+
+pub fn validate_collision(dist: f32) -> Option<f32> {
+    if dist < 0.0 {
+        None
+    } else {
+        Some(dist)
+    }
 }
 
 impl std::fmt::Debug for dyn AsCollided {
@@ -146,5 +157,7 @@ pub trait AsEntityList {
 
 pub trait AsScene {
     /// Computes minimal distance to entities
-    fn collide(&self, inc: &Point, dir: &Vector) -> f32;
+    fn collide(&self, inc: &Point, dir: &Vector) -> Either<f32, char>;
+
+    fn validate_mv(&self, pos: &Point, mv: &mut Vector);
 }

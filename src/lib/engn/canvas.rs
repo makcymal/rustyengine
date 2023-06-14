@@ -1,3 +1,4 @@
+use either::Either;
 use {
     super::*,
     crate::{
@@ -20,21 +21,17 @@ use {
 pub struct Canvas<Scn: AsScene> {
     phantom: PhantomData<Scn>,
     size: (usize, usize),
-    charmap: Vec<char>,
-    charmap_len: f32,
-    draw_dist: f32,
+    charcoal: Charcoal,
     picture: Vec<String>,
 }
 
 impl<Scn: AsScene> Canvas<Scn> {
     /// Constructs new canvas
-    pub fn new(size: (usize, usize), charmap: String, draw_dist: f32) -> Self {
+    pub fn new(size: (usize, usize), chars: String, draw_dist: f32) -> Self {
         Self {
             phantom: PhantomData,
             size,
-            charmap: charmap.chars().collect(),
-            charmap_len: charmap.len() as f32,
-            draw_dist: draw_dist + 1.0,
+            charcoal: Charcoal::new(chars, draw_dist),
             picture: vec![(0..size.1).map(|_| ' ').collect::<String>(); size.0],
         }
     }
@@ -44,13 +41,11 @@ impl<Scn: AsScene> Canvas<Scn> {
         for r in 0..self.size.0 {
             self.picture[r] = (0..self.size.1)
                 .map(|c| {
-                    let (ray, len) = camera.ray(r, c);
-                    let mut dist = scene.collide(&camera.pos, ray) * len;
-                    if dist < 0.0 || camera.draw_dist < dist {
-                        dist = camera.draw_dist;
+                    let ray = camera.ray(r, c);
+                    match scene.collide(&camera.pos, ray) {
+                        Either::Left(d) => self.charcoal.ignite(d),
+                        Either::Right(c) => c,
                     }
-                    // dbg!(dist, self.draw_dist, self.charmap_len, (dist / self.draw_dist * self.charmap_len));
-                    self.charmap[(dist / self.draw_dist * self.charmap_len).floor() as usize]
                 })
                 .collect::<String>();
         }

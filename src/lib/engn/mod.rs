@@ -11,6 +11,7 @@
 
 pub mod camera;
 pub mod canvas;
+pub mod charcoal;
 pub mod console;
 pub mod event;
 pub mod event_traits;
@@ -24,6 +25,7 @@ mod test;
 pub use {
     camera::Camera,
     canvas::Canvas,
+    charcoal::Charcoal,
     game::Game,
     event::{
         MovementEvent, MovementEventSys
@@ -34,6 +36,7 @@ pub use {
     material_traits::{
         AsEntity,
         AsCollided,
+        validate_collision,
         AsGameObject,
         AsEntityList,
         AsScene,

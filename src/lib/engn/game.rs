@@ -33,10 +33,8 @@ impl<Evt, EvtSys, Scn> Game<Evt, EvtSys, Scn>
     where Evt: AsEvent<Scn>, Scn: AsScene, EvtSys: AsEventSys<Evt, Scn>
 {
     /// Constructor for `Game` taking `Conf` and returning `ReRes` if something fails
-    pub fn new(mut conf: Conf, scene: Scn) -> ReRes<Self> {
+    pub fn new(mut conf: Conf, scene: Scn, es: EvtSys) -> ReRes<Self> {
         set_precision(conf.precision);
-
-        let es = EvtSys::new();
 
         let size = console::init()?;
         let mut size = ((size.0 - 3) as usize, size.1 as usize);
@@ -45,7 +43,8 @@ impl<Evt, EvtSys, Scn> Game<Evt, EvtSys, Scn>
 
         let hfov = match conf.hfov {
             Some(val) => val,
-            None => (size.0 as f32) * conf.wfov / (size.1 as f32),
+            None => (size.1
+                as f32) * conf.wfov / (size.1 as f32),
         };
 
         let camera = Camera::new(
@@ -72,6 +71,7 @@ impl<Evt, EvtSys, Scn> Game<Evt, EvtSys, Scn>
     /// Never exits if such event isn't provided
     pub fn run(&mut self) -> ReRes<()> {
         loop {
+            self.es.push(Evt::from(console::listen()?));
             self.es.push(Evt::from(console::listen()?));
             self.es.handle_all(&mut self.camera, &mut self.scene)?;
             self.update()?;

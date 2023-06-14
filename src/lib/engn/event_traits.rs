@@ -20,7 +20,6 @@ pub trait AsEvent<Scn>: From<console::Event>
 pub trait AsEventSys<Evt, Scn>
     where Evt: AsEvent<Scn>, Scn: AsScene
 {
-    fn new() -> Self;
     fn push(&mut self, event: Evt);
-    fn handle_all(&mut self, camera: &mut Camera, entities: &mut Scn) -> ReRes<()>;
+    fn handle_all(&mut self, camera: &mut Camera, scene: &mut Scn) -> ReRes<()>;
 }

@@ -129,7 +129,13 @@ impl Basis {
                 Vector::new([0.0, 1.0, 0.0]),
                 Vector::new([0.0, 0.0, 1.0])
             ],
-            inv: None,
+            inv: Some(Matrix {
+                matrix: [
+                    [1.0, 0.0, 0.0],
+                    [0.0, 1.0, 0.0],
+                    [0.0, 0.0, 1.0]
+                ]
+            }),
         }
     }
 

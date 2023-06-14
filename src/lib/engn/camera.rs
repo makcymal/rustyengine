@@ -5,7 +5,13 @@ use {
         math::*,
         errs::*,
     },
-    std::{any::Any, collections::HashMap, f32::consts::PI, rc::Rc},
+    std::{
+        any::Any,
+        collections::HashMap,
+        f32::consts::{
+            PI, FRAC_PI_2,
+        },
+        rc::Rc},
     uuid::Uuid,
 };
 
@@ -17,31 +23,27 @@ pub struct Vision {
     // third - rows of rays
     // fourth - columns of rays
     rays: Vec<Vec<Vec<Vec<Vector>>>>,
-    lens: Vec<Vec<f32>>,
 }
 
 impl Vision {
     pub(crate) fn new(discr: usize, wfov: f32, hfov: f32, size: (usize, usize)) -> Self {
         let mut rays: Vec<Vec<Vec<Vec<Vector>>>> = vec![vec![vec![vec![]; size.0]; 4 * discr]; 2 * discr - 1];
-        let mut lens: Vec<Vec<f32>> = vec![vec![]; size.0];
 
-        let wfov_step = wfov / (size.1 as f32);
-        let hfov_step = hfov / (size.0 as f32);
+        let angle_step = FRAC_PI_2 / (discr as f32);
 
         rays[discr - 1][0] = init_rays(wfov, hfov, size.1, size.0);
 
-        let rot = &Matrix::rotation(0, 2, hfov_step);
+        let rot = &Matrix::rotation(0, 2, angle_step);
         for i in (0..(discr - 1)).rev() {
             for r in 0..size.0 {
                 for c in 0..size.1 {
                     let ray = rot * &rays[i + 1][0][r][c];
-                    lens[r].push(ray.len() );
                     rays[i][0][r].push(ray);
                 }
             }
         }
 
-        let rot = &Matrix::rotation(0, 2, -hfov_step);
+        let rot = &Matrix::rotation(0, 2, -angle_step);
         for i in discr..(2 * discr - 1) {
             for r in 0..size.0 {
                 for c in 0..size.1 {
@@ -51,7 +53,7 @@ impl Vision {
             }
         }
 
-        let rot = &Matrix::rotation(0, 1, wfov_step);
+        let rot = &Matrix::rotation(0, 1, angle_step);
         for i in 0..(2 * discr - 1) {
             for j in 1..(4 * discr) {
                 for r in 0..size.0 {
@@ -63,7 +65,7 @@ impl Vision {
             }
         }
 
-        Self { rays, lens }
+        Self { rays }
     }
 }
 
@@ -81,7 +83,7 @@ pub struct Camera {
     pub(crate) size: (usize, usize),
     pub(crate) wfov: f32,
     pub(crate) hfov: f32,
-    pub(crate) draw_dist: f32
+    pub(crate) draw_dist: f32,
 }
 
 impl Camera {
@@ -114,8 +116,8 @@ impl Camera {
         self.pos.mv(vec)
     }
 
-    pub fn ray(&self, r: usize, c: usize) -> (&Vector, f32) {
-        (&self.vision.rays[self.zen_idx][self.azi_idx][r][c], self.vision.lens[r][c])
+    pub fn ray(&self, r: usize, c: usize) -> &Vector {
+        &self.vision.rays[self.zen_idx][self.azi_idx][r][c]
     }
 
     pub fn rotate_up(&mut self, step: usize) {

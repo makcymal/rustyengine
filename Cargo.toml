@@ -23,3 +23,4 @@ strum_macros = "0.24.3"
 toml = { version = "0.7.3", features = ["parse"] }
 crossterm = "0.26.1"
 anyhow = "1.0.71"
+either = "1.8.1"
