@@ -7,8 +7,6 @@ pub struct Matrix {
 
 impl Matrix {
     pub fn rotation(mut from: usize, mut to: usize, mut angle: f32) -> Self {
-        // TODO: remove when it works
-        assert_ne!(from, to);
         if from > to {
             (from, to) = (to, from);
             angle = -angle;

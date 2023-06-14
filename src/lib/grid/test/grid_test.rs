@@ -239,9 +239,7 @@ fn double_grid_col_iter_sum() {
     let grid = Grid::from_double(vec![vec![0, 1, 2, 3], vec![4, 5, 6, 7], vec![8, 9, 10, 11]])
         .to_multicol();
     let mut col_iter = grid.iter().unwrap();
-    // dbg!(&col_iter);
     let item_iter = col_iter.next().unwrap();
-    // dbg!(&item_iter);
     assert_eq!(item_iter.sum::<i32>(), 12);
 }
 

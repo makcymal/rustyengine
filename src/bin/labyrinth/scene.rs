@@ -58,16 +58,16 @@ impl Scene {
 
         Self {
             xz_walls,
-            xz_charcoal: Charcoal::new("=".to_string(), 10.0),
+            xz_charcoal: Charcoal::new("><".to_string(), 6.0),
 
             yz_walls,
-            yz_charcoal: Charcoal::new("^".to_string(), 10.0),
+            yz_charcoal: Charcoal::new("^\"".to_string(), 6.0),
 
             ground: Ground::new(),
             ground_charcoal: Charcoal::new("#$?".to_string(), draw_dist),
 
             sun: HypeEllipse::new(
-                Point::new([0.0, 0.0, 50.0]),
+                Point::new([-10.0, -10.0, 80.0]),
                 Basis::new(),
                 [20.0, 20.0, 20.0],
                 false,

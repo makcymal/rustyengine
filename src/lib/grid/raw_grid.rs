@@ -300,7 +300,6 @@ impl<E: Clone> RawGrid<E> {
                 .vec
                 .resize(rows + new_cols, ex_cols, tail.att(0, 0, false).clone()),
         };
-        dbg!(self.rows(false), self.cols(false));
         for c in 0..new_cols {
             let ec = ex_cols + c;
             for r in 0..rows {
