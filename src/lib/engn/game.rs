@@ -8,19 +8,17 @@ use {
         },
         math::*,
     },
-    std::{
-        marker::PhantomData,
-        rc::Rc,
-        time::Duration,
-        f32::consts::PI,
-    },
+    std::{f32::consts::PI, marker::PhantomData, rc::Rc, time::Duration},
     uuid::Uuid,
 };
 
 /// Struct responsible for storing current CoordSys and EntityList and running related scripts
 #[derive(Debug)]
 pub struct Game<Evt, EvtSys, Scn>
-    where Evt: AsEvent<Scn>, Scn: AsScene, EvtSys: AsEventSys<Evt, Scn>
+where
+    Evt: AsEvent<Scn>,
+    Scn: AsScene,
+    EvtSys: AsEventSys<Evt, Scn>,
 {
     phantom: PhantomData<Evt>,
     pub(crate) es: EvtSys,
@@ -30,7 +28,10 @@ pub struct Game<Evt, EvtSys, Scn>
 }
 
 impl<Evt, EvtSys, Scn> Game<Evt, EvtSys, Scn>
-    where Evt: AsEvent<Scn>, Scn: AsScene, EvtSys: AsEventSys<Evt, Scn>
+where
+    Evt: AsEvent<Scn>,
+    Scn: AsScene,
+    EvtSys: AsEventSys<Evt, Scn>,
 {
     /// Constructor for `Game` taking `Conf` and returning `ReRes` if something fails
     pub fn new(mut conf: Conf, scene: Scn, es: EvtSys) -> ReRes<Self> {
@@ -38,13 +39,16 @@ impl<Evt, EvtSys, Scn> Game<Evt, EvtSys, Scn>
 
         let size = console::init()?;
         let mut size = ((size.0 - 3) as usize, size.1 as usize);
-        if size.0 % 2 == 0 { size.0 -= 1 }
-        if size.1 % 2 == 0 { size.1 -= 1 }
+        if size.0 % 2 == 0 {
+            size.0 -= 1
+        }
+        if size.1 % 2 == 0 {
+            size.1 -= 1
+        }
 
         let hfov = match conf.hfov {
             Some(val) => val,
-            None => (size.1
-                as f32) * conf.wfov / (size.1 as f32),
+            None => (size.1 as f32) * conf.wfov / (size.1 as f32),
         };
 
         let camera = Camera::new(

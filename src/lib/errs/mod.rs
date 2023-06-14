@@ -5,7 +5,7 @@ mod grid_errs;
 mod math_errs;
 
 pub use {engn_errs::GameErr, grid_errs::GridErr, math_errs::MathErr};
-use {strum_macros::Display, thiserror::Error, std::io};
+use {std::io, strum_macros::Display, thiserror::Error};
 
 /// `Result` with `ReErr` as `Err` variant
 pub type ReRes<T> = Result<T, ReErr>;

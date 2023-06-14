@@ -1,4 +1,5 @@
 use either::Either;
+use std::cmp::min;
 use {
     super::*,
     crate::{
@@ -9,12 +10,8 @@ use {
         grid::*,
         math::*,
     },
-    std::{
-        marker::PhantomData,
-        str::Chars, thread, time::Duration,
-    },
+    std::{marker::PhantomData, str::Chars, thread, time::Duration},
 };
-
 
 /// Stores picture as `Vec<String>` respectively to `charmap` given in the `Conf`
 #[derive(Debug)]
@@ -68,18 +65,9 @@ impl<Scn: AsScene> Canvas<Scn> {
         console::move_cursor(row as u16, col as u16)?;
 
         console::clear();
-        println!("{}", &msg[..self.size.1]);
+        println!("{}", &msg[..min(msg.len(), self.size.1)]);
         thread::sleep(timeout);
         console::clear();
-        Ok(())
-    }
-
-    /// Shows message on the second line of console
-    pub fn notification(&self, msg: &str) -> ReRes<()> {
-        let col = self.size.1.saturating_sub(msg.len()) / 2;
-        console::move_cursor(1, col as u16)?;
-
-        println!("{}", &msg[..self.size.1]);
         Ok(())
     }
 }

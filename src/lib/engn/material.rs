@@ -1,3 +1,4 @@
+use crate::engn::material_traits::validate_collision;
 use {
     super::*,
     crate::{
@@ -8,8 +9,8 @@ use {
             ReErr::{self, *},
             ReRes,
         },
-        math::*,
         grid::Repr,
+        math::*,
     },
     std::{
         any::{Any, TypeId},
@@ -20,8 +21,6 @@ use {
     },
     uuid::Uuid,
 };
-use crate::engn::material_traits::validate_collision;
-
 
 /// Matrix of `Uuid` (standard v4) allocated in heap
 #[derive(Debug, Default, Clone, PartialEq)]
@@ -54,7 +53,6 @@ impl Index<usize> for IdPool {
     }
 }
 
-
 /// Entity struct having `id` and properties map
 #[derive(Debug)]
 pub struct Entity {
@@ -64,7 +62,10 @@ pub struct Entity {
 
 impl Entity {
     pub fn new(id: Rc<Uuid>) -> Self {
-        Self { id, props: HashMap::new() }
+        Self {
+            id,
+            props: HashMap::new(),
+        }
     }
 }
 
@@ -82,7 +83,6 @@ impl AsEntity for Entity {
     }
 }
 
-
 ///
 #[derive(Debug)]
 pub struct EntityList {
@@ -91,9 +91,7 @@ pub struct EntityList {
 
 impl EntityList {
     pub fn new() -> Self {
-        Self {
-            entities: vec![],
-        }
+        Self { entities: vec![] }
     }
 }
 
@@ -107,7 +105,8 @@ impl AsEntityList for EntityList {
 
     /// Removes entity from the list with the given `Uuid`
     fn remove(&mut self, id: &Rc<Uuid>) {
-        self.entities.retain(|entity| Rc::ptr_eq(entity.borrow().id(), id));
+        self.entities
+            .retain(|entity| Rc::ptr_eq(entity.borrow().id(), id));
     }
 
     fn exec(&self, f: fn(&Self::Item)) {
@@ -117,10 +116,10 @@ impl AsEntityList for EntityList {
     }
 
     fn get(&self, id: &Rc<Uuid>) -> Option<&Self::Item> {
-        if let Some(item) =
-            self.entities
-                .iter()
-                .find(|entity| Rc::ptr_eq(entity.borrow().id(), id))
+        if let Some(item) = self
+            .entities
+            .iter()
+            .find(|entity| Rc::ptr_eq(entity.borrow().id(), id))
         {
             Some(&item)
         } else {
@@ -128,7 +127,6 @@ impl AsEntityList for EntityList {
         }
     }
 }
-
 
 /// Hype plane defined with some point on it and normal vector
 #[derive(Debug)]
@@ -189,7 +187,6 @@ impl AsGameObject for HypePlane {
     }
 }
 
-
 /// Ellipse in arbitrary dimension space that defined with center point, direction vectors and semiaxes lengths
 #[derive(Debug)]
 pub struct HypeEllipse {
@@ -202,7 +199,13 @@ pub struct HypeEllipse {
 
 impl HypeEllipse {
     /// Constructs new `HypeEllipse`
-    pub fn new(center: Point, basis: Basis, semiaxis: [f32; 3], is_rigid: bool, charcoal: Option<Charcoal>) -> Self {
+    pub fn new(
+        center: Point,
+        basis: Basis,
+        semiaxis: [f32; 3],
+        is_rigid: bool,
+        charcoal: Option<Charcoal>,
+    ) -> Self {
         Self {
             center,
             basis,
@@ -230,12 +233,15 @@ impl AsCollided for HypeEllipse {
             validate_collision(-b / 2.0 / a)
         } else {
             validate_collision(
-                [Float((-b + d.sqrt()) / 2.0 / a), Float((-b - d.sqrt()) / 2.0 / a)]
-                    .iter()
-                    .filter(|f| *f >= &Float(0.0))
-                    .min()
-                    .unwrap_or(&Float(-1.0))
-                    .into()
+                [
+                    Float((-b + d.sqrt()) / 2.0 / a),
+                    Float((-b - d.sqrt()) / 2.0 / a),
+                ]
+                .iter()
+                .filter(|f| *f >= &Float(0.0))
+                .min()
+                .unwrap_or(&Float(-1.0))
+                .into(),
             )
         }
     }

@@ -15,10 +15,12 @@ impl Charcoal {
 
     pub fn ignite(&self, dist: f32) -> char {
         let idx = (dist * self.coef).floor();
-        if idx < 0.0 { return *self.charmap.last().unwrap(); }
+        if idx < 0.0 {
+            return *self.charmap.last().unwrap();
+        }
         match self.charmap.get(idx as usize) {
             Some(c) => *c,
-            None => *self.charmap.last().unwrap()
+            None => *self.charmap.last().unwrap(),
         }
     }
 }

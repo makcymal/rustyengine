@@ -35,7 +35,9 @@ fn handle_all_to_event_queue() {
     let mut q = EventQueue::new();
     q.push(EmtpyEvent(0));
     q.push(EmtpyEvent(1));
-    assert!(q.handle_all(&mut game.camera, game.scene.as_mut().unwrap()).is_ok());
+    assert!(q
+        .handle_all(&mut game.camera, game.scene.as_mut().unwrap())
+        .is_ok());
 }
 
 #[test]
@@ -45,8 +47,7 @@ fn handle_all_count_to_event_queue() {
     let mut q = EventQueue::new();
     q.push(EmtpyEvent(0));
     q.push(EmtpyEvent(1));
-    q.handle_all(&mut game.camera, game.scene.as_mut().unwrap()).unwrap();
+    q.handle_all(&mut game.camera, game.scene.as_mut().unwrap())
+        .unwrap();
     assert_eq!(q.events.len(), 0);
 }
-
-

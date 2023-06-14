@@ -1,20 +1,14 @@
 use {
     super::*,
-    crate::{
-        grid::*,
-        math::*,
-        errs::*,
-    },
+    crate::{errs::*, grid::*, math::*},
     std::{
         any::Any,
         collections::HashMap,
-        f32::consts::{
-            PI, FRAC_PI_2,
-        },
-        rc::Rc},
+        f32::consts::{FRAC_PI_2, PI},
+        rc::Rc,
+    },
     uuid::Uuid,
 };
-
 
 #[derive(Debug)]
 pub struct Vision {
@@ -27,7 +21,8 @@ pub struct Vision {
 
 impl Vision {
     pub(crate) fn new(discr: usize, wfov: f32, hfov: f32, size: (usize, usize)) -> Self {
-        let mut rays: Vec<Vec<Vec<Vec<Vector>>>> = vec![vec![vec![vec![]; size.0]; 4 * discr]; 2 * discr - 1];
+        let mut rays: Vec<Vec<Vec<Vec<Vector>>>> =
+            vec![vec![vec![vec![]; size.0]; 4 * discr]; 2 * discr - 1];
 
         let angle_step = FRAC_PI_2 / (discr as f32);
 
@@ -69,7 +64,6 @@ impl Vision {
     }
 }
 
-
 /// Camera object that can be moved and rotated
 #[derive(Debug)]
 pub struct Camera {
@@ -87,7 +81,14 @@ pub struct Camera {
 }
 
 impl Camera {
-    pub fn new(pos: Point, discr: usize, yfov: f32, zfov: f32, size: (usize, usize), draw_dist: f32) -> Self {
+    pub fn new(
+        pos: Point,
+        discr: usize,
+        yfov: f32,
+        zfov: f32,
+        size: (usize, usize),
+        draw_dist: f32,
+    ) -> Self {
         Self {
             pos,
             vision: Vision::new(discr, yfov, zfov, size),

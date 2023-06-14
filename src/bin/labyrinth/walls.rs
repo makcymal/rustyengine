@@ -1,16 +1,11 @@
 use {
-    rustyengine::{
-        engn::*,
-        math::*,
-    },
+    rustyengine::{engn::*, math::*},
     std::{any::Any, cmp::Ordering, collections::HashMap, rc::Rc},
     uuid::Uuid,
 };
 
-
 /// Height of all panes
 const H: f32 = 5.0;
-
 
 /// Part of the entire plane that is right rectangle and collinear to Oxz plane.
 /// Points on it is defined as `(x, y0, z): x1 <= x < x2, 0 <= z <= H`
@@ -50,12 +45,12 @@ impl AsCollided for XzWalls {
         if idx == 0 {
             match aeq(x.0, self.x_seg[0].0) {
                 true => validate_collision(t),
-                false => None
+                false => None,
             }
         } else if idx == self.x_seg.len() {
             match aeq(x.0, self.x_seg.last().unwrap().0) {
                 true => validate_collision(t),
-                false => None
+                false => None,
             }
         } else if idx % 2 == 1 || aeq(x.0, self.x_seg[idx - 1].0) || aeq(x.0, self.x_seg[idx].0) {
             validate_collision(t)
@@ -68,7 +63,6 @@ impl AsCollided for XzWalls {
         None
     }
 }
-
 
 /// Part of the entire plane that is right rectangle and collinear to Oyz plane.
 /// Points on it is defined as `(x0, y, z): y1 <= y < y2, 0 <= z <= H`
@@ -108,12 +102,12 @@ impl AsCollided for YzWalls {
         if idx == 0 {
             match aeq(y.0, self.y_seg[0].0) {
                 true => validate_collision(t),
-                false => None
+                false => None,
             }
         } else if idx == self.y_seg.len() {
             match aeq(y.0, self.y_seg.last().unwrap().0) {
                 true => validate_collision(t),
-                false => None
+                false => None,
             }
         } else if idx % 2 == 1 || aeq(y.0, self.y_seg[idx - 1].0) || aeq(y.0, self.y_seg[idx].0) {
             validate_collision(t)

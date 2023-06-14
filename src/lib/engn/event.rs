@@ -1,20 +1,8 @@
 use {
-    crossterm::event::{
-        self,
-        Event as ConsoleEvent,
-        KeyCode, KeyEvent, KeyModifiers,
-    },
-    crate::{
-        engn::*,
-        errs::ReRes,
-        math::*,
-    },
-    std::{
-        cmp::Ordering,
-        marker::PhantomData,
-    },
+    crate::{engn::*, errs::ReRes, math::*},
+    crossterm::event::{self, Event as ConsoleEvent, KeyCode, KeyEvent, KeyModifiers},
+    std::{cmp::Ordering, marker::PhantomData},
 };
-
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum MovementEvent<Scn: AsScene> {
@@ -36,8 +24,8 @@ impl<Scn: AsScene> From<ConsoleEvent> for MovementEvent<Scn> {
 
         match ev {
             ConsoleEvent::Key(KeyEvent {
-                                  code, modifiers, ..
-                              }) => (key_code, key_modif) = (code, modifiers),
+                code, modifiers, ..
+            }) => (key_code, key_modif) = (code, modifiers),
             _ => return Self::None(PhantomData),
         };
 
@@ -58,7 +46,6 @@ impl<Scn: AsScene> From<ConsoleEvent> for MovementEvent<Scn> {
 
 impl<Scn: AsScene> AsEvent<Scn> for MovementEvent<Scn> {}
 
-
 pub struct MovementEventSys {
     step: f32,
     movement: [usize; 8],
@@ -68,11 +55,10 @@ impl MovementEventSys {
     pub fn new(step: f32) -> Self {
         Self {
             step,
-            movement: [0; 8]
+            movement: [0; 8],
         }
     }
 }
-
 
 impl<Scn: AsScene> AsEventSys<MovementEvent<Scn>, Scn> for MovementEventSys {
     fn push(&mut self, event: MovementEvent<Scn>) {

@@ -50,8 +50,9 @@ fn entity_list_get() {
         HypePlane::new(
             Entity::new(id.clone()),
             Point::new(vec![1.0, 1.0, 1.0]),
-            Vector::new(vec![1.0, 1.0, 1.0])
-        ).unwrap()
+            Vector::new(vec![1.0, 1.0, 1.0]),
+        )
+        .unwrap(),
     )));
     assert_eq!(
         list.get(&id).unwrap().borrow().collide(
@@ -98,12 +99,9 @@ fn plane_straight_collision() {
         Entity::new(id_pool.generate()),
         Point::new(vec![3.0, 0.0, 0.0]),
         Vector::new(vec![1.0, 0.0, 0.0]),
-    ).unwrap();
-    let dist = plane.collide(
-        &cs,
-        &Point::default(),
-        &Vector::new(vec![1.0, 0.0, 0.0]),
-    );
+    )
+    .unwrap();
+    let dist = plane.collide(&cs, &Point::default(), &Vector::new(vec![1.0, 0.0, 0.0]));
     assert_eq!(dist, 3.0);
 }
 
@@ -116,12 +114,9 @@ fn curve_plane_straight_collision() {
         Entity::new(id_pool.generate()),
         Point::new(vec![3.0, 0.0, 0.0]),
         Vector::new(vec![1.0, 1.0, 0.0]),
-    ).unwrap();
-    let dist = plane.collide(
-        &cs,
-        &Point::default(),
-        &Vector::new(vec![1.0, 0.0, 0.0]),
-    );
+    )
+    .unwrap();
+    let dist = plane.collide(&cs, &Point::default(), &Vector::new(vec![1.0, 0.0, 0.0]));
     assert_eq!(dist, 3.0);
 }
 
@@ -133,12 +128,9 @@ fn straight_plane_curve_collision() {
         Entity::new(id_pool.generate()),
         Point::new(vec![3.0, 0.0, 0.0]),
         Vector::new(vec![1.0, 0.0, 0.0]),
-    ).unwrap();
-    let dist = plane.collide(
-        &cs,
-        &Point::default(),
-        &Vector::new(vec![1.0, 1.0, 0.0]),
-    );
+    )
+    .unwrap();
+    let dist = plane.collide(&cs, &Point::default(), &Vector::new(vec![1.0, 1.0, 0.0]));
     assert_eq!(dist, 3.0);
 }
 
@@ -150,7 +142,8 @@ fn horizontal_plane_curve_collision() {
         Entity::new(id_pool.generate()),
         Point::default(),
         Vector::new(vec![0.0, 0.0, 1.0]),
-    ).unwrap();
+    )
+    .unwrap();
     let dist = plane.collide(
         &cs,
         &Point::new(vec![0.0, 0.0, 1.0]),
@@ -167,7 +160,8 @@ fn horizontal_plane_no_collision() {
         Entity::new(id_pool.generate()),
         Point::default(),
         Vector::new(vec![0.0, 0.0, 1.0]),
-    ).unwrap();
+    )
+    .unwrap();
     let dist = plane.collide(
         &cs,
         &Point::new(vec![0.0, 0.0, 1.0]),
@@ -186,7 +180,8 @@ fn hype_ellipse_sphere_collision() {
         Point::new(vec![3.0, 0.0, 0.0]),
         Basis::default(),
         vec![1.0, 2.0, 3.0],
-    ).unwrap();
+    )
+    .unwrap();
     let dist = ellipse.collide(&cs, &Point::default(), &Vector::new(vec![1.0, 0.0, 0.0]));
     assert_eq!(dist, 2.0);
 }
@@ -201,7 +196,8 @@ fn hype_ellipse_sphere_inception_collision() {
         Point::new(vec![3.0, 0.0, 0.0]),
         Basis::default(),
         vec![3.0, 3.0, 3.0],
-    ).unwrap();
+    )
+    .unwrap();
     let dist = ellipse.collide(&cs, &Point::default(), &Vector::new(vec![0.0, 1.0, 0.0]));
     assert_eq!(dist, 0.0);
 }
@@ -216,7 +212,8 @@ fn hype_ellipse_sphere_no_collision() {
         Point::new(vec![3.0, 0.0, 0.0]),
         Basis::default(),
         vec![2.0, 2.0, 2.0],
-    ).unwrap();
+    )
+    .unwrap();
     let dist = ellipse.collide(&cs, &Point::default(), &Vector::new(vec![1.0, 1.0, 0.0]));
     assert_eq!(dist, -1.0);
 }
@@ -231,7 +228,8 @@ fn hype_ellipse_hot_dog_collision() {
         Point::new(vec![3.0, 0.0, 0.0]),
         Basis::default(),
         vec![4.0, 1.0, 1.0],
-    ).unwrap();
+    )
+    .unwrap();
     let dist = ellipse.collide(&cs, &Point::default(), &Vector::new(vec![1.0, 0.0, 0.0]));
     assert_eq!(dist, 7.0);
 }
@@ -246,11 +244,13 @@ fn hype_ellipse_hot_dog_curve_collision() {
         Point::new(vec![3.0, 0.0, 0.0]),
         Basis::default(),
         vec![4.0, 1.0, 1.0],
-    ).unwrap();
+    )
+    .unwrap();
     let dist = ellipse.collide(
         &cs,
         &Point::new(vec![3.0, 2.0, 2.0]),
-        &Vector::new(vec![0.0, -1.0, -1.0]));
+        &Vector::new(vec![0.0, -1.0, -1.0]),
+    );
     assert_eq!(dist, (8.0_f64.sqrt() - 1.0) / 2.0_f64.sqrt());
 }
 
@@ -264,11 +264,13 @@ fn hype_ellipse_hot_dog_angled_collision() {
         Point::new(vec![3.0, 0.0, 0.0]),
         Basis::default(),
         vec![4.0, 1.0, 1.0],
-    ).unwrap();
+    )
+    .unwrap();
     let dist = ellipse.collide(
         &cs,
         &Point::new(vec![3.0, 1.0, 2.0]),
-        &Vector::new(vec![0.0, -1.0, -1.0]));
+        &Vector::new(vec![0.0, -1.0, -1.0]),
+    );
     assert_eq!(dist, 1.0);
 }
 
@@ -282,10 +284,12 @@ fn hype_ellipse_hot_dog_no_collision() {
         Point::new(vec![3.0, 0.0, 0.0]),
         Basis::default(),
         vec![4.0, 1.0, 1.0],
-    ).unwrap();
+    )
+    .unwrap();
     let dist = ellipse.collide(
         &cs,
         &Point::new(vec![3.0, 1.0, 2.0]),
-        &Vector::new(vec![0.0, -1.0, 1.0]));
+        &Vector::new(vec![0.0, -1.0, 1.0]),
+    );
     assert_eq!(dist, -1.0);
 }

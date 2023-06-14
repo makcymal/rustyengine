@@ -10,16 +10,10 @@ mod euclide;
 #[cfg(test)]
 mod test;
 
+use std::cmp::Ordering;
 use std::ops::{Add, MulAssign, Sub};
-use {
-    std::cmp::Ordering
-};
 
-pub use {
-    // matrix::Matrix,
-    // space::{Basis, CoordSys, Point, Vector},
-    euclide::*,
-};
+pub use euclide::*;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Sign {
@@ -35,7 +29,6 @@ pub(crate) fn pow_minus(x: usize) -> f32 {
         _ => unreachable!(),
     }
 }
-
 
 #[derive(Debug, PartialOrd, PartialEq, Clone, Copy)]
 pub struct Float(pub f32);
@@ -81,7 +74,6 @@ impl MulAssign<f32> for Float {
         self.0 *= rhs
     }
 }
-
 
 pub static mut EPSILON: f32 = f32::EPSILON;
 

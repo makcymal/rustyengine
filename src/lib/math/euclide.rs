@@ -1,9 +1,4 @@
-use {
-    std::{
-        ops::{Mul, Index, IndexMut}
-    },
-};
-
+use std::ops::{Index, IndexMut, Mul};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Matrix {
@@ -19,11 +14,7 @@ impl Matrix {
             angle = -angle;
         }
         let (s, c) = (angle.sin(), angle.cos());
-        let mut matrix = [
-            [1.0, 0.0, 0.0],
-            [0.0, 1.0, 0.0],
-            [0.0, 0.0, 1.0],
-        ];
+        let mut matrix = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
         matrix[from][from] = c;
         matrix[from][to] = -s;
         matrix[to][from] = s;
@@ -32,7 +23,6 @@ impl Matrix {
         Self { matrix }
     }
 }
-
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Vector {
@@ -67,8 +57,8 @@ impl Mul<&Vector> for &Matrix {
             coord: [
                 (0..3).map(|i| self.matrix[0][i] * rhs[i]).sum(),
                 (0..3).map(|i| self.matrix[1][i] * rhs[i]).sum(),
-                (0..3).map(|i| self.matrix[2][i] * rhs[i]).sum()
-            ]
+                (0..3).map(|i| self.matrix[2][i] * rhs[i]).sum(),
+            ],
         }
     }
 }
@@ -87,7 +77,6 @@ impl IndexMut<usize> for Vector {
     }
 }
 
-
 pub type Point = Vector;
 
 impl Point {
@@ -99,11 +88,7 @@ impl Point {
 
     pub fn df(&self, other: &Self) -> Vector {
         Vector {
-            coord: [
-                self[0] - other[0],
-                self[1] - other[1],
-                self[2] - other[2]
-            ]
+            coord: [self[0] - other[0], self[1] - other[1], self[2] - other[2]],
         }
     }
 }
@@ -113,7 +98,6 @@ impl Default for Point {
         Point::new([0.0; 3])
     }
 }
-
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Basis {
@@ -127,14 +111,10 @@ impl Basis {
             elems: [
                 Vector::new([1.0, 0.0, 0.0]),
                 Vector::new([0.0, 1.0, 0.0]),
-                Vector::new([0.0, 0.0, 1.0])
+                Vector::new([0.0, 0.0, 1.0]),
             ],
             inv: Some(Matrix {
-                matrix: [
-                    [1.0, 0.0, 0.0],
-                    [0.0, 1.0, 0.0],
-                    [0.0, 0.0, 1.0]
-                ]
+                matrix: [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]],
             }),
         }
     }
@@ -143,10 +123,22 @@ impl Basis {
         let e = &self.elems;
         self.inv = Some(Matrix {
             matrix: [
-                [e[1][1] * e[2][2] - e[2][1] * e[1][2], e[2][1] * e[0][2] - e[0][1] * e[2][2], e[0][1] * e[1][2] - e[1][1] * e[0][2]],
-                [e[2][0] * e[1][2] - e[1][0] * e[2][2], e[0][0] * e[2][2] - e[2][0] * e[0][2], e[1][0] * e[0][2] - e[0][0] * e[1][2]],
-                [e[1][0] * e[2][1] - e[2][0] * e[1][1], e[2][0] * e[0][1] - e[0][0] * e[2][1], e[0][0] * e[1][1] - e[1][0] * e[0][1]],
-            ]
+                [
+                    e[1][1] * e[2][2] - e[2][1] * e[1][2],
+                    e[2][1] * e[0][2] - e[0][1] * e[2][2],
+                    e[0][1] * e[1][2] - e[1][1] * e[0][2],
+                ],
+                [
+                    e[2][0] * e[1][2] - e[1][0] * e[2][2],
+                    e[0][0] * e[2][2] - e[2][0] * e[0][2],
+                    e[1][0] * e[0][2] - e[0][0] * e[1][2],
+                ],
+                [
+                    e[1][0] * e[2][1] - e[2][0] * e[1][1],
+                    e[2][0] * e[0][1] - e[0][0] * e[2][1],
+                    e[0][0] * e[1][1] - e[1][0] * e[0][1],
+                ],
+            ],
         })
     }
 
@@ -160,11 +152,7 @@ impl Mul<&Basis> for &Matrix {
 
     fn mul(self, rhs: &Basis) -> Self::Output {
         Basis {
-            elems: [
-                self * &rhs[0],
-                self * &rhs[1],
-                self * &rhs[2],
-            ],
+            elems: [self * &rhs[0], self * &rhs[1], self * &rhs[2]],
             inv: None,
         }
     }
